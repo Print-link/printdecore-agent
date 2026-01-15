@@ -98,6 +98,7 @@ export interface ClerkOrderItem {
   width: number;
   height: number;
   measurementUnit: string;
+  formulaType?: string;
   quantity: number;
   options: ClerkOrderItemOptions;
   selectedConfigDetails?: SelectedConfigDetails;

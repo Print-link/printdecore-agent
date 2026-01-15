@@ -86,9 +86,16 @@ export function OrderItemCard({
 					theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
 				}`}
 			>
-				<div className="truncate">
-					Size: {item.width} × {item.height} {item.measurementUnit}
+				<div className="flex items-center gap-1.5 font-medium">
+					<Tag size={12} className="opacity-70" />
+					<span>Size: {item.width} × {item.height} {item.measurementUnit}</span>
 				</div>
+                {item.formulaType && (
+                    <div className="flex items-center gap-1.5 font-medium">
+                        <Tag size={12} className="opacity-70" />
+                        <span>Pricing: {item.formulaType}</span>
+                    </div>
+                )}
 				<div>Quantity: {item.quantity}</div>
 				{!hasFlexibleOptions && (
 					<>

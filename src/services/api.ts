@@ -1,5 +1,4 @@
-/// <reference types="vite/client" />
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 import type {
 	User,
 	AuthResponse,
