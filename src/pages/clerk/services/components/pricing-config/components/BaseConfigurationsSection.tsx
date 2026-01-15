@@ -34,8 +34,8 @@ export function BaseConfigurationsSection({
           onClick={onAdd}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
             theme === 'dark'
-              ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20'
-              : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+              ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-900/20'
+              : 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20'
           }`}
         >
           <Plus size={14} />

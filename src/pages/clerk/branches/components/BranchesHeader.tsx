@@ -24,6 +24,7 @@ export function BranchesHeader({
           Branches
         </h1>
         <button
+          id="walkthrough-create-branch-btn"
           onClick={onCreateBranch}
           className="flex items-center gap-2 px-4 py-2 rounded-md bg-amber-400 hover:bg-amber-500 text-black cursor-pointer text-sm font-semibold transition-all"
         >

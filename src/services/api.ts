@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type {
 	User,
@@ -32,11 +33,11 @@ import type {
 	PricingConfig,
 	CreateServiceTemplateData,
 	UpdateServiceTemplateData,
+	BranchReview,
 } from "../types";
 
 const API_BASE_URL =
-	import.meta.env.VITE_API_BASE_URL ||
-	"https://paper-link-backend-production.up.railway.app/api";
+	import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 
 class ApiService {
 	private axiosInstance: AxiosInstance;
@@ -143,6 +144,7 @@ class ApiService {
 			branch_id: userData.branch_id || undefined, // Only for clerks
 			role: userData.role || role || "manager",
 			permissions: [],
+			verified: userData.verified ?? false,
 			// Note: business fields, location, and workingHours belong to branches, not users
 			isActive: userData.isActive !== undefined ? userData.isActive : true,
 			isTemporaryPassword: userData.isTemporaryPassword || false,
@@ -227,6 +229,7 @@ class ApiService {
 	// Helper method to transform backend response to unified User format
 	private transformToUser(userData: {
 		id: string;
+		verified?: boolean;
 		firstName?: string;
 		lastName?: string;
 		email: string;
@@ -651,6 +654,15 @@ class ApiService {
 		return response.data.data;
 	}
 
+	async getManagerOverviewReviews(limit?: number): Promise<BranchReview[]> {
+		const params = limit ? { limit } : {};
+		const response = await this.axiosInstance.get(
+			"/manager/dashboard/overview/reviews",
+			{ params }
+		);
+		return response.data.data;
+	}
+
 	async getManagerBranchStats(
 		branchId: string,
 		filters?: {
@@ -1040,14 +1052,17 @@ class ApiService {
 		id: string,
 		data: UpdateServiceTemplateData
 	): Promise<ServiceTemplate> {
-		const response = await this.axiosInstance.put(`/service-templates/${id}`, data);
+		const response = await this.axiosInstance.put(
+			`/service-templates/${id}`,
+			data
+		);
 		return response.data.data || response.data;
 	}
 
 	async deleteServiceTemplate(id: string): Promise<void> {
 		await this.axiosInstance.delete(`/service-templates/${id}`);
 	}
-
+	//eslint@typescript-eslint/no-explicit-any
 	async getPricingFormulas(): Promise<any[]> {
 		const response = await this.axiosInstance.get("/pricing-formulas");
 		return response.data.data || response.data;

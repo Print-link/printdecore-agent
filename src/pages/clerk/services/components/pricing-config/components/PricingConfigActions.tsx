@@ -53,10 +53,10 @@ export function PricingConfigActions({
           disabled={isSubmitting}
           className={`flex items-center gap-1.5 px-6 py-2 rounded-lg text-xs font-black transition-all ${
             isSubmitting
-              ? 'bg-blue-600/50 cursor-not-allowed'
+              ? 'bg-amber-500/50 cursor-not-allowed'
               : theme === 'dark'
-              ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 active:scale-95'
-              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 active:scale-95'
+              ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-900/20 active:scale-95'
+              : 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 active:scale-95'
           }`}
         >
           <CheckCircle size={14} />
