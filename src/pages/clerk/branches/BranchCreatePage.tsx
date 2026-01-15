@@ -271,6 +271,7 @@ export default function BranchCreatePage() {
 				<BranchFormStepper steps={STEPS} currentStep={currentStep} />
 
 				<div
+					id="walkthrough-branch-form"
 					className={`p-6 rounded-lg mb-6 ${
 						theme === "dark"
 							? "bg-gray-800 border border-gray-700"

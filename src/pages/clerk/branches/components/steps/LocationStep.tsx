@@ -1,6 +1,6 @@
-import { MapPin } from 'lucide-react';
 import { useTheme } from '../../../../../contexts/ThemeContext';
 import type { LocationFormData } from '../../hooks/useBranchForm';
+import { LeafletMapPicker } from './LeafletMapPicker';
 
 interface LocationStepProps {
   locationData: LocationFormData;
@@ -16,170 +16,138 @@ export function LocationStep({
   const { theme } = useTheme();
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className={`block text-sm font-medium mb-2 ${
-          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-        }`}>
-          Address *
-        </label>
-        <input
-          type="text"
-          value={locationData.address}
-          onChange={(e) => onLocationChange({ address: e.target.value })}
-          placeholder="Enter full address"
-          className={`w-full px-4 py-2 rounded-md border ${
-            theme === 'dark'
-              ? 'bg-gray-700 border-gray-600 text-gray-100'
-              : 'bg-white border-gray-300 text-gray-900'
-          } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-          required
-        />
-        {errors.address && (
-          <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+    <div className="space-y-6">
+      <div className={`p-4 rounded-xl border flex items-center gap-3 ${
+        theme === 'dark' ? 'bg-amber-400/10 border-amber-400/20' : 'bg-amber-50 border-amber-200'
+      }`}>
+        <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-amber-400/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <p className={`text-sm ${theme === 'dark' ? 'text-amber-200' : 'text-amber-800 font-medium'}`}>
+          Search for your branch address or click on the map to pinpoint its exact location.
+        </p>
+      </div>
+
+      <LeafletMapPicker
+        initialPosition={
+          locationData.latitude && locationData.longitude
+            ? { lat: locationData.latitude, lng: locationData.longitude }
+            : undefined
+        }
+        onLocationSelect={(data) => {
+          onLocationChange({
+            address: data.address,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            city: data.city || '',
+            state: data.state || '',
+            country: data.country || '',
+            postalCode: data.postalCode || '',
+          });
+        }}
+      />
+
+      <div className={`p-6 rounded-xl border ${
+        theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-gray-50 border-gray-200'
+      }`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${
+              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              Confirmed Address
+            </label>
+            <input
+              type="text"
+              value={locationData.address}
+              onChange={(e) => onLocationChange({ address: e.target.value })}
+              placeholder="Address will be populated from map..."
+              className={`w-full px-4 py-3 rounded-lg border text-sm transition-all shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gray-900 border-gray-600 text-gray-100 focus:bg-gray-800'
+                  : 'bg-white border-gray-300 text-gray-900 focus:bg-white'
+              } focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400`}
+              required
+            />
+            {errors.address && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>
+            )}
+          </div>
+
+          <div>
+            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${
+              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              Latitude
+            </label>
+            <input
+              type="number"
+              step="any"
+              value={locationData.latitude || ''}
+              readOnly
+              className={`w-full px-4 py-3 rounded-lg border text-sm shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gray-900/50 border-gray-700 text-gray-500'
+                  : 'bg-gray-100/50 border-gray-200 text-gray-400'
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${
+              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              Longitude
+            </label>
+            <input
+              type="number"
+              step="any"
+              value={locationData.longitude || ''}
+              readOnly
+              className={`w-full px-4 py-3 rounded-lg border text-sm shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-gray-900/50 border-gray-700 text-gray-500'
+                  : 'bg-gray-100/50 border-gray-200 text-gray-400'
+              }`}
+            />
+          </div>
+        </div>
+
+        {(locationData.city || locationData.state || locationData.country) && (
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {locationData.city && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">City</label>
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.city}</p>
+              </div>
+            )}
+            {locationData.state && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">State</label>
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.state}</p>
+              </div>
+            )}
+            {locationData.country && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">Country</label>
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.country}</p>
+              </div>
+            )}
+            {locationData.postalCode && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">Postcode</label>
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.postalCode}</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            City
-          </label>
-          <input
-            type="text"
-            value={locationData.city}
-            onChange={(e) => onLocationChange({ city: e.target.value })}
-            className={`w-full px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100'
-                : 'bg-white border-gray-300 text-gray-900'
-            } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-            placeholder="City"
-          />
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            State/Region
-          </label>
-          <input
-            type="text"
-            value={locationData.state}
-            onChange={(e) => onLocationChange({ state: e.target.value })}
-            className={`w-full px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100'
-                : 'bg-white border-gray-300 text-gray-900'
-            } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-            placeholder="State/Region"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Country
-          </label>
-          <input
-            type="text"
-            value={locationData.country}
-            onChange={(e) => onLocationChange({ country: e.target.value })}
-            className={`w-full px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100'
-                : 'bg-white border-gray-300 text-gray-900'
-            } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-            placeholder="Country"
-          />
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Postal Code
-          </label>
-          <input
-            type="text"
-            value={locationData.postalCode}
-            onChange={(e) => onLocationChange({ postalCode: e.target.value })}
-            className={`w-full px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100'
-                : 'bg-white border-gray-300 text-gray-900'
-            } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-            placeholder="Postal Code"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Latitude *
-          </label>
-          <input
-            type="number"
-            step="any"
-            value={locationData.latitude || ''}
-            onChange={(e) => onLocationChange({ latitude: parseFloat(e.target.value) || 0 })}
-            className={`w-full px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100'
-                : 'bg-white border-gray-300 text-gray-900'
-            } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-            placeholder="e.g., 5.6037"
-            required
-          />
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Longitude *
-          </label>
-          <input
-            type="number"
-            step="any"
-            value={locationData.longitude || ''}
-            onChange={(e) => onLocationChange({ longitude: parseFloat(e.target.value) || 0 })}
-            className={`w-full px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100'
-                : 'bg-white border-gray-300 text-gray-900'
-            } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-            placeholder="e.g., -0.1870"
-            required
-          />
-        </div>
-      </div>
-
-      <div className={`p-4 rounded-lg border ${
-        theme === 'dark' ? 'bg-gray-700/50 border-gray-600' : 'bg-amber-50/50 border-amber-200'
-      }`}>
-        <div className="flex items-start gap-2">
-          <MapPin className={`mt-0.5 ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`} size={16} />
-          <p className={`text-sm ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            <strong>Note:</strong> Enter the latitude and longitude coordinates for the branch location.
-            You can find these coordinates using Google Maps or other mapping services.
-          </p>
-        </div>
-      </div>
-
       {errors.location && (
-        <p className="text-red-500 text-sm">{errors.location}</p>
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p className="text-red-500 text-sm font-medium">{errors.location}</p>
+        </div>
       )}
     </div>
   );

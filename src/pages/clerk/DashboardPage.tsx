@@ -215,7 +215,7 @@ export default function DashboardPage() {
 				)}
 				{isManager && (managerOverview || managerBranch) && (
 					<ManagerStatsGrid
-						stats={(managerOverview || managerBranch)!.stats}
+						stats={((managerOverview || managerBranch)!.stats) as any}
 						isLoading={isLoading}
 						isBranchView={!!selectedBranch}
 					/>

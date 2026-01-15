@@ -15,6 +15,8 @@ import {
 	Save,
 	X,
 	Key,
+	CheckCircle,
+	InfoIcon,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -318,17 +320,33 @@ export default function ProfilePage() {
 									theme === "dark" ? "border-gray-700" : "border-gray-200"
 								}`}
 							>
-								<div className="w-20 h-20 rounded-full bg-amber-400 flex items-center justify-center text-2xl font-bold text-gray-900">
+								<div className="w-20 h-20 rounded-full bg-amber-400 flex items-center justify-center text-2xl font-bold text-gray-900 relative">
 									{getInitials(user?.name || user?.firstName)}
+									{user?.verified ? (
+										<div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+											<CheckCircle className="text-blue-500 fill-blue-500/10" size={20} />
+										</div>
+									) : (
+										<div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+											<InfoIcon className="text-red-500 fill-red-500/10" size={20} />
+										</div>
+									)}
 								</div>
 								<div>
-									<h3
-										className={`text-2xl font-bold mb-1 ${
-											theme === "dark" ? "text-gray-100" : "text-gray-900"
-										}`}
-									>
-										{user?.name || user?.firstName || "User"}
-									</h3>
+									<div className="flex items-center gap-2 mb-1">
+										<h3
+											className={`text-2xl font-bold ${
+												theme === "dark" ? "text-gray-100" : "text-gray-900"
+											}`}
+										>
+											{user?.name || user?.firstName || "User"}
+										</h3>
+										{user?.verified ? (
+											<CheckCircle className="text-blue-500 fill-blue-500/10" size={20} />
+										) : (
+											<InfoIcon className="text-red-500 fill-red-500/10" size={20} />
+										)}
+									</div>
 									<p
 										className={`text-sm flex items-center gap-2 ${
 											theme === "dark" ? "text-gray-400" : "text-gray-600"

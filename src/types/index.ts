@@ -9,20 +9,21 @@ export interface WorkingHour {
 }
 
 export interface User {
-  id: string;
-  name?: string; // Computed from firstName + lastName for backward compatibility
-  firstName?: string;
-  lastName?: string;
-  email: string;
-  role: UserRole;
-  permissions?: string[];
-  phoneNumber?: string;
-  avatar?: string;
-  branch_id?: string; // Only for clerks - the branch they belong to
-  isActive?: boolean;
-  isTemporaryPassword?: boolean;
-  createdAt: number | Date;
-  updatedAt: number | Date;
+	id: string;
+	name?: string; // Computed from firstName + lastName for backward compatibility
+	firstName?: string;
+	lastName?: string;
+	email: string;
+	role: UserRole;
+	permissions?: string[];
+	phoneNumber?: string;
+	avatar?: string;
+	verified?: boolean;
+	branch_id?: string; // Only for clerks - the branch they belong to
+	isActive?: boolean;
+	isTemporaryPassword?: boolean;
+	createdAt: number | Date;
+	updatedAt: number | Date;
 }
 
 export interface LoginCredentials {
@@ -105,15 +106,16 @@ export interface ClerkOrderItem {
 }
 
 export interface ClerkOrder {
-  id: string;
-  orderNumber: string;
-  status: OrderStatus;
-  totalPrice: number;
-  client: ClerkOrderClient;
-  itemCount: number;
-  estimatedCompletionTime?: string | Date;
-  createdAt: string | Date;
-  updatedAt: string | Date;
+	id: string;
+	orderNumber: string;
+	status: OrderStatus;
+	totalPrice: number;
+	client: ClerkOrderClient;
+	itemCount: number;
+	estimatedCompletionTime?: string | Date;
+	comment?: string;
+	createdAt: string | Date;
+	updatedAt: string | Date;
 }
 
 export interface ClerkOrderDetail extends ClerkOrder {
@@ -186,6 +188,20 @@ export interface ManagerBranchStats {
   thisMonthRevenue: number;
   thisWeekOrders: number;
   thisWeekRevenue: number;
+  averageRating: number;
+  reviewCount: number;
+}
+
+export interface BranchReview {
+  id: string;
+  branchId: string;
+  branchName: string;
+  customerId: string;
+  customerName: string;
+  avatar?: string;
+  rating: number;
+  review?: string;
+  createdAt: string | Date;
 }
 
 export interface CategoryAnalytics {
@@ -311,41 +327,45 @@ export interface ServiceSubCategory {
 }
 
 export interface ServiceTemplate {
-  id: string;
-  subCategoryId: string;
-  name: string;
-  measurementUnit: 'FEET' | 'INCH' | 'UNIT';
-  allowsCustomSize: boolean;
-  supportsFrontBack: boolean;
-  supportsColor: boolean;
-  supportsPrintCut: boolean;
-  pricingFormulaId: string;
-  branchId?: string;
-  description?: string;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+	id: string;
+	subCategoryId: string;
+	name: string;
+	measurementUnit: "FEET" | "INCH" | "UNIT";
+	allowsCustomSize: boolean;
+	supportsFrontBack: boolean;
+	supportsColor: boolean;
+	supportsPrintCut: boolean;
+	pricingFormulaId: string;
+	branchId?: string;
+	description?: string;
+	pricingConfig?: PricingConfig;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
 }
 
 export interface CreateServiceTemplateData {
-  subCategoryId: string;
-  name: string;
-  measurementUnit: 'FEET' | 'INCH' | 'UNIT';
-  allowsCustomSize?: boolean;
-  supportsFrontBack?: boolean;
-  supportsColor?: boolean;
-  supportsPrintCut?: boolean;
-  pricingFormulaId: string;
-  branchId?: string;
+	subCategoryId: string;
+	name: string;
+	measurementUnit: "FEET" | "INCH" | "UNIT";
+	allowsCustomSize?: boolean;
+	supportsFrontBack?: boolean;
+	supportsColor?: boolean;
+	supportsPrintCut?: boolean;
+	pricingFormulaId: string;
+	branchId?: string;
+	pricingConfig?: PricingConfig;
 }
 
 export interface UpdateServiceTemplateData {
-  name?: string;
-  measurementUnit?: 'FEET' | 'INCH' | 'UNIT';
-  allowsCustomSize?: boolean;
-  supportsFrontBack?: boolean;
-  supportsColor?: boolean;
-  supportsPrintCut?: boolean;
-  pricingFormulaId?: string;
+	name?: string;
+	measurementUnit?: "FEET" | "INCH" | "UNIT";
+	allowsCustomSize?: boolean;
+	supportsFrontBack?: boolean;
+	supportsColor?: boolean;
+	supportsPrintCut?: boolean;
+	pricingFormulaId?: string;
+	branchId?: string;
+	pricingConfig?: PricingConfig;
 }
 
 // Flexible Pricing Configuration Types

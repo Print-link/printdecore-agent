@@ -24,6 +24,8 @@ import {
 	XCircle,
 } from "lucide-react";
 import { BranchSelector } from "../components/shared/BranchSelector";
+import { useWalkthroughStore } from '../stores/walkthroughStore';
+import { WalkthroughTooltip } from '../components/shared/WalkthroughTooltip';
 
 export default function ClerkLayout() {
 	const { user, logout } = useAuthStore();
@@ -35,10 +37,29 @@ export default function ClerkLayout() {
 	const location = useLocation();
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+	const { currentStep, isActive, startWalkthrough, setStep } = useWalkthroughStore();
 
 	const isManager = user?.role === "manager";
 	const isClerk = user?.role === "clerk";
 	const hasBranchSelected = Boolean(selectedBranch);
+
+	// Start walkthrough on login for managers
+	useEffect(() => {
+		if (user && isManager) {
+			startWalkthrough();
+		}
+	}, [user, isManager, startWalkthrough]);
+
+	// Sync walkthrough step with URL for smoother experience
+	useEffect(() => {
+		if (!isActive) return;
+
+		if (location.pathname === '/clerk/branches' && currentStep === 'sidebar-branches') {
+			setStep('branches-create');
+		} else if (location.pathname === '/clerk/branches/create' && currentStep === 'branches-create') {
+			setStep('create-branch-form');
+		}
+	}, [location.pathname, isActive, currentStep, setStep]);
 
 	// Determine which branch_id to use for fetching orders
 	const branchIdForOrders = isClerk ? user?.branch_id : selectedBranch?.id;
@@ -274,6 +295,7 @@ export default function ClerkLayout() {
 						return (
 							<button
 								key={item.path}
+								id={item.label === 'Branches' ? 'walkthrough-branches-nav' : undefined}
 								onClick={() => navigate(item.path)}
 								className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all relative ${
 									isActive
@@ -447,6 +469,40 @@ export default function ClerkLayout() {
 					<Outlet />
 				</main>
 			</div>
+
+			{/* Walkthrough Tooltips */}
+			{isManager && (
+				<>
+					<WalkthroughTooltip 
+						step="welcome"
+						targetId="walkthrough-dashboard-welcome"
+						title="Welcome, Manager!"
+						content="Let's get you started by setting up your first branch. This dashboard will show you high-level analytics for all your locations."
+						position="bottom"
+					/>
+					<WalkthroughTooltip 
+						step="sidebar-branches"
+						targetId="walkthrough-branches-nav"
+						title="Manage Your Branches"
+						content="Click here to view, edit, or create new branches for your business."
+						position="right"
+					/>
+					<WalkthroughTooltip 
+						step="branches-create"
+						targetId="walkthrough-create-branch-btn"
+						title="Create Your First Branch"
+						content="Click this button to start the guided process of setting up a new branch for your business."
+						position="left"
+					/>
+					<WalkthroughTooltip 
+						step="create-branch-form"
+						targetId="walkthrough-branch-form"
+						title="Setup Made Easy"
+						content="Our smooth multi-step process helps you set up everything from basic info to operating hours in no time."
+						position="top"
+					/>
+				</>
+			)}
 		</div>
 	);
 }

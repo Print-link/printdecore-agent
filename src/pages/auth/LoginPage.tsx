@@ -5,7 +5,10 @@ import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import type { UserRole } from "../../types";
-import printAgentLogo from "../../assets/images/printAgentLogo.png";
+// import printAgentLogo from "../../assets/images/printAgentLogo.png";
+// import printAgentLogoDark from "../../assets/images/paperlink-dark.svg";
+// import printAgentLogoLight from "../../assets/images/paperlink-light.svg";
+import logo from "../../assets/images/LogoArt.png";
 
 export default function LoginPage() {
 	const navigate = useNavigate();
@@ -52,16 +55,19 @@ export default function LoginPage() {
 					: "bg-gradient-to-br from-white to-gray-50"
 			}`}
 		>
-			<div className="w-full max-w-md space-y-8">
+			<div className="w-full max-w-md space-y-8 mt-8">
 				{/* Logo Section */}
-				<div className="flex justify-center">
-					<div className="w-64 h-auto">
+				<div className="flex relative justify-center">
+					<div className="w-64 absolute -top-20 h-auto">
 						<img
-							src={printAgentLogo}
-							alt="Print Agent Logo"
+							src={logo}
+							alt="PaperLink Logo"
 							className="w-full h-auto object-contain"
 						/>
 					</div>
+				</div>
+				<div className="flex items-center font-sans justify-center">
+					<span className="text-sm text-gray-500">Welcom to Printdecore Printer Management System</span>
 				</div>
 
 				{/* Form Section */}

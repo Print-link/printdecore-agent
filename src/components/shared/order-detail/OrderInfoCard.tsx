@@ -111,6 +111,26 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 				</div>
 			)}
 
+			{/* Show comment if present */}
+			{order.comment && (
+				<div
+					className={`mb-3 p-3 rounded-md border ${
+						theme === 'dark' 
+							? 'bg-gray-800/50 border-gray-700 text-gray-300' 
+							: 'bg-gray-50 border-gray-200 text-gray-700'
+					}`}
+				>
+					<p
+						className={`text-xs font-semibold mb-1.5 ${
+							theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+						}`}
+					>
+						Customer Comment:
+					</p>
+					<p className="text-sm whitespace-pre-wrap">{order.comment}</p>
+				</div>
+			)}
+
 			<div className="flex items-center justify-between">
 				<div>
 					<p

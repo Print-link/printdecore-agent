@@ -23,7 +23,7 @@ export function PricingConfigHeader({ agentService, theme, onClose }: PricingCon
           {agentService.serviceTemplate?.name || 'Configure Service'}
         </h2>
         <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
-          theme === 'dark' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'
+          theme === 'dark' ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'
         }`}>
           Editing
         </span>
