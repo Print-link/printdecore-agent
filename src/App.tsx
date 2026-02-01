@@ -26,6 +26,7 @@ const SettingsPage = lazy(() => import('./pages/clerk/SettingsPage'));
 const UserManagementPage = lazy(() => import('./pages/clerk/UserManagementPage'));
 const ServicesPage = lazy(() => import('./pages/clerk/ServicesPage'));
 const BranchCreatePage = lazy(() => import('./pages/clerk/branches/BranchCreatePage'));
+const MessagesPage = lazy(() => import('./pages/clerk/MessagesPage'));
 
 import { queryClient } from './lib/queryClient';
 
@@ -150,6 +151,7 @@ function App() {
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="user-management" element={<UserManagementPage />} />
+                  <Route path="messages" element={<MessagesPage />} />
                 </Route>
                 <Route path="/" element={<Navigate to="/clerk/dashboard" replace />} />
               </Routes>

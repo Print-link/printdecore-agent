@@ -22,10 +22,12 @@ import {
 	Sun,
 	LogOut,
 	XCircle,
+	MessageCircle,
 } from "lucide-react";
 import { BranchSelector } from "../components/shared/BranchSelector";
 import { useWalkthroughStore } from '../stores/walkthroughStore';
 import { WalkthroughTooltip } from '../components/shared/WalkthroughTooltip';
+import { useWhatsAppStore } from '../stores/whatsappStore';
 
 export default function ClerkLayout() {
 	const { user, logout } = useAuthStore();
@@ -38,6 +40,7 @@ export default function ClerkLayout() {
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 	const { currentStep, isActive, startWalkthrough, setStep } = useWalkthroughStore();
+	const { chats, isConnected } = useWhatsAppStore();
 
 	const isManager = user?.role === "manager";
 	const isClerk = user?.role === "clerk";
@@ -177,6 +180,17 @@ export default function ClerkLayout() {
 			});
 		}
 
+		// 3. Messages - Available when WhatsApp is connected
+		const unreadMessagesCount = isConnected
+			? chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
+			: 0;
+		items.push({
+			path: "/clerk/messages",
+			label: "Messages",
+			icon: MessageCircle,
+			badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
+		});
+
 		// 5. Overview - Manager only when no branch selected (high-level analytics)
 		if (isManager && !hasBranchSelected) {
 			items.push({
@@ -228,7 +242,7 @@ export default function ClerkLayout() {
 		});
 
 		return items;
-	}, [isManager, isClerk, hasBranchSelected, pendingAndPaidCount]);
+	}, [isManager, isClerk, hasBranchSelected, pendingAndPaidCount, isConnected, chats]);
 
 	const handleLogout = async () => {
 		await logout();

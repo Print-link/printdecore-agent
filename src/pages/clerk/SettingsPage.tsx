@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { Printer, Palette, Volume2, Play } from 'lucide-react';
+import { Printer, Palette, Volume2, Play, MessageCircle } from 'lucide-react';
 import StatusPage from './StatusPage';
+import { useWhatsAppStore } from '../../stores/whatsappStore';
+import QRCode from 'qrcode';
 
-type SettingsTab = 'printers' | 'ui' | 'sounds';
+type SettingsTab = 'printers' | 'ui' | 'sounds' | 'whatsapp';
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -20,6 +22,26 @@ export default function SettingsPage() {
     playSound,
   } = useSettings();
   const [activeTab, setActiveTab] = useState<SettingsTab>('printers');
+  
+  const {
+    isConnected,
+    isConnecting,
+    qrCode,
+    error,
+    connect,
+    disconnect,
+  } = useWhatsAppStore();
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (qrCode) {
+      QRCode.toDataURL(qrCode, { width: 300, margin: 2 })
+        .then((url) => setQrImageUrl(url))
+        .catch((err) => console.error('Error generating QR code:', err));
+    } else {
+      setQrImageUrl(null);
+    }
+  }, [qrCode]);
 
   const settingsTabs = [
     {
@@ -36,6 +58,11 @@ export default function SettingsPage() {
       id: 'sounds' as SettingsTab,
       label: 'Sounds',
       icon: Volume2,
+    },
+    {
+      id: 'whatsapp' as SettingsTab,
+      label: 'WhatsApp',
+      icon: MessageCircle,
     },
   ];
 
@@ -450,6 +477,171 @@ export default function SettingsPage() {
                   Test Sound
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'whatsapp' && (
+          <div>
+            <div className="mb-6">
+              <h1 className={`text-2xl font-semibold mb-2 ${
+                theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+              }`}>
+                WhatsApp Integration
+              </h1>
+              <p className={`text-sm ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Connect your WhatsApp account to send and receive messages
+              </p>
+            </div>
+
+            <div className="space-y-6 max-w-2xl">
+              {/* Connection Status */}
+              <div className={`p-4 rounded-lg border ${
+                theme === 'dark' 
+                  ? 'bg-gray-800 border-gray-700' 
+                  : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Connection Status
+                    </label>
+                    <p className={`text-xs mt-1 ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
+                    </p>
+                  </div>
+                  <div className={`w-3 h-3 rounded-full ${
+                    isConnected 
+                      ? 'bg-green-500' 
+                      : isConnecting 
+                      ? 'bg-yellow-500 animate-pulse' 
+                      : 'bg-gray-400'
+                  }`} />
+                </div>
+
+                {error && (
+                  <div className={`mb-4 p-3 rounded-md text-sm ${
+                    theme === 'dark'
+                      ? 'bg-red-900/30 text-red-400 border border-red-800'
+                      : 'bg-red-50 text-red-600 border border-red-200'
+                  }`}>
+                    {error}
+                  </div>
+                )}
+
+                {!isConnected && !isConnecting && (
+                  <button
+                    onClick={connect}
+                    className={`w-full px-4 py-2 rounded-md transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-amber-400 hover:bg-amber-500 text-gray-900 font-medium'
+                        : 'bg-amber-400 hover:bg-amber-500 text-gray-900 font-medium'
+                    }`}
+                  >
+                    Connect WhatsApp
+                  </button>
+                )}
+
+                {isConnecting && qrImageUrl && (
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <p className={`text-sm mb-2 font-medium ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Scan QR Code with WhatsApp
+                      </p>
+                      <p className={`text-xs mb-4 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        1. Open WhatsApp on your phone<br />
+                        2. Tap Menu or Settings and select Linked Devices<br />
+                        3. Tap Link a Device<br />
+                        4. Point your phone at this screen to capture the code
+                      </p>
+                      <div className="flex justify-center p-4 bg-white rounded-lg">
+                        <img 
+                          src={qrImageUrl} 
+                          alt="QR Code" 
+                          className="w-64 h-64 border-2 border-gray-200 rounded-lg"
+                        />
+                      </div>
+                      <p className={`text-xs mt-2 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        QR code will refresh automatically if it expires
+                      </p>
+                    </div>
+                    <button
+                      onClick={disconnect}
+                      className={`w-full px-4 py-2 rounded-md transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      Cancel Connection
+                    </button>
+                  </div>
+                )}
+
+                {isConnecting && !qrImageUrl && (
+                  <div className="text-center py-8">
+                    <div className={`inline-block animate-spin rounded-full h-8 w-8 border-b-2 ${
+                      theme === 'dark' ? 'border-amber-400' : 'border-amber-600'
+                    }`}></div>
+                    <p className={`text-sm mt-4 ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Initializing WhatsApp connection...
+                    </p>
+                  </div>
+                )}
+
+                {isConnected && (
+                  <button
+                    onClick={disconnect}
+                    className={`w-full px-4 py-2 rounded-md transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-800'
+                        : 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200'
+                    }`}
+                  >
+                    Disconnect WhatsApp
+                  </button>
+                )}
+              </div>
+
+              {isConnected && (
+                <div className={`p-4 rounded-lg border ${
+                  theme === 'dark' 
+                    ? 'bg-green-900/20 border-green-700' 
+                    : 'bg-green-50 border-green-200'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5 ${
+                      theme === 'dark' ? 'bg-green-400' : 'bg-green-500'
+                    } animate-pulse`}></div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium mb-1 ${
+                        theme === 'dark' ? 'text-green-300' : 'text-green-700'
+                      }`}>
+                        WhatsApp Connected
+                      </p>
+                      <p className={`text-xs ${
+                        theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                      }`}>
+                        Your WhatsApp is connected. You can now send and receive messages from the Messages tab.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -36,7 +36,7 @@ import type {
 } from "../types";
 
 const API_BASE_URL =
-	import.meta.env.VITE_API_BASE_URL || "https://api.printdecore.com/api";
+	import.meta.env.VITE_API_BASE_URL ||/* "https://api.printdecore.com/api" || */"http://localhost:4000/api";
 
 class ApiService {
 	private axiosInstance: AxiosInstance;
@@ -1147,6 +1147,69 @@ class ApiService {
 			{ pricingConfig }
 		);
 		return response.data.data || response.data;
+	}
+
+	// WhatsApp API Methods
+	// Based on whatsapp-web.js documentation: https://docs.wwebjs.dev/
+	async connectWhatsApp(): Promise<{ connected: boolean; qrCode?: string; message?: string }> {
+		const response = await this.axiosInstance.post("/whatsapp/connect");
+		return response.data;
+	}
+
+	async disconnectWhatsApp(): Promise<void> {
+		await this.axiosInstance.post("/whatsapp/disconnect");
+	}
+
+	async getWhatsAppStatus(): Promise<{ connected: boolean; connecting?: boolean; qrCode?: string }> {
+		const response = await this.axiosInstance.get("/whatsapp/status");
+		return response.data;
+	}
+
+	async getWhatsAppChats(): Promise<Array<{
+		id: string;
+		name: string;
+		unreadCount: number;
+		lastMessage?: { body: string; timestamp: number };
+		isGroup: boolean;
+		pictureUrl?: string;
+	}>> {
+		const response = await this.axiosInstance.get("/whatsapp/chats");
+		return response.data.chats || [];
+	}
+
+	async getWhatsAppChatMessages(
+		chatId: string,
+		limit: number = 50
+	): Promise<Array<{
+		id: string;
+		from: string;
+		to: string;
+		body: string;
+		timestamp: number;
+		isFromMe: boolean;
+		hasMedia: boolean;
+		mediaUrl?: string;
+		contactName?: string;
+	}>> {
+		const response = await this.axiosInstance.get(
+			`/whatsapp/chats/${chatId}/messages`,
+			{ params: { limit } }
+		);
+		return response.data.messages || [];
+	}
+
+	async sendWhatsAppMessage(
+		chatId: string,
+		message: string
+	): Promise<{ success: boolean; sentMessage?: any }> {
+		const response = await this.axiosInstance.post(`/whatsapp/chats/${chatId}/messages`, {
+			message,
+		});
+		return response.data;
+	}
+
+	async markWhatsAppChatAsRead(chatId: string): Promise<void> {
+		await this.axiosInstance.post(`/whatsapp/chats/${chatId}/read`);
 	}
 }
 
