@@ -39,6 +39,7 @@ export function useBranchImage() {
 
   return {
     imagePreview,
+    setImagePreview,
     fileInputRef,
     handleImageSelect,
     handleRemoveImage,

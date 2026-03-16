@@ -59,6 +59,8 @@ export interface WhatsAppMessage {
 	isFromMe: boolean;
 	hasMedia: boolean;
 	mediaUrl?: string;
+	mediaType?: string;
+	mediaFilename?: string;
 	contactName?: string;
 }
 
@@ -67,38 +69,53 @@ class WhatsAppService extends EventEmitter {
 	private isConnecting: boolean = false;
 	private chats: Map<string, WhatsAppChat> = new Map();
 	private messages: Map<string, WhatsAppMessage[]> = new Map();
-	private pollingInterval: ReturnType<typeof setInterval> | null = null;
-	private statusPollingInterval: ReturnType<typeof setInterval> | null = null;
 	private eventSource: EventSource | null = null;
+	private statusPollingTimer: ReturnType<typeof setTimeout> | null = null;
 	private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
 	private lastQrCode: string | null = null;
+	private sseConnected: boolean = false;
+
+	/** Only run initial status check once when authenticated */
+	private initialStatusChecked = false;
+	private initialStatusCheckPromise: Promise<void> | null = null;
 
 	constructor() {
 		super();
-		// Check initial connection status
-		this.checkInitialStatus();
 	}
 
 	/**
-	 * Check if WhatsApp is already connected when service initializes
+	 * Run initial status check once when we have an auth token.
 	 */
+	ensureInitialStatusChecked(): void {
+		if (this.initialStatusChecked || this.initialStatusCheckPromise) {
+			return;
+		}
+		if (typeof localStorage === 'undefined') return;
+		if (!localStorage.getItem('auth-token')) return;
+		this.initialStatusCheckPromise = this.checkInitialStatus().finally(() => {
+			this.initialStatusChecked = true;
+			this.initialStatusCheckPromise = null;
+		});
+	}
+
 	private async checkInitialStatus() {
 		try {
 			const response = await apiService.getWhatsAppStatus();
 			if (response.connected) {
 				this.isConnected = true;
 				this.emit('ready');
-				this.startPolling();
 				this.setupEventSource();
+				this.loadChats(); // One-time load, then SSE handles updates
 			} else if (response.qrCode) {
 				this.lastQrCode = response.qrCode;
 				this.emit('qr', response.qrCode);
 			}
 		} catch (error) {
-			// Silently fail on initial check - user might not have backend running
 			console.debug('Initial WhatsApp status check failed:', error);
 		}
 	}
+
+	// ─── Connect / Disconnect ───────────────────────────────────────────
 
 	async connect() {
 		if (this.isConnecting || this.isConnected) {
@@ -108,7 +125,7 @@ class WhatsAppService extends EventEmitter {
 		this.isConnecting = true;
 		this.emit('connecting');
 
-		// Set timeout for connection (5 minutes)
+		// 5 minute timeout
 		this.connectionTimeout = setTimeout(() => {
 			if (this.isConnecting) {
 				this.isConnecting = false;
@@ -118,8 +135,11 @@ class WhatsAppService extends EventEmitter {
 		}, 5 * 60 * 1000);
 
 		try {
+			// Set up SSE FIRST so we catch QR codes and ready events in real-time
+			this.setupEventSource();
+
 			const response = await apiService.connectWhatsApp();
-			
+
 			if (response.qrCode) {
 				this.lastQrCode = response.qrCode;
 				this.emit('qr', response.qrCode);
@@ -128,7 +148,8 @@ class WhatsAppService extends EventEmitter {
 			if (response.connected) {
 				this.handleConnected();
 			} else {
-				// Start polling for connection status with QR code refresh
+				// Poll status only as fallback for QR code updates
+				// (SSE already handles this, but poll as backup)
 				this.startStatusPolling();
 			}
 		} catch (error: any) {
@@ -143,18 +164,24 @@ class WhatsAppService extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Optimized status polling with exponential backoff and QR refresh
-	 */
-	private startStatusPolling() {
-		if (this.statusPollingInterval) {
-			return; // Already polling
+	async disconnect() {
+		try {
+			await apiService.disconnectWhatsApp();
+		} catch (error) {
+			console.error('Error disconnecting:', error);
 		}
 
+		this.cleanup();
+		this.emit('disconnected');
+	}
+
+	// ─── Status Polling (only during QR scan, not after connected) ──────
+
+	private startStatusPolling() {
+		if (this.statusPollingTimer) return;
+
 		let pollCount = 0;
-		const maxPolls = 120; // 10 minutes max (120 * 5s)
-		const baseInterval = 3000; // Start with 3 seconds
-		const maxInterval = 10000; // Max 10 seconds
+		const maxPolls = 60; // 5 minutes max
 
 		const poll = async () => {
 			if (!this.isConnecting || this.isConnected) {
@@ -164,54 +191,47 @@ class WhatsAppService extends EventEmitter {
 
 			try {
 				const response = await apiService.getWhatsAppStatus();
-				
+
 				if (response.connected) {
 					this.handleConnected();
 					this.stopStatusPolling();
 					return;
 				}
 
-				// Update QR code if it changed or expired
 				if (response.qrCode && response.qrCode !== this.lastQrCode) {
 					this.lastQrCode = response.qrCode;
 					this.emit('qr', response.qrCode);
 				}
 
 				pollCount++;
-				
-				// Continue polling with adaptive interval
 				if (pollCount < maxPolls) {
-					const interval = Math.min(
-						baseInterval + (pollCount * 50), // Gradually increase
-						maxInterval
-					);
-					this.statusPollingInterval = setTimeout(poll, interval);
+					// Poll every 5 seconds during QR scan
+					this.statusPollingTimer = setTimeout(poll, 5000);
 				} else {
 					this.isConnecting = false;
 					this.stopStatusPolling();
-					this.emit('auth_failure', 'Connection timeout. QR code may have expired. Please try again.');
+					this.emit('auth_failure', 'Connection timeout. QR code may have expired.');
 				}
 			} catch (error) {
-				pollCount++;
-				if (pollCount < maxPolls) {
-					// On error, use longer interval
-					this.statusPollingInterval = setTimeout(poll, maxInterval);
-				} else {
+				if ((error as any)?.response?.status === 401) {
 					this.isConnecting = false;
 					this.stopStatusPolling();
-					this.emit('error', error);
+					return;
+				}
+				pollCount++;
+				if (pollCount < maxPolls) {
+					this.statusPollingTimer = setTimeout(poll, 10000);
 				}
 			}
 		};
 
-		// Start polling immediately
 		poll();
 	}
 
 	private stopStatusPolling() {
-		if (this.statusPollingInterval) {
-			clearTimeout(this.statusPollingInterval);
-			this.statusPollingInterval = null;
+		if (this.statusPollingTimer) {
+			clearTimeout(this.statusPollingTimer);
+			this.statusPollingTimer = null;
 		}
 		if (this.connectionTimeout) {
 			clearTimeout(this.connectionTimeout);
@@ -219,141 +239,114 @@ class WhatsAppService extends EventEmitter {
 		}
 	}
 
+	// ─── SSE (Server-Sent Events) — the primary real-time transport ─────
+
+	private setupEventSource() {
+		if (this.eventSource) {
+			this.eventSource.close();
+		}
+
+		try {
+			const token = localStorage.getItem('auth-token');
+			if (!token) return;
+
+			const API_BASE_URL =
+				import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+			const url = `${API_BASE_URL}/whatsapp/events?token=${encodeURIComponent(token)}`;
+
+			this.eventSource = new EventSource(url);
+
+			this.eventSource.onopen = () => {
+				this.sseConnected = true;
+				console.debug('SSE connected');
+			};
+
+			this.eventSource.onmessage = (event) => {
+				try {
+					const data = JSON.parse(event.data);
+					this.handleSSEEvent(data);
+				} catch (error) {
+					console.error('Error parsing SSE data:', error);
+				}
+			};
+
+			this.eventSource.onerror = () => {
+				this.sseConnected = false;
+				// EventSource auto-reconnects — no polling fallback needed
+			};
+		} catch (error) {
+			console.warn('EventSource setup failed:', error);
+		}
+	}
+
+	private handleSSEEvent(data: any) {
+		switch (data.type) {
+			case 'qr':
+				if (data.qrCode) {
+					this.lastQrCode = data.qrCode;
+					this.emit('qr', data.qrCode);
+				}
+				break;
+
+			case 'ready':
+				this.handleConnected();
+				break;
+
+			case 'new_message': {
+				const chatMessages = this.messages.get(data.chatId) || [];
+				const exists = chatMessages.some(m => m.id === data.message.id);
+				if (!exists) {
+					chatMessages.push(data.message);
+					chatMessages.sort((a, b) => a.timestamp - b.timestamp);
+					this.messages.set(data.chatId, chatMessages);
+				}
+				this.emit('new_message', data.message, data.chatId);
+				break;
+			}
+
+			case 'chats_updated':
+				if (data.chats) {
+					const chatMap = new Map<string, WhatsAppChat>();
+					data.chats.forEach((chat: WhatsAppChat) => chatMap.set(chat.id, chat));
+					this.chats = chatMap;
+					this.emit('chats_updated', data.chats);
+				}
+				break;
+
+			case 'message_status':
+				this.emit('message_status', data);
+				break;
+
+			case 'disconnected':
+				this.isConnected = false;
+				this.emit('disconnected', data.reason || 'Connection lost');
+				break;
+
+			case 'connected':
+				// SSE connection established
+				break;
+		}
+	}
+
+	// ─── Connection State ───────────────────────────────────────────────
+
 	private handleConnected() {
 		this.isConnected = true;
 		this.isConnecting = false;
 		this.lastQrCode = null;
 		this.stopStatusPolling();
 		this.emit('ready');
-		this.startPolling();
-		this.setupEventSource();
-		// Load chats immediately
+
+		// Set up SSE if not already running
+		if (!this.eventSource || this.eventSource.readyState === EventSource.CLOSED) {
+			this.setupEventSource();
+		}
+
+		// Load chats once — SSE handles updates from here
 		this.loadChats();
 	}
 
-	private startPolling() {
-		// Poll for new messages and connection status
-		if (this.pollingInterval) {
-			clearInterval(this.pollingInterval);
-		}
-
-		this.pollingInterval = setInterval(async () => {
-			if (!this.isConnected) {
-				return;
-			}
-
-			try {
-				// Check connection status first
-				const status = await apiService.getWhatsAppStatus();
-				if (!status.connected) {
-					// Connection lost
-					this.isConnected = false;
-					this.emit('disconnected', 'Connection lost');
-					this.stopPolling();
-					return;
-				}
-
-				// Load chats to keep them up to date
-				await this.loadChats();
-			} catch (error) {
-				console.error('Error polling:', error);
-				// If it's an auth error, connection might be lost
-				if ((error as any)?.response?.status === 401) {
-					this.isConnected = false;
-					this.emit('disconnected', 'Authentication failed');
-					this.stopPolling();
-				}
-			}
-		}, 5000); // Poll every 5 seconds for more real-time updates
-	}
-
-	private stopPolling() {
-		if (this.pollingInterval) {
-			clearInterval(this.pollingInterval);
-			this.pollingInterval = null;
-		}
-	}
-
-	private setupEventSource() {
-		// Use Server-Sent Events for real-time updates if available
-		if (this.eventSource) {
-			this.eventSource.close();
-		}
-
-		try {
-			const token = localStorage.getItem("auth-token");
-			if (!token) {
-				console.warn('No auth token found, skipping EventSource setup');
-				return;
-			}
-			
-			const API_BASE_URL =
-				import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
-			// URL encode the token to handle special characters
-			const eventSourceUrl = `${API_BASE_URL}/whatsapp/events?token=${encodeURIComponent(token)}`;
-			
-			this.eventSource = new EventSource(eventSourceUrl);
-			
-			this.eventSource.onmessage = (event) => {
-				try {
-					const data = JSON.parse(event.data);
-					
-					if (data.type === 'new_message') {
-						// Add message to cache immediately (avoid duplicates)
-						const chatMessages = this.messages.get(data.chatId) || [];
-						const exists = chatMessages.some(m => m.id === data.message.id);
-						if (!exists) {
-							chatMessages.push(data.message);
-							// Sort by timestamp
-							chatMessages.sort((a, b) => a.timestamp - b.timestamp);
-							this.messages.set(data.chatId, chatMessages);
-						}
-						
-						this.emit('new_message', data.message, data.chatId);
-					} else if (data.type === 'chats_updated') {
-						// Update chats immediately from SSE
-						const chatMap = new Map<string, WhatsAppChat>();
-						data.chats.forEach((chat: WhatsAppChat) => {
-							chatMap.set(chat.id, chat);
-						});
-						this.chats = chatMap;
-						this.emit('chats_updated', data.chats);
-					} else if (data.type === 'ready') {
-						this.isConnected = true;
-						this.emit('ready');
-						this.loadChats();
-					} else if (data.type === 'disconnected') {
-						this.isConnected = false;
-						this.emit('disconnected', data.reason || 'Connection lost');
-						this.stopPolling();
-					} else if (data.type === 'qr') {
-						this.emit('qr', data.qrCode);
-					} else if (data.type === 'connected') {
-						// SSE connection established
-						console.log('SSE connection established');
-					}
-				} catch (error) {
-					console.error('Error parsing SSE data:', error);
-				}
-			};
-
-			this.eventSource.onerror = (error) => {
-				console.warn('EventSource error, falling back to polling:', error);
-				// EventSource will auto-reconnect, but we rely on polling as backup
-			};
-		} catch (error) {
-			console.warn('EventSource not available, using polling only:', error);
-		}
-	}
-
-	async disconnect() {
-		try {
-			await apiService.disconnectWhatsApp();
-		} catch (error) {
-			console.error('Error disconnecting:', error);
-		}
-
-		this.stopPolling();
+	private cleanup() {
 		this.stopStatusPolling();
 
 		if (this.eventSource) {
@@ -363,25 +356,21 @@ class WhatsAppService extends EventEmitter {
 
 		this.isConnected = false;
 		this.isConnecting = false;
+		this.sseConnected = false;
 		this.lastQrCode = null;
 		this.chats.clear();
 		this.messages.clear();
-		this.emit('disconnected');
 	}
 
+	// ─── Data Methods ───────────────────────────────────────────────────
+
 	async loadChats() {
-		if (!this.isConnected) {
-			return;
-		}
+		if (!this.isConnected) return;
 
 		try {
 			const chats = await apiService.getWhatsAppChats();
-			
 			const chatMap = new Map<string, WhatsAppChat>();
-			chats.forEach((chat) => {
-				chatMap.set(chat.id, chat);
-			});
-
+			chats.forEach((chat) => chatMap.set(chat.id, chat));
 			this.chats = chatMap;
 			this.emit('chats_updated', chats);
 		} catch (error) {
@@ -391,10 +380,18 @@ class WhatsAppService extends EventEmitter {
 	}
 
 	async getChats(): Promise<WhatsAppChat[]> {
-		if (!this.isConnected) {
-			return [];
+		if (!this.isConnected) return [];
+
+		// Return cached chats immediately (SSE keeps them fresh)
+		if (this.chats.size > 0) {
+			return Array.from(this.chats.values()).sort((a, b) => {
+				const aTime = a.lastMessage?.timestamp || 0;
+				const bTime = b.lastMessage?.timestamp || 0;
+				return bTime - aTime;
+			});
 		}
 
+		// First load
 		await this.loadChats();
 		return Array.from(this.chats.values()).sort((a, b) => {
 			const aTime = a.lastMessage?.timestamp || 0;
@@ -404,11 +401,9 @@ class WhatsAppService extends EventEmitter {
 	}
 
 	async getChatMessages(chatId: string, limit: number = 50, forceRefresh: boolean = false): Promise<WhatsAppMessage[]> {
-		if (!this.isConnected) {
-			return [];
-		}
+		if (!this.isConnected) return [];
 
-		// Check cache first (unless force refresh)
+		// Return cache (SSE adds new messages in real-time)
 		if (!forceRefresh && this.messages.has(chatId)) {
 			return this.messages.get(chatId) || [];
 		}
@@ -440,48 +435,28 @@ class WhatsAppService extends EventEmitter {
 		};
 
 		try {
-			// Optimistically add message to cache for immediate UI update
+			// Optimistic update
 			const chatMessages = this.messages.get(chatId) || [];
 			chatMessages.push(tempMessage);
 			this.messages.set(chatId, chatMessages);
 			this.emit('new_message', tempMessage, chatId);
 
-			// Send message to backend
 			const response = await apiService.sendWhatsAppMessage(chatId, message);
-			
-			// If backend returns the sent message, use it; otherwise reload
+
+			// Replace temp message with real one if returned
 			if (response && (response as any).sentMessage) {
-				// Replace temp message with real message
 				const realMessage = (response as any).sentMessage;
-				const updatedMessages = chatMessages.map(m => 
+				const updated = chatMessages.map(m =>
 					m.id === tempMessage.id ? realMessage : m
 				);
-				this.messages.set(chatId, updatedMessages);
+				this.messages.set(chatId, updated);
 				this.emit('new_message', realMessage, chatId);
-			} else {
-				// Reload messages to get the actual message from server
-				setTimeout(async () => {
-					try {
-						await this.getChatMessages(chatId, 50, true); // Force refresh
-					} catch (error) {
-						console.error('Error reloading messages:', error);
-					}
-				}, 300);
 			}
-
-			// Refresh chats list to update last message
-			setTimeout(async () => {
-				try {
-					await this.loadChats();
-				} catch (error) {
-					console.error('Error refreshing chats:', error);
-				}
-			}, 500);
+			// SSE will send chats_updated — no need to manually loadChats()
 
 			return true;
 		} catch (error) {
 			console.error('Error sending message:', error);
-			// Remove optimistic message on error
 			const chatMessages = this.messages.get(chatId) || [];
 			this.messages.set(chatId, chatMessages.filter(m => m.id !== tempMessage.id));
 			this.emit('error', error);
@@ -490,13 +465,16 @@ class WhatsAppService extends EventEmitter {
 	}
 
 	async markAsRead(chatId: string): Promise<void> {
-		if (!this.isConnected) {
-			return;
-		}
+		if (!this.isConnected) return;
 
 		try {
 			await apiService.markWhatsAppChatAsRead(chatId);
-			await this.loadChats(); // Refresh chats to update unread count
+			// Update local cache immediately instead of re-fetching
+			const chat = this.chats.get(chatId);
+			if (chat) {
+				chat.unreadCount = 0;
+				this.emit('chats_updated', Array.from(this.chats.values()));
+			}
 		} catch (error) {
 			console.error('Error marking as read:', error);
 		}

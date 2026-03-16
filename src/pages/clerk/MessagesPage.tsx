@@ -20,12 +20,7 @@ export default function MessagesPage() {
 
 	useEffect(() => {
 		if (isConnected) {
-			loadChats();
-			// Refresh chats more frequently for real-time feel
-			const interval = setInterval(() => {
-				loadChats();
-			}, 10000); // Every 10 seconds
-			return () => clearInterval(interval);
+			loadChats(); // Load once — SSE handles real-time updates
 		}
 	}, [isConnected, loadChats]);
 

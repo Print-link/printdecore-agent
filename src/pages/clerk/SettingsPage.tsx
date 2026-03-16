@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { Printer, Palette, Volume2, Play, MessageCircle } from 'lucide-react';
+import { Printer, Palette, Volume2, Play, MessageCircle, Store } from 'lucide-react';
 import StatusPage from './StatusPage';
 import { useWhatsAppStore } from '../../stores/whatsappStore';
+import { useAuthStore } from '../../stores/authStore';
+import { useBranchStore } from '../../stores/branchStore';
+import BranchInfoSettings from './settings/BranchInfoSettings';
 import QRCode from 'qrcode';
 
-type SettingsTab = 'printers' | 'ui' | 'sounds' | 'whatsapp';
+type SettingsTab = 'printers' | 'ui' | 'sounds' | 'whatsapp' | 'branch';
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuthStore();
+  const { selectedBranch } = useBranchStore();
   const {
     settings,
     setFontSize,
@@ -66,6 +71,15 @@ export default function SettingsPage() {
     },
   ];
 
+  // Add Branch Info tab for managers with a selected branch
+  if (user?.role === 'manager' && selectedBranch) {
+    settingsTabs.push({
+      id: 'branch' as SettingsTab,
+      label: 'Branch Info',
+      icon: Store,
+    });
+  }
+
   return (
     <div className={`flex h-full overflow-hidden ${
       theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
@@ -79,11 +93,11 @@ export default function SettingsPage() {
         <div className={`p-4 border-b ${
           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
         }`}>
-          <h2 className={`text-sm font-semibold uppercase tracking-wide ${
+          <h1 className={`text-sm font-semibold uppercase tracking-wide ${
             theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
           }`}>
             Settings
-          </h2>
+          </h1>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {settingsTabs.map((tab) => {
@@ -93,7 +107,7 @@ export default function SettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md mb-1 transition-all text-left ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md mb-1 transition-all text-left border-none cursor-pointer ${
                   isActive
                     ? theme === 'dark'
                       ? 'bg-amber-400/15 text-amber-400 font-medium'
@@ -116,11 +130,11 @@ export default function SettingsPage() {
         {activeTab === 'printers' && (
           <div>
             <div className="mb-6">
-              <h1 className={`text-2xl font-semibold mb-2 ${
+              <h2 className={`text-2xl font-semibold mb-2 ${
                 theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
               }`}>
                 Printer Status
-              </h1>
+              </h2>
               <p className={`text-sm ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -134,11 +148,11 @@ export default function SettingsPage() {
         {activeTab === 'ui' && (
           <div>
             <div className="mb-6">
-              <h1 className={`text-2xl font-semibold mb-2 ${
+              <h2 className={`text-2xl font-semibold mb-2 ${
                 theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
               }`}>
                 UI Preferences
-              </h1>
+              </h2>
               <p className={`text-sm ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -160,7 +174,7 @@ export default function SettingsPage() {
                 </label>
                 <button
                   onClick={toggleTheme}
-                  className={`px-4 py-2 rounded-md transition-colors ${
+                  className={`px-4 py-2 rounded-md transition-colors border-none cursor-pointer font-semibold ${
                     theme === 'dark'
                       ? 'bg-gray-700 hover:bg-gray-600 text-gray-100'
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
@@ -186,9 +200,9 @@ export default function SettingsPage() {
                     <button
                       key={size}
                       onClick={() => setFontSize(size)}
-                      className={`flex-1 px-4 py-2 rounded-md border transition-all ${
+                      className={`flex-1 px-4 py-2 rounded-md border transition-all cursor-pointer ${
                         settings.fontSize === size
-                          ? 'bg-amber-400 text-gray-900 border-amber-400 font-medium'
+                          ? 'bg-amber-400 text-gray-900 border-amber-400 font-bold'
                           : theme === 'dark'
                           ? 'bg-gray-700 border-gray-600 text-gray-300 hover:border-gray-500'
                           : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
@@ -223,9 +237,9 @@ export default function SettingsPage() {
                     <button
                       key={scale}
                       onClick={() => setUIScale(scale)}
-                      className={`flex-1 px-4 py-2 rounded-md border transition-all ${
+                      className={`flex-1 px-4 py-2 rounded-md border transition-all cursor-pointer ${
                         settings.uiScale === scale
-                          ? 'bg-amber-400 text-gray-900 border-amber-400 font-medium'
+                          ? 'bg-amber-400 text-gray-900 border-amber-400 font-bold'
                           : theme === 'dark'
                           ? 'bg-gray-700 border-gray-600 text-gray-300 hover:border-gray-500'
                           : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
@@ -250,7 +264,7 @@ export default function SettingsPage() {
               }`}>
                 <button
                   onClick={resetSettings}
-                  className={`w-full px-4 py-2 rounded-md border transition-colors ${
+                  className={`w-full px-4 py-2 rounded-md border transition-colors cursor-pointer font-bold ${
                     theme === 'dark'
                       ? 'bg-red-900/30 hover:bg-red-900/50 text-red-400 border-red-800'
                       : 'bg-red-50 hover:bg-red-100 text-red-600 border-red-200'
@@ -266,11 +280,11 @@ export default function SettingsPage() {
         {activeTab === 'sounds' && (
           <div>
             <div className="mb-6">
-              <h1 className={`text-2xl font-semibold mb-2 ${
+              <h2 className={`text-2xl font-semibold mb-2 ${
                 theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
               }`}>
                 Sound Settings
-              </h1>
+              </h2>
               <p className={`text-sm ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -300,7 +314,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={() => setSoundEnabled(!settings.sounds.enabled)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors border-none cursor-pointer ${
                       settings.sounds.enabled
                         ? 'bg-amber-400'
                         : theme === 'dark'
@@ -382,7 +396,7 @@ export default function SettingsPage() {
                   <button
                     onClick={() => setJobNotificationEnabled(!settings.sounds.jobNotificationEnabled)}
                     disabled={!settings.sounds.enabled}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors border-none cursor-pointer ${
                       !settings.sounds.enabled
                         ? 'opacity-50 cursor-not-allowed'
                         : ''
@@ -404,7 +418,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => playSound('job')}
                   disabled={!settings.sounds.enabled || !settings.sounds.jobNotificationEnabled}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors border-none cursor-pointer font-semibold ${
                     !settings.sounds.enabled || !settings.sounds.jobNotificationEnabled
                       ? 'opacity-50 cursor-not-allowed'
                       : ''
@@ -441,7 +455,7 @@ export default function SettingsPage() {
                   <button
                     onClick={() => setPaymentNotificationEnabled(!settings.sounds.paymentNotificationEnabled)}
                     disabled={!settings.sounds.enabled}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors border-none cursor-pointer ${
                       !settings.sounds.enabled
                         ? 'opacity-50 cursor-not-allowed'
                         : ''
@@ -463,7 +477,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => playSound('payment')}
                   disabled={!settings.sounds.enabled || !settings.sounds.paymentNotificationEnabled}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors border-none cursor-pointer font-semibold ${
                     !settings.sounds.enabled || !settings.sounds.paymentNotificationEnabled
                       ? 'opacity-50 cursor-not-allowed'
                       : ''
@@ -484,11 +498,11 @@ export default function SettingsPage() {
         {activeTab === 'whatsapp' && (
           <div>
             <div className="mb-6">
-              <h1 className={`text-2xl font-semibold mb-2 ${
+              <h2 className={`text-2xl font-semibold mb-2 ${
                 theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
               }`}>
                 WhatsApp Integration
-              </h1>
+              </h2>
               <p className={`text-sm ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}>
@@ -538,10 +552,10 @@ export default function SettingsPage() {
                 {!isConnected && !isConnecting && (
                   <button
                     onClick={connect}
-                    className={`w-full px-4 py-2 rounded-md transition-colors ${
+                    className={`w-full px-4 py-2 rounded-md transition-colors border-none cursor-pointer font-bold ${
                       theme === 'dark'
-                        ? 'bg-amber-400 hover:bg-amber-500 text-gray-900 font-medium'
-                        : 'bg-amber-400 hover:bg-amber-500 text-gray-900 font-medium'
+                        ? 'bg-amber-400 hover:bg-amber-500 text-gray-900'
+                        : 'bg-amber-400 hover:bg-amber-500 text-gray-900'
                     }`}
                   >
                     Connect WhatsApp
@@ -579,7 +593,7 @@ export default function SettingsPage() {
                     </div>
                     <button
                       onClick={disconnect}
-                      className={`w-full px-4 py-2 rounded-md transition-colors ${
+                      className={`w-full px-4 py-2 rounded-md transition-colors border-none cursor-pointer font-semibold ${
                         theme === 'dark'
                           ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                           : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -606,7 +620,7 @@ export default function SettingsPage() {
                 {isConnected && (
                   <button
                     onClick={disconnect}
-                    className={`w-full px-4 py-2 rounded-md transition-colors ${
+                    className={`w-full px-4 py-2 rounded-md transition-colors border-none cursor-pointer font-bold ${
                       theme === 'dark'
                         ? 'bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-800'
                         : 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200'
@@ -644,6 +658,10 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+        )}
+
+        {activeTab === 'branch' && (
+          <BranchInfoSettings />
         )}
       </div>
     </div>

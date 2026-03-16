@@ -29,6 +29,7 @@ interface WhatsAppState {
 	loadMessages: (chatId: string) => Promise<void>;
 	sendMessage: (chatId: string, message: string) => Promise<void>;
 	markAsRead: (chatId: string) => Promise<void>;
+	ensureStatusChecked: () => void;
 }
 
 export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
@@ -191,6 +192,10 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 			} catch (error: any) {
 				console.error('Failed to mark as read:', error);
 			}
+		},
+
+		ensureStatusChecked: () => {
+			whatsappService.ensureInitialStatusChecked();
 		},
 	};
 });

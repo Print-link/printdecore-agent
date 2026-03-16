@@ -32,19 +32,29 @@ export function BranchesList({
   }
 
   return (
-    <div
-      className={viewMode === 'grid' ? 'grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-3' : 'flex flex-col gap-3'}
-    >
-      {branches.map((branch) => (
-        <BranchCard
-          key={branch.id}
-          branch={branch}
-          viewMode={viewMode}
-          onClick={onBranchClick}
-          onEdit={onEditBranch}
-          onDelete={onDeleteBranch}
-        />
-      ))}
+    <div className={viewMode === 'grid' ? 'grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-3' : 'flex flex-col gap-0'}>
+      {viewMode === 'list' && branches.length > 0 && (
+        <div className={`hidden md:flex items-center px-6 py-4 text-[11px] font-bold uppercase tracking-[0.1em] border-b ${
+          theme === 'dark' ? 'text-gray-500 border-gray-700 bg-gray-800/60' : 'text-gray-400 border-gray-100 bg-gray-50/50'
+        }`}>
+          <div className="flex-[2.5] min-w-[280px]">Branch Details</div>
+          <div className="flex-1 min-w-[140px] md:text-center">Current Status</div>
+          <div className="flex-1 min-w-[160px] md:text-center">Registered Date</div>
+          <div className="flex-[1.5] min-w-[180px]"></div>
+        </div>
+      )}
+      <div className={viewMode === 'list' ? 'flex flex-col' : 'grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-3'}>
+        {branches.map((branch) => (
+          <BranchCard
+            key={branch.id}
+            branch={branch}
+            viewMode={viewMode}
+            onClick={onBranchClick}
+            onEdit={onEditBranch}
+            onDelete={onDeleteBranch}
+          />
+        ))}
+      </div>
     </div>
   );
 }

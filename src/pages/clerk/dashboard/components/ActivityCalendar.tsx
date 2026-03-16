@@ -1,156 +1,174 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
 interface ActivityCalendarProps {
-  calendarDates: Date[];
-  calendarMonthHeader: string;
-  calendarGridStart: number;
-  monthlyCountMap: Map<string, number>;
-  selectedDate: string;
-  calendarOffset: number;
-  onDateSelect: (date: string) => void;
-  onCalendarOffsetChange: (offset: number) => void;
-  onTodayClick: () => void;
+	calendarDates: Date[];
+	calendarMonthHeader: string;
+	calendarGridStart: number;
+	monthlyCountMap: Map<string, number>;
+	selectedDate: string;
+	calendarOffset: number;
+	onDateSelect: (date: string) => void;
+	onCalendarOffsetChange: (offset: number) => void;
+	onTodayClick: () => void;
 }
 
 export function ActivityCalendar({
-  calendarDates,
-  calendarMonthHeader,
-  calendarGridStart,
-  monthlyCountMap,
-  selectedDate,
-  calendarOffset = 0,
-  onDateSelect,
-  onCalendarOffsetChange,
-  onTodayClick,
+	calendarDates,
+	calendarMonthHeader,
+	calendarGridStart,
+	monthlyCountMap,
+	selectedDate,
+	calendarOffset = 0,
+	onDateSelect,
+	onCalendarOffsetChange,
+	onTodayClick,
 }: ActivityCalendarProps) {
-  const { theme } = useTheme();
+	const { theme } = useTheme();
+	const todayStr = new Date().toISOString().split('T')[0];
 
-  return (
-    <div className={`p-3 rounded-md border flex flex-col ${
-      theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-    }`}>
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-amber-500/20">
-            📅
-          </div>
-          <div className="flex-1">
-            <h3 className={`text-lg font-bold m-0 ${
-              theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-            }`}>
-              Activity Calendar
-            </h3>
-            <p className={`text-xs m-0 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {calendarMonthHeader || 'Job count by date'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onCalendarOffsetChange(calendarOffset + 1)}
-            className={`p-2 rounded-lg border text-base flex items-center justify-center transition-all ${
-              theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600'
-                : 'bg-gray-50 border-gray-300 text-gray-900 hover:bg-gray-100'
-            }`}
-            title="Go to previous period"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            onClick={onTodayClick}
-            disabled={calendarOffset === 0}
-            className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
-              calendarOffset === 0
-                ? theme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed opacity-60'
-                  : 'bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-                : theme === 'dark'
-                ? 'bg-amber-500 border-amber-500 text-black hover:bg-amber-600'
-                : 'bg-amber-400 border-amber-400 text-black hover:bg-amber-500'
-            }`}
-            title="Jump to today"
-          >
-            Today
-          </button>
-          <button
-            onClick={() => onCalendarOffsetChange(calendarOffset - 1)}
-            disabled={calendarOffset === 0}
-            className={`p-2 rounded-lg border text-base flex items-center justify-center transition-all ${
-              calendarOffset === 0
-                ? theme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed opacity-50'
-                  : 'bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed opacity-50'
-                : theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600'
-                : 'bg-gray-50 border-gray-300 text-gray-900 hover:bg-gray-100'
-            }`}
-            title="Go to next period"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-      {/* Weekday Headers */}
-      <div className="grid grid-cols-7 gap-2 mb-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div
-            key={day}
-            className="text-center text-[11px] font-semibold p-1"
-            style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
-          >
-            {day}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-2">
-        {/* Empty cells for days before the first day of the month */}
-        {Array.from({ length: calendarGridStart }).map((_, index) => (
-          <div key={`empty-${index}`} />
-        ))}
-        {calendarDates.map((date, index) => {
-          const dateStr = date.toISOString().split('T')[0];
-          const dayJobCount = monthlyCountMap.get(dateStr) || 0;
-          const isToday = dateStr === new Date().toISOString().split('T')[0];
-          const isSelected = dateStr === selectedDate;
+	return (
+		<div
+			className={`p-4 rounded-lg border flex flex-col ${
+				theme === 'dark'
+					? 'bg-gray-800 border-gray-700'
+					: 'bg-white border-gray-200'
+			}`}
+		>
+			{/* Header */}
+			<div className="flex items-center justify-between mb-4">
+				<div className="flex items-center gap-2">
+					<Calendar
+						size={14}
+						className={
+							theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+						}
+					/>
+					<h3
+						className={`text-sm font-semibold ${
+							theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+						}`}
+					>
+						{calendarMonthHeader || 'Activity'}
+					</h3>
+				</div>
+				<div className="flex items-center gap-1">
+					<button
+						onClick={() => onCalendarOffsetChange(calendarOffset + 1)}
+						className={`p-1.5 rounded transition-colors ${
+							theme === 'dark'
+								? 'hover:bg-gray-700 text-gray-400'
+								: 'hover:bg-gray-100 text-gray-500'
+						}`}
+					>
+						<ChevronLeft size={14} />
+					</button>
+					<button
+						onClick={onTodayClick}
+						disabled={calendarOffset === 0}
+						className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+							calendarOffset === 0
+								? theme === 'dark'
+									? 'text-gray-600 cursor-not-allowed'
+									: 'text-gray-300 cursor-not-allowed'
+								: theme === 'dark'
+									? 'text-gray-300 hover:bg-gray-700'
+									: 'text-gray-600 hover:bg-gray-100'
+						}`}
+					>
+						Today
+					</button>
+					<button
+						onClick={() => onCalendarOffsetChange(calendarOffset - 1)}
+						disabled={calendarOffset === 0}
+						className={`p-1.5 rounded transition-colors ${
+							calendarOffset === 0
+								? theme === 'dark'
+									? 'text-gray-700 cursor-not-allowed'
+									: 'text-gray-200 cursor-not-allowed'
+								: theme === 'dark'
+									? 'hover:bg-gray-700 text-gray-400'
+									: 'hover:bg-gray-100 text-gray-500'
+						}`}
+					>
+						<ChevronRight size={14} />
+					</button>
+				</div>
+			</div>
 
-          return (
-            <button
-              key={index}
-              onClick={() => onDateSelect(dateStr)}
-              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 relative ${
-                isSelected
-                  ? 'border-amber-400 bg-amber-400 text-black scale-105'
-                  : isToday
-                  ? 'border-transparent bg-amber-400/15 text-gray-900 dark:text-gray-100'
-                  : theme === 'dark'
-                  ? 'bg-gray-800 border-transparent text-gray-100 hover:bg-gray-700'
-                  : 'bg-white border-transparent text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-[11px] font-semibold uppercase opacity-80">
-                {date.toLocaleDateString('en-US', { weekday: 'short' })}
-              </span>
-              <span className="text-2xl font-bold">{date.getDate()}</span>
-              {dayJobCount > 0 && (
-                <span
-                  className={`rounded-xl px-2 py-0.5 text-[11px] font-bold mt-1 ${
-                    isSelected
-                      ? 'bg-black text-amber-400'
-                      : 'bg-amber-400 text-black'
-                  }`}
-                >
-                  {dayJobCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+			{/* Weekday headers */}
+			<div className="grid grid-cols-7 mb-1">
+				{['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+					<div
+						key={day}
+						className={`text-center text-[10px] font-medium py-1 ${
+							theme === 'dark' ? 'text-gray-600' : 'text-gray-300'
+						}`}
+					>
+						{day}
+					</div>
+				))}
+			</div>
+
+			{/* Date grid */}
+			<div className="grid grid-cols-7 gap-px">
+				{/* Empty cells before first day */}
+				{Array.from({ length: calendarGridStart }).map((_, i) => (
+					<div key={`empty-${i}`} className="aspect-square" />
+				))}
+
+				{calendarDates.map((date, index) => {
+					const dateStr = date.toISOString().split('T')[0];
+					const count = monthlyCountMap.get(dateStr) || 0;
+					const isToday = dateStr === todayStr;
+					const isSelected = dateStr === selectedDate;
+
+					return (
+						<button
+							key={index}
+							onClick={() => onDateSelect(dateStr)}
+							className={`aspect-square flex flex-col items-center justify-center rounded-md text-xs transition-colors relative ${
+								isSelected
+									? theme === 'dark'
+										? 'bg-gray-600 text-white'
+										: 'bg-gray-900 text-white'
+									: isToday
+										? theme === 'dark'
+											? 'bg-gray-700 text-gray-100'
+											: 'bg-gray-100 text-gray-900'
+										: theme === 'dark'
+											? 'text-gray-300 hover:bg-gray-750'
+											: 'text-gray-700 hover:bg-gray-50'
+							}`}
+						>
+							<span
+								className={`text-[11px] font-medium ${
+									isSelected
+										? 'text-white'
+										: isToday
+											? 'font-semibold'
+											: ''
+								}`}
+							>
+								{date.getDate()}
+							</span>
+							{count > 0 && (
+								<span
+									className={`text-[8px] font-semibold mt-0.5 ${
+										isSelected
+											? 'text-gray-300'
+											: theme === 'dark'
+												? 'text-gray-500'
+												: 'text-gray-400'
+									}`}
+								>
+									{count}
+								</span>
+							)}
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
 }
-

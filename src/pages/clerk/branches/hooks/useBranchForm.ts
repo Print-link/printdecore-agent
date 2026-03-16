@@ -122,8 +122,11 @@ export function useBranchForm() {
     updateFormData,
     updateLocationData,
     updateOperatingHours,
+    setFormData,
+    setLocationData,
     setOperatingHours,
     validateStep,
+    validateAll: () => validateStep(1) && validateStep(2) && validateStep(3),
     resetErrors,
   };
 }

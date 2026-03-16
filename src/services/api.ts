@@ -710,12 +710,21 @@ class ApiService {
 		const response = await this.axiosInstance.get(
 			`/branches/manager/${managerId}`
 		);
-		return response.data.data;
+		return response.data.data.map((b: any) => this.transformBranch(b));
 	}
 
 	async getBranchById(branchId: string): Promise<Branch> {
 		const response = await this.axiosInstance.get(`/branches/${branchId}`);
-		return response.data.data;
+		return this.transformBranch(response.data.data);
+	}
+
+	private transformBranch(branch: any): Branch {
+		if (!branch) return branch;
+		return {
+			...branch,
+			branchEmailAddress: branch.branchEmailAddress || branch.email,
+			branchCoverImage: branch.branchCoverImage || branch.coverImage,
+		};
 	}
 
 	async createBranch(
@@ -768,8 +777,43 @@ class ApiService {
 
 	async updateBranch(
 		branchId: string,
-		branchData: Partial<Omit<Branch, "id" | "createdAt" | "updatedAt">>
+		branchData: Partial<Omit<Branch, "id" | "createdAt" | "updatedAt">> & { location?: any },
+		coverImageFile?: File
 	): Promise<Branch> {
+		if (coverImageFile || (branchData.branchCoverImage as any) instanceof File) {
+			const formData = new FormData();
+
+			// Add file
+			if (coverImageFile) formData.append("branchCoverImage", coverImageFile);
+            else if (branchData.branchCoverImage) formData.append("branchCoverImage", branchData.branchCoverImage as any);
+
+			// Add branch data fields
+			if (branchData.name) formData.append("name", branchData.name);
+			if (branchData.manager_id) formData.append("manager_id", branchData.manager_id);
+			if (branchData.status) formData.append("status", branchData.status);
+			if (branchData.isMainBranch !== undefined) formData.append("isMainBranch", String(branchData.isMainBranch));
+			if (branchData.phoneNumber) formData.append("phoneNumber", branchData.phoneNumber);
+			if (branchData.branchEmailAddress) formData.append("branchEmailAddress", branchData.branchEmailAddress);
+
+			if (branchData.operatingHours) {
+				formData.append("operatingHours", JSON.stringify(branchData.operatingHours));
+			}
+
+            if (branchData.location) {
+                 formData.append("location", JSON.stringify(branchData.location));
+            } else if (branchData.location_id) {
+                 formData.append("location_id", branchData.location_id);
+            }
+
+			const response = await this.axiosInstance.put(`/branches/${branchId}`, formData, {
+				headers: {
+					"Content-Type": "multipart/form-data",
+				},
+			});
+			return response.data.data;
+		}
+
+		// Fallback to JSON if no new file
 		const response = await this.axiosInstance.put(
 			`/branches/${branchId}`,
 			branchData

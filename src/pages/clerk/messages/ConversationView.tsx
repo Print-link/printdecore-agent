@@ -24,7 +24,7 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 
 	useEffect(() => {
 		if (chatId) {
-			loadMessages(chatId, 50, true); // Force refresh when chat changes
+			loadMessages(chatId); // Force refresh when chat changes
 		}
 	}, [chatId, loadMessages]);
 
@@ -73,7 +73,7 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 			await sendMessage(chatId, textToSend);
 			// Reload messages to ensure we have the latest
 			setTimeout(() => {
-				loadMessages(chatId, 50, true);
+				loadMessages(chatId);
 			}, 500);
 		} catch (error) {
 			console.error('Failed to send message:', error);

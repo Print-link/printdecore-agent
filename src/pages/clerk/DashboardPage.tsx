@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
@@ -7,11 +7,10 @@ import { useManagerOverviewDashboard } from "./dashboard/hooks/useManagerOvervie
 import { useManagerBranchDashboard } from "./dashboard/hooks/useManagerBranchDashboard";
 import {
 	DashboardHeader,
-	ClerkStatsGrid,
-	ManagerStatsGrid,
-	ClerkCategoryAnalytics,
-	ManagerCategoryAnalytics,
-	StatusChart,
+	KpiRow,
+	OrderPipeline,
+	RevenueOverview,
+	CategoryTable,
 	ActivityCalendar,
 	OrdersPanel,
 } from "./dashboard/components";
@@ -24,14 +23,13 @@ export default function DashboardPage() {
 	const isClerk = user?.role === "clerk";
 	const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
 
-	// Use appropriate dashboard hook based on role - all hooks must be called unconditionally
+	// All hooks called unconditionally (React rules)
 	const clerkDashboardResult = useClerkDashboard();
 	const managerOverviewResult = useManagerOverviewDashboard();
 	const managerBranchResult = useManagerBranchDashboard(
 		selectedBranch?.id || null
 	);
 
-	// Select the appropriate dashboard based on role
 	const clerkDashboard = isClerk ? clerkDashboardResult : null;
 	const managerOverview =
 		isManager && !selectedBranch ? managerOverviewResult : null;
@@ -40,56 +38,8 @@ export default function DashboardPage() {
 
 	const dashboard = clerkDashboard || managerOverview || managerBranch;
 
-	// Prepare chart data - must be called before any conditional returns
-	const chartData = useMemo(() => {
-		if (isClerk && clerkDashboard) {
-			return {
-				completed: clerkDashboard.stats.completed,
-				pending: clerkDashboard.stats.pending,
-				quoted: clerkDashboard.stats.quoted,
-				paid: clerkDashboard.stats.paid,
-				inProgress: clerkDashboard.stats.inProgress,
-				max: Math.max(
-					clerkDashboard.stats.completed,
-					clerkDashboard.stats.pending,
-					clerkDashboard.stats.quoted,
-					clerkDashboard.stats.paid,
-					clerkDashboard.stats.inProgress,
-					10
-				),
-			};
-		}
-		if (isManager && (managerOverview || managerBranch)) {
-			const mStats = managerOverview?.stats || managerBranch?.stats;
-			if (mStats) {
-				return {
-					completed: mStats.completedOrders,
-					pending: mStats.pendingOrders,
-					quoted: mStats.quotedOrders,
-					paid: mStats.paidOrders,
-					inProgress: mStats.inProgressOrders,
-					max: Math.max(
-						mStats.completedOrders,
-						mStats.pendingOrders,
-						mStats.quotedOrders,
-						mStats.paidOrders,
-						mStats.inProgressOrders,
-						10
-					),
-				};
-			}
-		}
-		return {
-			completed: 0,
-			pending: 0,
-			quoted: 0,
-			paid: 0,
-			inProgress: 0,
-			max: 10,
-		};
-	}, [isClerk, isManager, clerkDashboard, managerOverview, managerBranch]);
+	// ─── Error / loading states ─────────────────────────────────────────
 
-	// Check if clerk has branch_id
 	if (isClerk && !user?.branch_id) {
 		return (
 			<div
@@ -107,8 +57,7 @@ export default function DashboardPage() {
 					No Branch Assigned
 				</h2>
 				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-					You are not assigned to a branch. Please contact your manager to
-					assign you to a branch.
+					You are not assigned to a branch. Please contact your manager.
 				</p>
 			</div>
 		);
@@ -146,7 +95,6 @@ export default function DashboardPage() {
 		refetchAll,
 	} = dashboard;
 
-	// Show error message if there's an error and we're not loading
 	if (hasError && !isLoading && !stats) {
 		return (
 			<div
@@ -156,13 +104,7 @@ export default function DashboardPage() {
 						: "bg-white border border-gray-200"
 				}`}
 			>
-				<div
-					className={`p-8 text-center border-2 rounded-lg ${
-						theme === "dark"
-							? "border-red-500 bg-gray-800"
-							: "border-red-500 bg-white"
-					}`}
-				>
+				<div className="text-center py-8">
 					<h2
 						className={`text-xl font-semibold mb-4 ${
 							theme === "dark" ? "text-red-400" : "text-red-600"
@@ -171,17 +113,15 @@ export default function DashboardPage() {
 						Error Loading Dashboard
 					</h2>
 					<p
-						className={`text-base mb-6 ${
+						className={`text-sm mb-6 ${
 							theme === "dark" ? "text-gray-400" : "text-gray-600"
 						}`}
 					>
-						{isClerk && !user?.branch_id
-							? "You are not assigned to a branch. Please contact your manager."
-							: "Failed to load dashboard data. Please try again."}
+						Failed to load dashboard data. Please try again.
 					</p>
 					<button
 						onClick={() => refetchAll()}
-						className="px-6 py-3 bg-amber-400 hover:bg-amber-500 text-black rounded-lg font-semibold text-sm transition-colors"
+						className="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-black rounded-lg font-semibold text-sm transition-colors"
 					>
 						Retry
 					</button>
@@ -190,8 +130,34 @@ export default function DashboardPage() {
 		);
 	}
 
+	// ─── Extract pipeline data ──────────────────────────────────────────
+
+	let pipelineData = { pending: 0, quoted: 0, paid: 0, inProgress: 0, completed: 0 };
+
+	if (isClerk && clerkDashboard?.stats) {
+		const s = clerkDashboard.stats;
+		pipelineData = {
+			pending: s.pending,
+			quoted: s.quoted,
+			paid: s.paid,
+			inProgress: s.inProgress,
+			completed: s.completed,
+		};
+	} else if (isManager && (managerOverview || managerBranch)) {
+		const s = (managerOverview || managerBranch)!.stats as any;
+		pipelineData = {
+			pending: s.pendingOrders,
+			quoted: s.quotedOrders,
+			paid: s.paidOrders,
+			inProgress: s.inProgressOrders,
+			completed: s.completedOrders,
+		};
+	}
+
+	// ─── Render ─────────────────────────────────────────────────────────
+
 	return (
-		<div className="flex flex-col gap-3 h-full p-0 relative">
+		<div className="flex flex-col gap-3 h-full relative">
 			<div
 				className={`flex flex-col gap-3 transition-all ${
 					isOrdersPanelOpen ? "lg:mr-[310px]" : ""
@@ -209,39 +175,48 @@ export default function DashboardPage() {
 					}}
 				/>
 
-				{/* Stats Grid */}
-				{isClerk && clerkDashboard && (
-					<ClerkStatsGrid stats={clerkDashboard.stats} isLoading={isLoading} />
+				{/* KPI Cards */}
+				{isClerk && clerkDashboard?.stats && (
+					<KpiRow role="clerk" stats={clerkDashboard.stats} />
 				)}
 				{isManager && (managerOverview || managerBranch) && (
-					<ManagerStatsGrid
-						stats={((managerOverview || managerBranch)!.stats) as any}
-						isLoading={isLoading}
+					<KpiRow
+						role="manager"
+						stats={(managerOverview || managerBranch)!.stats as any}
 						isBranchView={!!selectedBranch}
 					/>
 				)}
 
-				{/* Category Analytics */}
-				{isClerk && clerkDashboard && (
-					<ClerkCategoryAnalytics
-						categoryAnalytics={clerkDashboard.categoryAnalytics}
-						isLoading={isLoading}
-					/>
-				)}
+				{/* Order Pipeline */}
+				<OrderPipeline {...pipelineData} />
+
+				{/* Revenue Overview (managers only) */}
 				{isManager && (managerOverview || managerBranch) && (
-					<ManagerCategoryAnalytics
-						categoryAnalytics={
-							(managerOverview || managerBranch)!.categoryAnalytics
-						}
-						isLoading={isLoading}
-						showBranchBreakdown={!!managerOverview}
+					<RevenueOverview
+						stats={(managerOverview || managerBranch)!.stats as any}
+						isBranchView={!!selectedBranch}
 					/>
 				)}
 
-				{/* Charts and Calendar */}
-				<div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-3">
-					<StatusChart chartData={chartData} />
+				{/* Category Table + Activity Calendar */}
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+					{/* Category Performance */}
+					{isClerk && clerkDashboard && (
+						<CategoryTable
+							categories={clerkDashboard.categoryAnalytics}
+							showRevenue={false}
+							isLoading={isLoading}
+						/>
+					)}
+					{isManager && (managerOverview || managerBranch) && (
+						<CategoryTable
+							categories={(managerOverview || managerBranch)!.categoryAnalytics}
+							showRevenue={true}
+							isLoading={isLoading}
+						/>
+					)}
 
+					{/* Activity Calendar */}
 					<ActivityCalendar
 						calendarDates={calendarDates}
 						calendarMonthHeader={calendarMonthHeader}
@@ -250,11 +225,8 @@ export default function DashboardPage() {
 						selectedDate={selectedDate || ""}
 						calendarOffset={0}
 						onDateSelect={(date: string) => {
-							// Set the selected date
 							setSelectedDate(date);
-							// Open the orders panel
 							setIsOrdersPanelOpen(true);
-							// Also update the month if needed
 							const dateObj = new Date(date);
 							const month = `${dateObj.getFullYear()}-${String(
 								dateObj.getMonth() + 1

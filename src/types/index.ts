@@ -260,12 +260,14 @@ export interface Branch {
   name: string;
   phoneNumber?: string;
   manager_id: string; // Manager who owns this branch
+  status: 'active' | 'inactive' | 'temporarily_closed';
   branchEmailAddress?: string; // Branch-specific email
   branchCoverImage?: string; // Branch cover image
+  email?: string; // Legacy/API compatibility
+  coverImage?: string; // Legacy/API compatibility
   isMainBranch: boolean;
   payStackSubAccountId?: string;
   location_id?: string; // Reference to location table
-  status: 'active' | 'inactive' | 'temporarily_closed';
   operatingHours: {
     [key: string]: { // day of week (e.g., "monday", "tuesday")
       open: string;  // e.g., "09:00"

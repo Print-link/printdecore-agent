@@ -26,6 +26,7 @@ const SettingsPage = lazy(() => import('./pages/clerk/SettingsPage'));
 const UserManagementPage = lazy(() => import('./pages/clerk/UserManagementPage'));
 const ServicesPage = lazy(() => import('./pages/clerk/ServicesPage'));
 const BranchCreatePage = lazy(() => import('./pages/clerk/branches/BranchCreatePage'));
+const BranchEditPage = lazy(() => import('./pages/clerk/branches/BranchEditPage'));
 const MessagesPage = lazy(() => import('./pages/clerk/MessagesPage'));
 
 import { queryClient } from './lib/queryClient';
@@ -95,6 +96,14 @@ function LoadingScreen() {
   );
 }
 
+function RootRedirect() {
+  const user = useAuthStore((state) => state.user);
+  if (user?.role === 'manager') {
+    return <Navigate to="/clerk/overview" replace />;
+  }
+  return <Navigate to="/clerk/dashboard" replace />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -148,12 +157,13 @@ function App() {
                   <Route path="branches" element={<BranchesPage />} />
                   <Route path="services" element={<ServicesPage />} />
                   <Route path="branches/create" element={<BranchCreatePage />} />
+                  <Route path="branches/edit/:id" element={<BranchEditPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="user-management" element={<UserManagementPage />} />
                   <Route path="messages" element={<MessagesPage />} />
                 </Route>
-                <Route path="/" element={<Navigate to="/clerk/dashboard" replace />} />
+                <Route path="/" element={<RootRedirect />} />
               </Routes>
             </Suspense>
           </Router>
