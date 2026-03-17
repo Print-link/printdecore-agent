@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiService } from "../../services/api";
 import { Lock, ArrowLeft, Eye, EyeOff } from "../../components/icons";
+import { Card, Button, Input } from "../../components/ui";
+import { useThemeClasses } from "../../lib/theme";
+import { cn } from "../../lib/utils";
 import printAgentLogo from "../../assets/images/printAgentLogo.png";
 
 export default function ResetPasswordPage() {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { success, error: showError } = useToast();
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
@@ -94,11 +96,10 @@ export default function ResetPasswordPage() {
 
 	return (
 		<div
-			className={`min-h-screen flex items-center justify-center p-5 ${
-				theme === "dark"
-					? "bg-gradient-to-br from-gray-900 to-gray-800"
-					: "bg-gradient-to-br from-white to-gray-50"
-			}`}
+			className={cn(
+				"min-h-screen flex items-center justify-center p-5 bg-gradient-to-br",
+				t.isDark ? "from-gray-900 to-gray-800" : "from-white to-gray-50"
+			)}
 		>
 			<div className="w-full max-w-md space-y-8">
 				{/* Logo Section */}
@@ -113,54 +114,36 @@ export default function ResetPasswordPage() {
 				</div>
 
 				{/* Form Section */}
-				<div
-					className={`rounded-lg p-8 ${
-						theme === "dark"
-							? "bg-gray-800 border border-gray-700"
-							: "bg-white border border-gray-200"
-					}`}
-				>
+				<Card padding="lg" className="rounded-lg">
 					{!isSuccess ? (
 						<>
 							<div className="text-center mb-6">
 								<div
-									className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
-										theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-									}`}
+									className={cn(
+										"inline-flex items-center justify-center w-16 h-16 rounded-full mb-4",
+										t.isDark ? "bg-gray-700" : "bg-gray-100"
+									)}
 								>
 									<Lock
-										className={`w-8 h-8 ${
-											theme === "dark" ? "text-gray-300" : "text-gray-600"
-										}`}
+										className={cn(
+											"w-8 h-8",
+											t.isDark ? "text-gray-300" : "text-gray-600"
+										)}
 									/>
 								</div>
-								<h2
-									className={`text-2xl font-bold mb-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
+								<h2 className={cn("text-2xl font-bold mb-2", t.text)}>
 									Reset Your Password
 								</h2>
-								<p
-									className={`text-sm ${
-										theme === "dark" ? "text-gray-400" : "text-gray-600"
-									}`}
-								>
+								<p className={cn("text-sm", t.textSecondary)}>
 									Enter your new password below
 								</p>
 							</div>
 
 							<form onSubmit={handleSubmit} className="space-y-6">
 								<div>
-									<label
-										className={`block text-sm font-medium mb-2 ${
-											theme === "dark" ? "text-gray-300" : "text-gray-700"
-										}`}
-									>
-										New Password
-									</label>
 									<div className="relative">
-										<input
+										<Input
+											label="New Password"
 											type={showPassword ? "text" : "password"}
 											value={password}
 											onChange={(e) => {
@@ -171,143 +154,93 @@ export default function ResetPasswordPage() {
 											}}
 											placeholder="Enter new password"
 											required
-											className={`w-full px-4 py-2 pr-10 rounded-md border ${
-												errors.password
-													? "border-red-500"
-													: theme === "dark"
-													? "border-gray-600"
-													: "border-gray-300"
-											} ${
-												theme === "dark"
-													? "bg-gray-700 text-gray-100 placeholder-gray-400"
-													: "bg-white text-gray-900 placeholder-gray-400"
-											} focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent`}
+											error={errors.password}
+											className="pr-10"
 										/>
 										<button
 											type="button"
 											onClick={() => setShowPassword(!showPassword)}
-											className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-												theme === "dark" ? "text-gray-400" : "text-gray-500"
-											} hover:${
-												theme === "dark" ? "text-gray-300" : "text-gray-700"
-											}`}
+											className={cn(
+												"absolute right-3 top-[38px] transform -translate-y-1/2",
+												t.textSecondary,
+												t.isDark ? "hover:text-gray-300" : "hover:text-gray-700"
+											)}
 										>
 											{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
 										</button>
 									</div>
-									{errors.password && (
-										<p className="mt-1 text-sm text-red-500">
-											{errors.password}
-										</p>
-									)}
-									<p
-										className={`mt-1 text-xs ${
-											theme === "dark" ? "text-gray-500" : "text-gray-500"
-										}`}
-									>
+									<p className="mt-1 text-xs text-gray-500">
 										Must be at least 8 characters with uppercase, lowercase, and
 										number
 									</p>
 								</div>
 
-								<div>
-									<label
-										className={`block text-sm font-medium mb-2 ${
-											theme === "dark" ? "text-gray-300" : "text-gray-700"
-										}`}
-									>
-										Confirm Password
-									</label>
-									<div className="relative">
-										<input
-											type={showConfirmPassword ? "text" : "password"}
-											value={confirmPassword}
-											onChange={(e) => {
-												setConfirmPassword(e.target.value);
-												if (errors.confirmPassword) {
-													setErrors({
-														...errors,
-														confirmPassword: undefined,
-													});
-												}
-											}}
-											placeholder="Confirm new password"
-											required
-											className={`w-full px-4 py-2 pr-10 rounded-md border ${
-												errors.confirmPassword
-													? "border-red-500"
-													: theme === "dark"
-													? "border-gray-600"
-													: "border-gray-300"
-											} ${
-												theme === "dark"
-													? "bg-gray-700 text-gray-100 placeholder-gray-400"
-													: "bg-white text-gray-900 placeholder-gray-400"
-											} focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent`}
-										/>
-										<button
-											type="button"
-											onClick={() =>
-												setShowConfirmPassword(!showConfirmPassword)
+								<div className="relative">
+									<Input
+										label="Confirm Password"
+										type={showConfirmPassword ? "text" : "password"}
+										value={confirmPassword}
+										onChange={(e) => {
+											setConfirmPassword(e.target.value);
+											if (errors.confirmPassword) {
+												setErrors({
+													...errors,
+													confirmPassword: undefined,
+												});
 											}
-											className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-												theme === "dark" ? "text-gray-400" : "text-gray-500"
-											} hover:${
-												theme === "dark" ? "text-gray-300" : "text-gray-700"
-											}`}
-										>
-											{showConfirmPassword ? (
-												<EyeOff size={18} />
-											) : (
-												<Eye size={18} />
-											)}
-										</button>
-									</div>
-									{errors.confirmPassword && (
-										<p className="mt-1 text-sm text-red-500">
-											{errors.confirmPassword}
-										</p>
-									)}
+										}}
+										placeholder="Confirm new password"
+										required
+										error={errors.confirmPassword}
+										className="pr-10"
+									/>
+									<button
+										type="button"
+										onClick={() =>
+											setShowConfirmPassword(!showConfirmPassword)
+										}
+										className={cn(
+											"absolute right-3 top-[38px] transform -translate-y-1/2",
+											t.textSecondary,
+											t.isDark ? "hover:text-gray-300" : "hover:text-gray-700"
+										)}
+									>
+										{showConfirmPassword ? (
+											<EyeOff size={18} />
+										) : (
+											<Eye size={18} />
+										)}
+									</button>
 								</div>
 
-								<button
+								<Button
 									type="submit"
-									disabled={isLoading}
-									className={`w-full py-3 px-4 rounded-md font-semibold text-sm transition-all ${
-										isLoading
-											? "bg-amber-300 cursor-not-allowed"
-											: "bg-amber-400 hover:bg-amber-500 active:bg-amber-600"
-									} text-gray-900`}
+									loading={isLoading}
+									className="w-full py-3"
 								>
 									{isLoading ? "Resetting..." : "Reset Password"}
-								</button>
+								</Button>
 							</form>
 						</>
 					) : (
 						<div className="text-center">
 							<div
-								className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
-									theme === "dark" ? "bg-green-900/30" : "bg-green-100"
-								}`}
+								className={cn(
+									"inline-flex items-center justify-center w-16 h-16 rounded-full mb-4",
+									t.isDark ? "bg-green-900/30" : "bg-green-100"
+								)}
 							>
 								<Lock
-									className={`w-8 h-8 ${
-										theme === "dark" ? "text-green-400" : "text-green-600"
-									}`}
+									className={cn(
+										"w-8 h-8",
+										t.isDark ? "text-green-400" : "text-green-600"
+									)}
 								/>
 							</div>
-							<h2
-								className={`text-2xl font-bold mb-2 ${
-									theme === "dark" ? "text-gray-100" : "text-gray-900"
-								}`}
-							>
+							<h2 className={cn("text-2xl font-bold mb-2", t.text)}>
 								Password Reset Successful
 							</h2>
-							<p
-								className={`text-sm mb-6 ${
-									theme === "dark" ? "text-gray-400" : "text-gray-600"
-								}`}
-							>
+							<p className={cn("text-sm mb-6", t.textSecondary)}>
 								Your password has been successfully reset. Redirecting to login...
 							</p>
 						</div>
@@ -316,19 +249,19 @@ export default function ResetPasswordPage() {
 					<div className="mt-6 text-center">
 						<Link
 							to="/login"
-							className={`inline-flex items-center gap-2 text-sm ${
-								theme === "dark"
+							className={cn(
+								"inline-flex items-center gap-2 text-sm transition-colors",
+								t.isDark
 									? "text-gray-400 hover:text-gray-300"
 									: "text-gray-600 hover:text-gray-900"
-							} transition-colors`}
+							)}
 						>
 							<ArrowLeft size={16} />
 							Back to Login
 						</Link>
 					</div>
-				</div>
+				</Card>
 			</div>
 		</div>
 	);
 }
-

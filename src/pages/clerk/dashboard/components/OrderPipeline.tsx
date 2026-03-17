@@ -1,5 +1,5 @@
 import { ChevronRight } from '../../../../components/icons';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../../lib/theme';
 
 interface OrderPipelineProps {
 	pending: number;
@@ -18,22 +18,12 @@ const stages = [
 ] as const;
 
 export function OrderPipeline(props: OrderPipelineProps) {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const total = props.pending + props.quoted + props.paid + props.inProgress + props.completed;
 
 	return (
-		<div
-			className={`p-4 rounded-lg border ${
-				theme === 'dark'
-					? 'bg-gray-800 border-gray-700'
-					: 'bg-white border-gray-200'
-			}`}
-		>
-			<h3
-				className={`text-xs font-medium uppercase tracking-wide mb-3 ${
-					theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-				}`}
-			>
+		<div className={`p-4 rounded-lg ${t.surface}`}>
+			<h3 className={`text-xs font-medium uppercase tracking-wide mb-3 ${t.textTertiary}`}>
 				Order Pipeline
 			</h3>
 
@@ -47,29 +37,21 @@ export function OrderPipeline(props: OrderPipelineProps) {
 						<div key={stage.key} className="flex items-center flex-1 min-w-0">
 							<div
 								className={`flex-1 px-3 py-3 rounded-lg text-center ${
-									theme === 'dark'
+									t.isDark
 										? 'bg-gray-750 hover:bg-gray-700'
 										: 'bg-gray-50 hover:bg-gray-100'
 								} transition-colors`}
 							>
-								<div
-									className={`text-xl font-semibold ${
-										theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-									}`}
-								>
+								<div className={`text-xl font-semibold ${t.text}`}>
 									{count}
 								</div>
-								<div
-									className={`text-[11px] font-medium mt-0.5 ${
-										theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-									}`}
-								>
+								<div className={`text-[11px] font-medium mt-0.5 ${t.textTertiary}`}>
 									{stage.label}
 								</div>
 								{total > 0 && (
 									<div
 										className={`text-[10px] mt-1 ${
-											theme === 'dark' ? 'text-gray-600' : 'text-gray-300'
+											t.isDark ? 'text-gray-600' : 'text-gray-300'
 										}`}
 									>
 										{pct}%
@@ -80,7 +62,7 @@ export function OrderPipeline(props: OrderPipelineProps) {
 								<ChevronRight
 									size={14}
 									className={`flex-shrink-0 mx-0.5 ${
-										theme === 'dark' ? 'text-gray-700' : 'text-gray-200'
+										t.isDark ? 'text-gray-700' : 'text-gray-200'
 									}`}
 								/>
 							)}
@@ -99,28 +81,20 @@ export function OrderPipeline(props: OrderPipelineProps) {
 						<div key={stage.key}>
 							<div
 								className={`flex items-center justify-between px-3 py-2 rounded-lg ${
-									theme === 'dark' ? 'bg-gray-750' : 'bg-gray-50'
+									t.isDark ? 'bg-gray-750' : 'bg-gray-50'
 								}`}
 							>
-								<span
-									className={`text-sm ${
-										theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-									}`}
-								>
+								<span className={`text-sm ${t.textSecondary}`}>
 									{stage.label}
 								</span>
 								<div className="flex items-center gap-2">
-									<span
-										className={`text-sm font-semibold ${
-											theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-										}`}
-									>
+									<span className={`text-sm font-semibold ${t.text}`}>
 										{count}
 									</span>
 									{total > 0 && (
 										<span
 											className={`text-xs ${
-												theme === 'dark' ? 'text-gray-600' : 'text-gray-300'
+												t.isDark ? 'text-gray-600' : 'text-gray-300'
 											}`}
 										>
 											{pct}%
@@ -132,7 +106,7 @@ export function OrderPipeline(props: OrderPipelineProps) {
 								<div className="flex justify-center">
 									<div
 										className={`w-px h-1.5 ${
-											theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+											t.isDark ? 'bg-gray-700' : 'bg-gray-200'
 										}`}
 									/>
 								</div>

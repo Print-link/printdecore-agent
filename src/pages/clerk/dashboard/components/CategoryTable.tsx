@@ -1,4 +1,6 @@
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { Card } from '../../../../components/ui';
+import { useThemeClasses } from '../../../../lib/theme';
+import { cn } from '../../../../lib/utils';
 import type { CategoryAnalytics, ClerkCategoryAnalytics } from '../../../../types';
 
 interface CategoryTableProps {
@@ -26,47 +28,33 @@ function getTopStatus(cat: CategoryAnalytics | ClerkCategoryAnalytics): {
 }
 
 export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTableProps) {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 
 	if (isLoading && categories.length === 0) {
 		return (
-			<div
-				className={`p-4 rounded-lg border text-center ${
-					theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-				}`}
-			>
-				<p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+			<Card padding="sm" className="rounded-lg text-center">
+				<p className={cn('text-sm', t.textSecondary)}>
 					Loading categories...
 				</p>
-			</div>
+			</Card>
 		);
 	}
 
 	if (categories.length === 0) {
 		return (
-			<div
-				className={`p-4 rounded-lg border text-center ${
-					theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-				}`}
-			>
-				<p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+			<Card padding="sm" className="rounded-lg text-center">
+				<p className={cn('text-sm', t.textSecondary)}>
 					No category data available
 				</p>
-			</div>
+			</Card>
 		);
 	}
 
 	return (
-		<div
-			className={`rounded-lg border overflow-hidden ${
-				theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-			}`}
-		>
+		<Card padding="none" className="rounded-lg overflow-hidden">
 			<div className="p-4 pb-2">
 				<h3
-					className={`text-sm font-semibold ${
-						theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-					}`}
+					className={cn('text-sm font-semibold', t.isDark ? 'text-gray-300' : 'text-gray-700')}
 				>
 					Category Performance
 				</h3>
@@ -75,45 +63,21 @@ export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTa
 			<div className="overflow-x-auto">
 				<table className="w-full text-sm">
 					<thead>
-						<tr
-							className={`border-b ${
-								theme === 'dark' ? 'border-gray-700' : 'border-gray-100'
-							}`}
-						>
-							<th
-								className={`text-left px-4 py-2 text-xs font-medium ${
-									theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-								}`}
-							>
+						<tr className={cn('border-b', t.borderSubtle)}>
+							<th className={cn('text-left px-4 py-2 text-xs font-medium', t.textTertiary)}>
 								Category
 							</th>
-							<th
-								className={`text-right px-4 py-2 text-xs font-medium ${
-									theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-								}`}
-							>
+							<th className={cn('text-right px-4 py-2 text-xs font-medium', t.textTertiary)}>
 								Orders
 							</th>
-							<th
-								className={`text-right px-4 py-2 text-xs font-medium ${
-									theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-								}`}
-							>
+							<th className={cn('text-right px-4 py-2 text-xs font-medium', t.textTertiary)}>
 								Items
 							</th>
-							<th
-								className={`text-center px-4 py-2 text-xs font-medium ${
-									theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-								}`}
-							>
+							<th className={cn('text-center px-4 py-2 text-xs font-medium', t.textTertiary)}>
 								Top Status
 							</th>
 							{showRevenue && (
-								<th
-									className={`text-right px-4 py-2 text-xs font-medium ${
-										theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-									}`}
-								>
+								<th className={cn('text-right px-4 py-2 text-xs font-medium', t.textTertiary)}>
 									Revenue
 								</th>
 							)}
@@ -127,11 +91,12 @@ export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTa
 							return (
 								<tr
 									key={cat.categoryId}
-									className={`border-b last:border-b-0 transition-colors ${
-										theme === 'dark'
+									className={cn(
+										'border-b last:border-b-0 transition-colors',
+										t.isDark
 											? 'border-gray-700/50 hover:bg-gray-700/30'
 											: 'border-gray-50 hover:bg-gray-50'
-									}`}
+									)}
 								>
 									<td className="px-4 py-2.5">
 										<div className="flex items-center gap-2.5">
@@ -143,40 +108,45 @@ export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTa
 												/>
 											) : (
 												<div
-													className={`w-7 h-7 rounded flex-shrink-0 ${
-														theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
-													}`}
+													className={cn(
+														'w-7 h-7 rounded flex-shrink-0',
+														t.isDark ? 'bg-gray-700' : 'bg-gray-100'
+													)}
 												/>
 											)}
 											<span
-												className={`font-medium text-sm truncate ${
-													theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
-												}`}
+												className={cn(
+													'font-medium text-sm truncate',
+													t.isDark ? 'text-gray-200' : 'text-gray-800'
+												)}
 											>
 												{cat.categoryName}
 											</span>
 										</div>
 									</td>
 									<td
-										className={`text-right px-4 py-2.5 font-semibold ${
-											theme === 'dark' ? 'text-gray-200' : 'text-gray-900'
-										}`}
+										className={cn(
+											'text-right px-4 py-2.5 font-semibold',
+											t.isDark ? 'text-gray-200' : 'text-gray-900'
+										)}
 									>
 										{cat.totalOrders}
 									</td>
 									<td
-										className={`text-right px-4 py-2.5 ${
-											theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-										}`}
+										className={cn(
+											'text-right px-4 py-2.5',
+											t.textSecondary
+										)}
 									>
 										{cat.orderItemsCount}
 									</td>
 									<td className="text-center px-4 py-2.5">
 										{cat.totalOrders > 0 && (
 											<span
-												className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-													theme === 'dark' ? topStatus.bgDark : topStatus.bgLight
-												}`}
+												className={cn(
+													'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold',
+													t.isDark ? topStatus.bgDark : topStatus.bgLight
+												)}
 											>
 												{topStatus.label} ({topStatus.count})
 											</span>
@@ -184,9 +154,10 @@ export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTa
 									</td>
 									{showRevenue && (
 										<td
-											className={`text-right px-4 py-2.5 font-semibold ${
-												theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
-											}`}
+											className={cn(
+												'text-right px-4 py-2.5 font-semibold',
+												t.isDark ? 'text-emerald-400' : 'text-emerald-600'
+											)}
 										>
 											{revenue !== undefined
 												? `₵${revenue.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -199,6 +170,6 @@ export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTa
 					</tbody>
 				</table>
 			</div>
-		</div>
+		</Card>
 	);
 }

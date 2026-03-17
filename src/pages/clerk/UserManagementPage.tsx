@@ -2,20 +2,21 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
-import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiService } from "../../services/api";
-import { Users, Plus, Trash2, X, Key, Spinner } from "../../components/icons";
+import { Users, Plus, Trash2, Key, Spinner } from "../../components/icons";
+import { Card, PageHeader, Button, Input, Modal, EmptyState, IconButton } from "../../components/ui";
+import { useThemeClasses } from "../../lib/theme";
+import { cn } from "../../lib/utils";
 import type { User } from "../../types";
 
 export default function UserManagementPage() {
   const { user } = useAuthStore();
   const { selectedBranch } = useBranchStore();
-  const { theme } = useTheme();
+  const t = useThemeClasses();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
-  // const [editingClerk, setEditingClerk] = useState<any>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedClerkId, setSelectedClerkId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -95,17 +96,11 @@ export default function UserManagementPage() {
 
   if (user?.role !== "manager" || !selectedBranch) {
     return (
-      <div
-        className={`p-6 rounded-lg ${
-          theme === "dark"
-            ? "bg-gray-800 border border-gray-700"
-            : "bg-white border border-gray-200"
-        }`}
-      >
-        <p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+      <Card>
+        <p className={t.textSecondary}>
           Access denied. Manager role and branch selection required.
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -118,6 +113,11 @@ export default function UserManagementPage() {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     setFormData({ ...formData, password });
+  };
+
+  const resetForm = () => {
+    setShowCreateForm(false);
+    setFormData({ firstName: "", lastName: "", email: "", password: "", phoneNumber: "" });
   };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -136,14 +136,7 @@ export default function UserManagementPage() {
       branch_id: selectedBranch?.id || "",
     });
 
-    setShowCreateForm(false);
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      phoneNumber: "",
-    });
+    resetForm();
     success("Clerk created successfully", "User Created", 4000);
     queryClient.invalidateQueries({ queryKey: ["clerks"] });
   };
@@ -166,447 +159,168 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2
-          className={`text-2xl font-bold ${
-            theme === "dark" ? "text-gray-100" : "text-gray-900"
-          }`}
-        >
-          User Management
-        </h2>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-400 hover:bg-amber-500 text-gray-900 rounded-md font-semibold"
-        >
-          <Plus size={20} />
-          invite
-        </button>
-      </div>
+      <PageHeader
+        title="User Management"
+        actions={
+          <Button icon={Plus} onClick={() => setShowCreateForm(true)}>
+            invite
+          </Button>
+        }
+      />
 
       {/* Create Clerk Form Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div
-            className={`rounded-lg shadow-xl p-6 max-w-md w-full ${
-              theme === "dark"
-                ? "bg-gray-800 border border-gray-700"
-                : "bg-white border border-gray-200"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3
-                className={`text-xl font-bold ${
-                  theme === "dark" ? "text-gray-100" : "text-gray-900"
-                }`}
-              >
-                Create New Clerk
-              </h3>
-              <button
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setFormData({
-                    firstName: "",
-                    lastName: "",
-                    email: "",
-                    password: "",
-                    phoneNumber: "",
-                  });
-                }}
-                className={`p-2 rounded-md ${
-                  theme === "dark"
-                    ? "hover:bg-gray-700 text-gray-400"
-                    : "hover:bg-gray-100 text-gray-600"
-                }`}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
-                    className={`w-full px-4 py-2 rounded-md border ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
-                    className={`w-full px-4 py-2 rounded-md border ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Temporary Password *
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    placeholder="Click Generate to create a temporary password"
-                    className={`flex-1 px-4 py-2 rounded-md border ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={generatePassword}
-                    className={`px-4 py-2 rounded-md font-medium ${
-                      theme === "dark"
-                        ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    Generate
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phoneNumber: e.target.value })
-                  }
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={createClerkMutation.isPending}
-                  className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm ${
-                    createClerkMutation.isPending
-                      ? "bg-amber-300 cursor-not-allowed"
-                      : "bg-amber-400 hover:bg-amber-500 text-gray-900"
-                  }`}
-                >
-                  {createClerkMutation.isPending
-                    ? "Creating..."
-                    : "Create Clerk"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setFormData({
-                      firstName: "",
-                      lastName: "",
-                      email: "",
-                      password: "",
-                      phoneNumber: "",
-                    });
-                  }}
-                  className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      <Modal open={showCreateForm} onClose={resetForm} title="Create New Clerk">
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="First Name *"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              required
+            />
+            <Input
+              label="Last Name *"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <Input
+            label="Email *"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
+
+          <div>
+            <label className={cn("block text-sm font-medium mb-1", t.textSecondary)}>
+              Temporary Password *
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Click Generate to create a temporary password"
+                required
+                className="flex-1"
+              />
+              <Button variant="secondary" type="button" onClick={generatePassword}>
+                Generate
+              </Button>
+            </div>
+          </div>
+
+          <Input
+            label="Phone Number"
+            type="tel"
+            value={formData.phoneNumber}
+            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+          />
+
+          <div className="flex gap-3">
+            <Button type="submit" loading={createClerkMutation.isPending} className="flex-1">
+              {createClerkMutation.isPending ? "Creating..." : "Create Clerk"}
+            </Button>
+            <Button variant="secondary" type="button" onClick={resetForm} className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Change Password Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div
-            className={`rounded-lg shadow-xl p-6 max-w-md w-full ${
-              theme === "dark"
-                ? "bg-gray-800 border border-gray-700"
-                : "bg-white border border-gray-200"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3
-                className={`text-xl font-bold ${
-                  theme === "dark" ? "text-gray-100" : "text-gray-900"
-                }`}
-              >
-                Change Password
-              </h3>
-              <button
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  setSelectedClerkId(null);
-                  setNewPassword("");
-                }}
-                className={`p-2 rounded-md ${
-                  theme === "dark"
-                    ? "hover:bg-gray-700 text-gray-400"
-                    : "hover:bg-gray-100 text-gray-600"
-                }`}
-              >
-                <X size={20} />
-              </button>
-            </div>
+      <Modal
+        open={showPasswordModal}
+        onClose={() => { setShowPasswordModal(false); setSelectedClerkId(null); setNewPassword(""); }}
+        title="Change Password"
+      >
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <Input
+            label="New Password *"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            minLength={6}
+          />
 
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  New Password *
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={changePasswordMutation.isPending}
-                  className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm ${
-                    changePasswordMutation.isPending
-                      ? "bg-amber-300 cursor-not-allowed"
-                      : "bg-amber-400 hover:bg-amber-500 text-gray-900"
-                  }`}
-                >
-                  {changePasswordMutation.isPending
-                    ? "Updating..."
-                    : "Update Password"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    setSelectedClerkId(null);
-                    setNewPassword("");
-                  }}
-                  className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+          <div className="flex gap-3">
+            <Button type="submit" loading={changePasswordMutation.isPending} className="flex-1">
+              {changePasswordMutation.isPending ? "Updating..." : "Update Password"}
+            </Button>
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => { setShowPasswordModal(false); setSelectedClerkId(null); setNewPassword(""); }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Spinner size="lg" />
         </div>
       ) : clerks.length === 0 ? (
-        <div
-          className={`p-6 rounded-lg text-center ${
-            theme === "dark"
-              ? "bg-gray-800 border border-gray-700"
-              : "bg-white border border-gray-200"
-          }`}
-        >
-          <Users
-            className={`mx-auto mb-4 ${
-              theme === "dark" ? "text-gray-600" : "text-gray-400"
-            }`}
-            size={48}
+        <Card>
+          <EmptyState
+            icon={Users}
+            title="No clerks found for this branch."
           />
-          <p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-            No clerks found for this branch.
-          </p>
-        </div>
+        </Card>
       ) : (
-        <div
-          className={`rounded-lg overflow-hidden ${
-            theme === "dark"
-              ? "bg-gray-800 border border-gray-700"
-              : "bg-white border border-gray-200"
-          }`}
-        >
+        <Card padding="none" className="overflow-hidden">
           <table className="w-full">
-            <thead className={theme === "dark" ? "bg-gray-700" : "bg-gray-50"}>
+            <thead className={t.isDark ? "bg-gray-700" : "bg-gray-50"}>
               <tr>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Name
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Email
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Phone
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  Actions
-                </th>
+                {["Name", "Email", "Phone", "Actions"].map((h) => (
+                  <th key={h} className={cn("px-6 py-3 text-left text-xs font-medium uppercase", t.textSecondary)}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {clerks.map((clerk: User) => (
                 <tr key={clerk.id}>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap ${
-                      theme === "dark" ? "text-gray-100" : "text-gray-900"
-                    }`}
-                  >
+                  <td className={cn("px-6 py-4 whitespace-nowrap", t.text)}>
                     {clerk.name ||
-                      `${clerk.firstName || ""} ${
-                        clerk.lastName || ""
-                      }`.trim() ||
+                      `${clerk.firstName || ""} ${clerk.lastName || ""}`.trim() ||
                       "N/A"}
                   </td>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
+                  <td className={cn("px-6 py-4 whitespace-nowrap", t.textSecondary)}>
                     {clerk.email}
                   </td>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
+                  <td className={cn("px-6 py-4 whitespace-nowrap", t.textSecondary)}>
                     {clerk.phoneNumber || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex gap-2">
-                      <button
+                      <IconButton
+                        icon={Key}
+                        size={16}
+                        label="Change Password"
                         onClick={() => {
                           setSelectedClerkId(clerk.id);
                           setNewPassword("");
                           setShowPasswordModal(true);
                         }}
-                        className={`p-2 rounded-md ${
-                          theme === "dark"
-                            ? "hover:bg-gray-700 text-gray-400"
-                            : "hover:bg-gray-100 text-gray-600"
-                        }`}
-                        title="Change Password"
-                      >
-                        <Key size={16} />
-                      </button>
+                      />
                       <button
                         onClick={() => {
-                          if (
-                            confirm(
-                              "Are you sure you want to delete this user?",
-                            )
-                          ) {
+                          if (confirm("Are you sure you want to delete this user?")) {
                             deleteMutation.mutate(clerk.id);
                           }
                         }}
-                        className={`p-2 rounded-md ${
-                          theme === "dark"
-                            ? "hover:bg-red-900/30 text-red-400"
-                            : "hover:bg-red-50 text-red-600"
-                        }`}
+                        className={cn(
+                          "p-2 rounded-md",
+                          t.isDark ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600",
+                        )}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -616,7 +330,7 @@ export default function UserManagementPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );

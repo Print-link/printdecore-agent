@@ -1,5 +1,5 @@
 import { PieChart } from '../../../../components/icons';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../../lib/theme';
 import type { ClerkCategoryAnalytics } from '../../../../types';
 
 interface ClerkCategoryAnalyticsProps {
@@ -11,14 +11,12 @@ export function ClerkCategoryAnalytics({
   categoryAnalytics,
   isLoading,
 }: ClerkCategoryAnalyticsProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
 
   if (isLoading && (!categoryAnalytics || categoryAnalytics.length === 0)) {
     return (
-      <div className={`p-3 rounded-md border text-center ${
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+      <div className={`p-3 rounded-md text-center ${t.surface}`}>
+        <p className={t.textSecondary}>
           Loading category analytics...
         </p>
       </div>
@@ -27,10 +25,8 @@ export function ClerkCategoryAnalytics({
 
   if (!categoryAnalytics || categoryAnalytics.length === 0) {
     return (
-      <div className={`p-3 rounded-md border text-center ${
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+      <div className={`p-3 rounded-md text-center ${t.surface}`}>
+        <p className={t.textSecondary}>
           No category data available
         </p>
       </div>
@@ -38,14 +34,10 @@ export function ClerkCategoryAnalytics({
   }
 
   return (
-    <div className={`p-3 rounded-md border ${
-      theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-    }`}>
+    <div className={`p-3 rounded-md ${t.surface}`}>
       <div className="flex items-center gap-1 mb-3">
         <PieChart size={20} className="text-amber-400" />
-        <h3 className={`text-sm font-semibold m-0 ${
-          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-        }`}>
+        <h3 className={`text-sm font-semibold m-0 ${t.text}`}>
           Category Performance
         </h3>
       </div>
@@ -54,7 +46,7 @@ export function ClerkCategoryAnalytics({
           <div
             key={cat.categoryId}
             className={`p-2 rounded border ${
-              theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+              t.isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
             }`}
           >
             {cat.categoryImageUrl && (
@@ -64,14 +56,10 @@ export function ClerkCategoryAnalytics({
                 className="w-full h-16 sm:h-20 object-cover rounded mb-1"
               />
             )}
-            <div className={`font-semibold mb-1 text-sm sm:text-base truncate ${
-              theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-            }`}>
+            <div className={`font-semibold mb-1 text-sm sm:text-base truncate ${t.text}`}>
               {cat.categoryName}
             </div>
-            <div className={`text-[10px] sm:text-xs ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <div className={`text-[10px] sm:text-xs ${t.textSecondary}`}>
               <div>Total Orders: {cat.totalOrders}</div>
               <div>Completed: {cat.completedOrders}</div>
               <div>Pending: {cat.pendingOrders}</div>
@@ -88,4 +76,3 @@ export function ClerkCategoryAnalytics({
     </div>
   );
 }
-

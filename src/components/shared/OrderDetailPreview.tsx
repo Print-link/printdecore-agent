@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useThemeClasses } from '../../lib/theme';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
 import { useToast } from "../../contexts/ToastContext";
@@ -35,7 +35,7 @@ export default function OrderDetailPreview({
 	onClose,
 	onOrderUpdate,
 }: OrderDetailPreviewProps) {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { user } = useAuthStore();
 	const { selectedBranch } = useBranchStore();
 	const { success, error: showError } = useToast();
@@ -178,7 +178,7 @@ export default function OrderDetailPreview({
 	return (
 		<div
 			className={`h-full flex flex-col ${
-				theme === "dark" ? "bg-gray-800" : "bg-white"
+				t.isDark ? "bg-gray-800" : "bg-white"
 			}`}
 		>
 			<OrderDetailHeader formattedDate={formattedDate} onClose={onClose} />

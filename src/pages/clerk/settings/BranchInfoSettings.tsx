@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../stores/authStore';
 import { useBranchStore } from '../../../stores/branchStore';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../lib/theme';
 import { useToast } from '../../../contexts/ToastContext';
 import { apiService } from '../../../services/api';
 import { useBranchForm } from '../branches/hooks/useBranchForm';
@@ -12,6 +12,7 @@ import {
 	LocationStep,
 	OperatingHoursStep,
 } from '../branches/components';
+import { Button } from '../../../components/ui';
 import { AlertCircle, Save, Spinner, Info, MapPin, Clock } from '../../../components/icons';
 
 const SECTIONS = [
@@ -23,7 +24,7 @@ const SECTIONS = [
 export default function BranchInfoSettings() {
 	const { user } = useAuthStore();
 	const { selectedBranch: branch, selectBranch } = useBranchStore();
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { success, error: showError } = useToast();
 	const queryClient = useQueryClient();
     const [activeSection, setActiveSection] = useState('basic');
@@ -62,7 +63,7 @@ export default function BranchInfoSettings() {
                 isMainBranch: branch.isMainBranch,
                 branchCoverImage: branch.branchCoverImage || null
             });
-            
+
             if (branch.location) {
                 setLocationData({
                     address: branch.location.address,
@@ -100,7 +101,7 @@ export default function BranchInfoSettings() {
 	const updateBranchMutation = useMutation({
 		mutationFn: async (updateData: any) => {
 			if (!branch?.id) throw new Error("No branch selected");
-            
+
             return await apiService.updateBranch(
                 branch.id,
                 updateData,
@@ -165,9 +166,7 @@ export default function BranchInfoSettings() {
 
     if (!branch) {
         return (
-            <div className={`p-8 text-center rounded-xl border-2 border-dashed ${
-                theme === 'dark' ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
-            }`}>
+            <div className={`p-8 text-center rounded-xl border-2 border-dashed ${t.border} ${t.textSecondary}`}>
                 <AlertCircle size={48} className="mx-auto mb-4 opacity-20" />
                 <p className="text-lg font-medium">No Branch Selected</p>
                 <p className="text-sm">Please select a branch to view and edit its information.</p>
@@ -178,36 +177,26 @@ export default function BranchInfoSettings() {
 	return (
 		<div className="max-w-5xl mx-auto pb-12">
             {/* Sticky Header */}
-            <div className={`sticky top-0 z-20 pb-4 mb-8 pt-2 ${
-                theme === 'dark' ? 'bg-gray-900/95' : 'bg-gray-50/95'
-            } backdrop-blur-sm border-b ${
-                theme === 'dark' ? 'border-gray-800' : 'border-gray-200'
-            }`}>
+            <div className={`sticky top-0 z-20 pb-4 mb-8 pt-2 ${t.surfaceInset}/95 backdrop-blur-sm border-b ${t.border}`}>
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                        <h1 className={`text-2xl font-bold ${t.text}`}>
                             Branch Management
                         </h1>
-                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <p className={`text-sm ${t.textSecondary}`}>
                             {branch.name} &bull; Operational Settings
                         </p>
                     </div>
-                    <button
+                    <Button
                         onClick={handleSubmit}
                         disabled={updateBranchMutation.isPending}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all shadow-lg active:scale-95 border-none cursor-pointer ${
-                            updateBranchMutation.isPending
-                                ? 'bg-gray-400 cursor-not-allowed text-white'
-                                : 'bg-amber-400 hover:bg-amber-500 text-gray-900'
-                        }`}
+                        loading={updateBranchMutation.isPending}
+                        icon={updateBranchMutation.isPending ? undefined : Save}
+                        size="lg"
+                        className="shadow-lg active:scale-95"
                     >
-                        {updateBranchMutation.isPending ? (
-                            <Spinner size="sm" />
-                        ) : (
-                            <Save size={18} />
-                        )}
                         {updateBranchMutation.isPending ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Horizontal Navigation */}
@@ -235,14 +224,12 @@ export default function BranchInfoSettings() {
 
             <div className="space-y-8">
                 {/* Basic Info Section */}
-                <section id="basic" className={`p-8 rounded-2xl border ${
-                    theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'
-                } shadow-sm`}>
+                <section id="basic" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-amber-400/10 text-amber-500 rounded-lg">
                             <Info size={20} />
                         </div>
-                        <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                        <h2 className={`text-xl font-bold ${t.text}`}>
                             Basic Identity
                         </h2>
                     </div>
@@ -257,14 +244,12 @@ export default function BranchInfoSettings() {
                 </section>
 
                 {/* Location Section */}
-                <section id="location" className={`p-8 rounded-2xl border ${
-                    theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'
-                } shadow-sm`}>
+                <section id="location" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-blue-400/10 text-blue-500 rounded-lg">
                             <MapPin size={20} />
                         </div>
-                        <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                        <h2 className={`text-xl font-bold ${t.text}`}>
                             Location & Address
                         </h2>
                     </div>
@@ -276,14 +261,12 @@ export default function BranchInfoSettings() {
                 </section>
 
                 {/* Hours Section */}
-                <section id="hours" className={`p-8 rounded-2xl border ${
-                    theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'
-                } shadow-sm`}>
+                <section id="hours" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-green-400/10 text-green-500 rounded-lg">
                             <Clock size={20} />
                         </div>
-                        <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                        <h2 className={`text-xl font-bold ${t.text}`}>
                             Operating Hours
                         </h2>
                     </div>

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Calendar } from '../../../../components/icons';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../../lib/theme';
+import { cn } from '../../../../lib/utils';
 
 interface ActivityCalendarProps {
 	calendarDates: Date[];
@@ -24,30 +25,22 @@ export function ActivityCalendar({
 	onCalendarOffsetChange,
 	onTodayClick,
 }: ActivityCalendarProps) {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const todayStr = new Date().toISOString().split('T')[0];
 
 	return (
 		<div
-			className={`p-4 rounded-lg border flex flex-col ${
-				theme === 'dark'
-					? 'bg-gray-800 border-gray-700'
-					: 'bg-white border-gray-200'
-			}`}
+			className={cn('p-4 rounded-lg flex flex-col', t.surface)}
 		>
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<div className="flex items-center gap-2">
 					<Calendar
 						size={14}
-						className={
-							theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-						}
+						className={t.textTertiary}
 					/>
 					<h3
-						className={`text-sm font-semibold ${
-							theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
-						}`}
+						className={cn('text-sm font-semibold', t.isDark ? 'text-gray-200' : 'text-gray-800')}
 					>
 						{calendarMonthHeader || 'Activity'}
 					</h3>
@@ -55,41 +48,44 @@ export function ActivityCalendar({
 				<div className="flex items-center gap-1">
 					<button
 						onClick={() => onCalendarOffsetChange(calendarOffset + 1)}
-						className={`p-1.5 rounded transition-colors ${
-							theme === 'dark'
+						className={cn(
+							'p-1.5 rounded transition-colors',
+							t.isDark
 								? 'hover:bg-gray-700 text-gray-400'
 								: 'hover:bg-gray-100 text-gray-500'
-						}`}
+						)}
 					>
 						<ChevronLeft size={14} />
 					</button>
 					<button
 						onClick={onTodayClick}
 						disabled={calendarOffset === 0}
-						className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+						className={cn(
+							'px-2 py-1 rounded text-[11px] font-medium transition-colors',
 							calendarOffset === 0
-								? theme === 'dark'
+								? t.isDark
 									? 'text-gray-600 cursor-not-allowed'
 									: 'text-gray-300 cursor-not-allowed'
-								: theme === 'dark'
+								: t.isDark
 									? 'text-gray-300 hover:bg-gray-700'
 									: 'text-gray-600 hover:bg-gray-100'
-						}`}
+						)}
 					>
 						Today
 					</button>
 					<button
 						onClick={() => onCalendarOffsetChange(calendarOffset - 1)}
 						disabled={calendarOffset === 0}
-						className={`p-1.5 rounded transition-colors ${
+						className={cn(
+							'p-1.5 rounded transition-colors',
 							calendarOffset === 0
-								? theme === 'dark'
+								? t.isDark
 									? 'text-gray-700 cursor-not-allowed'
 									: 'text-gray-200 cursor-not-allowed'
-								: theme === 'dark'
+								: t.isDark
 									? 'hover:bg-gray-700 text-gray-400'
 									: 'hover:bg-gray-100 text-gray-500'
-						}`}
+						)}
 					>
 						<ChevronRight size={14} />
 					</button>
@@ -101,9 +97,10 @@ export function ActivityCalendar({
 				{['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
 					<div
 						key={day}
-						className={`text-center text-[10px] font-medium py-1 ${
-							theme === 'dark' ? 'text-gray-600' : 'text-gray-300'
-						}`}
+						className={cn(
+							'text-center text-[10px] font-medium py-1',
+							t.isDark ? 'text-gray-600' : 'text-gray-300'
+						)}
 					>
 						{day}
 					</div>
@@ -127,40 +124,41 @@ export function ActivityCalendar({
 						<button
 							key={index}
 							onClick={() => onDateSelect(dateStr)}
-							className={`aspect-square flex flex-col items-center justify-center rounded-md text-xs transition-colors relative ${
+							className={cn(
+								'aspect-square flex flex-col items-center justify-center rounded-md text-xs transition-colors relative',
 								isSelected
-									? theme === 'dark'
+									? t.isDark
 										? 'bg-gray-600 text-white'
 										: 'bg-gray-900 text-white'
 									: isToday
-										? theme === 'dark'
+										? t.isDark
 											? 'bg-gray-700 text-gray-100'
 											: 'bg-gray-100 text-gray-900'
-										: theme === 'dark'
+										: t.isDark
 											? 'text-gray-300 hover:bg-gray-750'
 											: 'text-gray-700 hover:bg-gray-50'
-							}`}
+							)}
 						>
 							<span
-								className={`text-[11px] font-medium ${
+								className={cn(
+									'text-[11px] font-medium',
 									isSelected
 										? 'text-white'
 										: isToday
 											? 'font-semibold'
 											: ''
-								}`}
+								)}
 							>
 								{date.getDate()}
 							</span>
 							{count > 0 && (
 								<span
-									className={`text-[8px] font-semibold mt-0.5 ${
+									className={cn(
+										'text-[8px] font-semibold mt-0.5',
 										isSelected
 											? 'text-gray-300'
-											: theme === 'dark'
-												? 'text-gray-500'
-												: 'text-gray-400'
-									}`}
+											: t.textTertiary
+									)}
 								>
 									{count}
 								</span>

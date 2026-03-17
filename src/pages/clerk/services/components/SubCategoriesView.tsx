@@ -1,5 +1,7 @@
 import { ArrowLeft } from '../../../../components/icons';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { Card, Badge, Button } from '../../../../components/ui';
+import { useThemeClasses } from '../../../../lib/theme';
+import { cn } from '../../../../lib/utils';
 import type { ServiceSubCategory } from '../../../../types';
 
 interface SubCategoriesViewProps {
@@ -15,49 +17,34 @@ export function SubCategoriesView({
   onBack,
   isLoading,
 }: SubCategoriesViewProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
 
   return (
-    <div className={`rounded-lg border p-6 ${
-      theme === 'dark' 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-200'
-    }`}>
+    <Card padding="lg">
       <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={onBack}
-          className={`p-2 rounded-md border flex items-center justify-center transition-colors ${
-            theme === 'dark'
-              ? 'border-gray-600 bg-transparent hover:bg-gray-700 text-gray-300'
-              : 'border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700'
-          }`}
-        >
+        <Button variant="secondary" onClick={onBack} className="p-2">
           <ArrowLeft size={18} />
-        </button>
+        </Button>
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className={`text-lg font-semibold m-0 ${
-              theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-            }`}>
+            <h2 className={cn('text-lg font-semibold m-0', t.text)}>
               Select a SubCategory
             </h2>
-            <span className="px-2 py-0.5 rounded text-[11px] font-medium uppercase bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            <Badge color="gray" className="text-[11px] uppercase">
               Read-Only
-            </span>
+            </Badge>
           </div>
-          <p className={`text-xs m-0 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <p className={cn('text-xs m-0', t.textTertiary)}>
             SubCategories are platform-owned
           </p>
         </div>
       </div>
       {isLoading ? (
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+        <p className={t.textTertiary}>
           Loading subcategories...
         </p>
       ) : subCategories.length === 0 ? (
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+        <p className={t.textTertiary}>
           No subcategories available
         </p>
       ) : (
@@ -66,14 +53,15 @@ export function SubCategoriesView({
             <button
               key={subCategory.id}
               onClick={() => onSubCategorySelect(subCategory)}
-              className={`p-0 rounded-lg border text-left transition-all duration-200 flex flex-col overflow-hidden ${
-                theme === 'dark'
+              className={cn(
+                'p-0 rounded-lg border text-left transition-all duration-200 flex flex-col overflow-hidden',
+                t.isDark
                   ? 'bg-gray-800 border-gray-600 hover:border-amber-400 hover:bg-gray-700/50'
                   : 'bg-white border-gray-200 hover:border-amber-400 hover:bg-amber-50/50'
-              }`}
+              )}
             >
               {subCategory.imageUrl && (
-                <div className="w-full h-[180px] flex-shrink-0 relative overflow-hidden bg-gray-100 dark:bg-gray-700">
+                <div className={cn('w-full h-[180px] flex-shrink-0 relative overflow-hidden', t.isDark ? 'bg-gray-700' : 'bg-gray-100')}>
                   <img
                     src={subCategory.imageUrl}
                     alt={subCategory.name}
@@ -85,33 +73,24 @@ export function SubCategoriesView({
                 </div>
               )}
               <div className="p-5 flex flex-col gap-2">
-                <h3 className={`text-base font-semibold m-0 ${
-                  theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                }`}>
+                <h3 className={cn('text-base font-semibold m-0', t.text)}>
                   {subCategory.name}
                 </h3>
                 {subCategory.description && (
-                  <p className={`text-sm m-0 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
+                  <p className={cn('text-sm m-0', t.textTertiary)}>
                     {subCategory.description}
                   </p>
                 )}
                 <div className="flex gap-2 items-center">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    theme === 'dark'
-                      ? 'bg-amber-400/20 text-amber-300'
-                      : 'bg-amber-100 text-amber-700'
-                  }`}>
+                  <Badge color="amber">
                     {subCategory.pricingType}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             </button>
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
-

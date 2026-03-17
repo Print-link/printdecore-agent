@@ -2,33 +2,34 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
 import {
   Shield, Users, Clock, ChevronDown, ChevronRight, Plus,
-  UserCheck, UserX, Save, X, Search, Spinner,
+  Save, Spinner,
 } from '../../components/icons';
+import { Card, PageHeader, Button, Badge, Tabs, Avatar, EmptyState } from '../../components/ui';
+import { useThemeClasses } from '../../lib/theme';
+import { cn } from '../../lib/utils';
 import PermissionPicker from '../../components/user-management/PermissionPicker';
 import InviteUserModal from '../../components/user-management/InviteUserModal';
-import type { Permission, ManagedUser } from '../../types';
+import type { Permission } from '../../types';
 
-type Tab = 'users' | 'activity';
+type TabKey = 'users' | 'activity';
 
 export default function AccessControlPage() {
   const { user } = useAuthStore();
   const { selectedBranch } = useBranchStore();
-  const { theme } = useTheme();
+  const t = useThemeClasses();
   const { success, error: showError } = useToast();
   const { isManager, isClerk, hasPermission } = usePermissions();
   const queryClient = useQueryClient();
-  const d = theme === 'dark';
 
   // Clerks use their assigned branch, managers use selected branch
   const canManageUsers = hasPermission(PERMISSIONS.USERS_PERMISSIONS);
 
-  const [activeTab, setActiveTab] = useState<Tab>('activity');
+  const [activeTab, setActiveTab] = useState<TabKey>('activity');
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [editingPermissions, setEditingPermissions] = useState<string[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -77,19 +78,16 @@ export default function AccessControlPage() {
   });
 
   if (!hasPermission(PERMISSIONS.ACTIVITY_VIEW, PERMISSIONS.USERS_PERMISSIONS)) {
-    return <div className={`p-6 text-center ${d ? 'text-gray-400' : 'text-gray-600'}`}>
-      Access denied. You need the required permissions.
-    </div>;
+    return <div className={cn('p-6 text-center', t.textSecondary)}>Access denied. You need the required permissions.</div>;
   }
 
   if (!branchId) {
-    return <div className={`p-6 text-center ${d ? 'text-gray-400' : 'text-gray-600'}`}>
+    return <div className={cn('p-6 text-center', t.textSecondary)}>
       {isClerk ? 'No branch assigned.' : 'Please select a branch.'}
     </div>;
   }
 
   const branchName = isClerk ? 'Your Branch' : selectedBranch?.name || '';
-
   const allPermissions: Permission[] = permData?.permissions || [];
 
   const handleExpandUser = async (userId: string) => {
@@ -98,10 +96,8 @@ export default function AccessControlPage() {
       return;
     }
     setExpandedUserId(userId);
-    // Load this user's direct permissions
     try {
       const data = await apiService.getBranchUserPermissions(branchId!, userId);
-      // Convert effective permission keys to permission IDs
       const permIds = allPermissions
         .filter(p => data.effectivePermissions.includes(p.key))
         .map(p => p.id);
@@ -127,115 +123,68 @@ export default function AccessControlPage() {
     'invitation.accepted': 'Invitation accepted',
   };
 
+  const tabItems = [
+    ...(canManageUsers ? [{ key: 'users', label: 'Users & Permissions', icon: Shield, count: branchUsers.length }] : []),
+    { key: 'activity', label: 'Activity Log', icon: Clock },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className={`text-2xl font-bold ${d ? 'text-gray-100' : 'text-gray-900'}`}>Access Control</h2>
-          <p className={`text-sm mt-1 ${d ? 'text-gray-400' : 'text-gray-500'}`}>
-            {canManageUsers ? `Manage user permissions for ${branchName}` : `Activity log for ${branchName}`}
-          </p>
-        </div>
-        {canManageUsers && (
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-400 hover:bg-amber-500 text-gray-900 rounded-md font-semibold text-sm"
-          >
-            <Plus size={18} />
-            Invite to Branch
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Access Control"
+        description={canManageUsers ? `Manage user permissions for ${branchName}` : `Activity log for ${branchName}`}
+        actions={canManageUsers ? (
+          <Button icon={Plus} onClick={() => setShowInviteModal(true)}>Invite to Branch</Button>
+        ) : undefined}
+      />
 
-      {/* Tabs */}
-      <div className={`flex gap-1 border-b ${d ? 'border-gray-700' : 'border-gray-200'}`}>
-        {[
-          ...(canManageUsers ? [{ key: 'users' as Tab, label: 'Users & Permissions', icon: Shield, count: branchUsers.length }] : []),
-          { key: 'activity' as Tab, label: 'Activity Log', icon: Clock },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'border-amber-400 text-amber-500'
-                : `border-transparent ${d ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`
-            }`}
-          >
-            <tab.icon size={16} />
-            {tab.label}
-            {tab.count !== undefined && (
-              <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-                activeTab === tab.key ? 'bg-amber-400/20 text-amber-500' : d ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'
-              }`}>{tab.count}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={tabItems} active={activeTab} onChange={key => setActiveTab(key as TabKey)} />
 
       {/* ─── Users & Permissions Tab ────────────────────────────────── */}
       {activeTab === 'users' && (
         <div className="space-y-3">
           {usersLoading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="md" />
-            </div>
+            <div className="flex justify-center py-12"><Spinner size="md" /></div>
           ) : branchUsers.length === 0 ? (
-            <div className={`p-12 text-center rounded-lg border ${d ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <Users className={`mx-auto mb-3 ${d ? 'text-gray-600' : 'text-gray-400'}`} size={40} />
-              <p className={d ? 'text-gray-400' : 'text-gray-500'}>No users assigned to this branch yet.</p>
-            </div>
+            <Card>
+              <EmptyState icon={Users} title="No users assigned to this branch yet." />
+            </Card>
           ) : (
             branchUsers.map((u: any) => {
               const isExpanded = expandedUserId === u.id;
               return (
-                <div key={u.id} className={`rounded-lg border transition-all ${
-                  d ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-                } ${isExpanded ? 'ring-2 ring-amber-400/50' : ''}`}>
-                  {/* User Row */}
+                <Card key={u.id} padding="none" className={isExpanded ? 'ring-2 ring-amber-400/50' : ''}>
                   <button
                     onClick={() => handleExpandUser(u.id)}
                     className="w-full flex items-center gap-4 px-5 py-4 text-left"
                   >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      d ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {u.firstName?.[0]}{u.lastName?.[0]}
-                    </div>
+                    <Avatar name={`${u.firstName || ''} ${u.lastName || ''}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`font-medium ${d ? 'text-gray-100' : 'text-gray-900'}`}>
+                        <span className={cn('font-medium', t.text)}>
                           {u.firstName} {u.lastName}
                         </span>
-                        {u.roleName && (
-                          <span className={`px-2 py-0.5 rounded text-xs ${
-                            d ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700'
-                          }`}>{u.roleName}</span>
-                        )}
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          u.isActive !== false
-                            ? d ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-700'
-                            : d ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700'
-                        }`}>
+                        {u.roleName && <Badge color="purple">{u.roleName}</Badge>}
+                        <Badge color={u.isActive !== false ? 'green' : 'red'}>
                           {u.isActive !== false ? 'Active' : 'Inactive'}
-                        </span>
+                        </Badge>
                       </div>
-                      <p className={`text-sm ${d ? 'text-gray-400' : 'text-gray-500'}`}>{u.email}</p>
+                      <p className={cn('text-sm', t.textSecondary)}>{u.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs ${d ? 'text-gray-500' : 'text-gray-400'}`}>
+                      <span className={cn('text-xs', t.textTertiary)}>
                         {u.permissions?.length || 0} permissions
                       </span>
-                      {isExpanded ? <ChevronDown size={18} className="text-gray-400" /> : <ChevronRight size={18} className="text-gray-400" />}
+                      {isExpanded
+                        ? <ChevronDown size={18} className="text-gray-400" />
+                        : <ChevronRight size={18} className="text-gray-400" />}
                     </div>
                   </button>
 
-                  {/* Expanded Permission Editor */}
                   {isExpanded && (
-                    <div className={`px-5 pb-5 border-t ${d ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <div className={cn('px-5 pb-5 border-t', t.border)}>
                       <div className="pt-4">
-                        <h4 className={`text-sm font-semibold mb-3 ${d ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <h4 className={cn('text-sm font-semibold mb-3', t.textSecondary)}>
                           Permissions for this branch
                         </h4>
                         {allPermissions.length > 0 ? (
@@ -248,29 +197,21 @@ export default function AccessControlPage() {
                           <div className="animate-pulse h-24 rounded bg-gray-200 dark:bg-gray-700" />
                         )}
                         <div className="flex gap-3 mt-4">
-                          <button
+                          <Button
+                            icon={Save}
+                            loading={updatePermsMutation.isPending}
                             onClick={() => updatePermsMutation.mutate({ userId: u.id, permissionIds: editingPermissions })}
-                            disabled={updatePermsMutation.isPending}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold text-sm ${
-                              updatePermsMutation.isPending ? 'bg-amber-300 cursor-not-allowed' : 'bg-amber-400 hover:bg-amber-500 text-gray-900'
-                            }`}
                           >
-                            <Save size={16} />
                             {updatePermsMutation.isPending ? 'Saving...' : 'Save Permissions'}
-                          </button>
-                          <button
-                            onClick={() => setExpandedUserId(null)}
-                            className={`px-4 py-2 rounded-md text-sm ${
-                              d ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                            }`}
-                          >
+                          </Button>
+                          <Button variant="secondary" onClick={() => setExpandedUserId(null)}>
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })
           )}
@@ -281,68 +222,62 @@ export default function AccessControlPage() {
       {activeTab === 'activity' && (
         <div className="space-y-4">
           {activityLoading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="md" />
-            </div>
+            <div className="flex justify-center py-12"><Spinner size="md" /></div>
           ) : !activityData?.logs?.length ? (
-            <div className={`p-12 text-center rounded-lg border ${d ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <Clock className={`mx-auto mb-3 ${d ? 'text-gray-600' : 'text-gray-400'}`} size={40} />
-              <p className={d ? 'text-gray-400' : 'text-gray-500'}>No activity logged for this branch yet.</p>
-            </div>
+            <Card>
+              <EmptyState icon={Clock} title="No activity logged for this branch yet." />
+            </Card>
           ) : (
             <>
-              <div className={`rounded-lg border overflow-hidden ${d ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <Card padding="none">
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {activityData.logs.map((log: any) => (
                     <div key={log.id} className="px-5 py-3 flex items-start gap-3">
-                      <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                      <div className={cn('mt-0.5 w-2 h-2 rounded-full flex-shrink-0',
                         log.action.includes('deleted') || log.action.includes('deactivated') || log.action.includes('revoked')
                           ? 'bg-red-400'
                           : log.action.includes('created') || log.action.includes('accepted') || log.action.includes('activated')
                           ? 'bg-green-400'
                           : 'bg-blue-400'
-                      }`} />
+                      )} />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${d ? 'text-gray-200' : 'text-gray-800'}`}>
+                        <p className={cn('text-sm', t.text)}>
                           <span className="font-medium">{log.userName || log.userId.slice(0, 8)}</span>
                           {' '}{ACTION_LABELS[log.action] || log.action}
                           {log.details?.clerkName && <span className="font-medium"> — {log.details.clerkName}</span>}
                           {log.details?.roleName && <span> ({log.details.roleName})</span>}
                           {log.details?.email && <span> ({log.details.email})</span>}
                         </p>
-                        <p className={`text-xs mt-0.5 ${d ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <p className={cn('text-xs mt-0.5', t.textTertiary)}>
                           {new Date(log.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
 
-              {/* Pagination */}
               {activityData.pagination && activityData.pagination.totalPages > 1 && (
                 <div className="flex justify-center gap-2">
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setActivityPage(p => Math.max(1, p - 1))}
                     disabled={activityPage === 1}
-                    className={`px-3 py-1 rounded text-sm ${
-                      d ? 'bg-gray-700 text-gray-300 disabled:text-gray-600' : 'bg-gray-100 text-gray-600 disabled:text-gray-300'
-                    }`}
                   >
                     Previous
-                  </button>
-                  <span className={`px-3 py-1 text-sm ${d ? 'text-gray-400' : 'text-gray-500'}`}>
+                  </Button>
+                  <span className={cn('px-3 py-1 text-sm', t.textSecondary)}>
                     Page {activityPage} of {activityData.pagination.totalPages}
                   </span>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setActivityPage(p => p + 1)}
                     disabled={activityPage >= activityData.pagination.totalPages}
-                    className={`px-3 py-1 rounded text-sm ${
-                      d ? 'bg-gray-700 text-gray-300 disabled:text-gray-600' : 'bg-gray-100 text-gray-600 disabled:text-gray-300'
-                    }`}
                   >
                     Next
-                  </button>
+                  </Button>
                 </div>
               )}
             </>

@@ -1,4 +1,4 @@
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../../lib/theme';
 import type { ClerkOrderDetail } from '../../../../types';
 
 interface OrdersByDateListProps {
@@ -12,7 +12,7 @@ export function OrdersByDateList({
   selectedDate,
   isLoading,
 }: OrdersByDateListProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
 
   if (!selectedDate) {
     return null;
@@ -28,10 +28,8 @@ export function OrdersByDateList({
 
   if (isLoading) {
     return (
-      <div className={`p-3 rounded-md border ${
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+      <div className={`p-3 rounded-md ${t.surface}`}>
+        <p className={t.textSecondary}>
           Loading orders...
         </p>
       </div>
@@ -40,17 +38,11 @@ export function OrdersByDateList({
 
   if (orders.length === 0) {
     return (
-      <div className={`p-3 rounded-md border text-center ${
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <h3 className={`text-base font-bold mb-2 m-0 ${
-          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-        }`}>
+      <div className={`p-3 rounded-md text-center ${t.surface}`}>
+        <h3 className={`text-base font-bold mb-2 m-0 ${t.text}`}>
           Orders for {formattedDate}
         </h3>
-        <p className={`text-sm m-0 ${
-          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-        }`}>
+        <p className={`text-sm m-0 ${t.textSecondary}`}>
           No orders found for this date.
         </p>
       </div>
@@ -74,24 +66,16 @@ export function OrdersByDateList({
 
   return (
     <div>
-      <div className={`p-3 rounded-md border mb-2 ${
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <h3 className={`text-base font-bold m-0 ${
-          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-        }`}>
+      <div className={`p-3 rounded-md mb-2 ${t.surface}`}>
+        <h3 className={`text-base font-bold m-0 ${t.text}`}>
           Orders for {formattedDate}
         </h3>
-        <p className={`text-sm mt-1 m-0 ${
-          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-        }`}>
+        <p className={`text-sm mt-1 m-0 ${t.textSecondary}`}>
           {orders.length} {orders.length === 1 ? 'order' : 'orders'}
         </p>
       </div>
 
-      <div className={`rounded-md border overflow-hidden ${
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
+      <div className={`rounded-md overflow-hidden ${t.surface}`}>
         {orders.map((order, index) => {
           const statusColor = getStatusColor(order.status);
           return (
@@ -99,10 +83,10 @@ export function OrdersByDateList({
               key={order.id}
               className={`p-2.5 transition-all cursor-pointer ${
                 index < orders.length - 1
-                  ? theme === 'dark' ? 'border-b border-gray-700' : 'border-b border-gray-200'
+                  ? `border-b ${t.border}`
                   : ''
               } ${
-                theme === 'dark'
+                t.isDark
                   ? 'bg-gray-800 hover:bg-gray-700/50'
                   : 'bg-white hover:bg-gray-50'
               }`}
@@ -112,9 +96,7 @@ export function OrdersByDateList({
                 {/* Left Section - Order Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className={`font-bold text-xs ${
-                      theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                    }`}>
+                    <span className={`font-bold text-xs ${t.text}`}>
                       {order.orderNumber}
                     </span>
                     <span
@@ -128,17 +110,13 @@ export function OrdersByDateList({
                     </span>
                   </div>
                   <p
-                    className={`text-[11px] mb-0.5 truncate ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}
+                    className={`text-[11px] mb-0.5 truncate ${t.textSecondary}`}
                     title={order.client.fullName}
                   >
                     {order.client.fullName}
                   </p>
                   {order.items && order.items.length > 0 && (
-                    <p className={`text-[10px] m-0 ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                    <p className={`text-[10px] m-0 ${t.textSecondary}`}>
                       {order.itemCount} {order.itemCount === 1 ? 'item' : 'items'}
                     </p>
                   )}
@@ -146,9 +124,7 @@ export function OrdersByDateList({
 
                 {/* Right Section - Price */}
                 <div className="text-right flex-shrink-0">
-                  <p className={`font-bold text-sm m-0 ${
-                    theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                  }`}>
+                  <p className={`font-bold text-sm m-0 ${t.text}`}>
                     ₵{order.totalPrice.toLocaleString()}
                   </p>
                 </div>
@@ -160,4 +136,3 @@ export function OrdersByDateList({
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-import { useTheme } from '../../../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../../../lib/theme';
 import type { LocationFormData } from '../../hooks/useBranchForm';
 import { LeafletMapPicker } from './LeafletMapPicker';
 
@@ -13,17 +13,17 @@ export function LocationStep({
   errors,
   onLocationChange,
 }: LocationStepProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
 
   return (
     <div className="space-y-6">
       <div className={`p-4 rounded-xl border flex items-center gap-3 ${
-        theme === 'dark' ? 'bg-amber-400/10 border-amber-400/20' : 'bg-amber-50 border-amber-200'
+        t.isDark ? 'bg-amber-400/10 border-amber-400/20' : 'bg-amber-50 border-amber-200'
       }`}>
-        <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-amber-400/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+        <div className={`p-2 rounded-full ${t.isDark ? 'bg-amber-400/20 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         </div>
-        <p className={`text-sm ${theme === 'dark' ? 'text-amber-200' : 'text-amber-800 font-medium'}`}>
+        <p className={`text-sm ${t.isDark ? 'text-amber-200' : 'text-amber-800 font-medium'}`}>
           Search for your branch address or click on the map to pinpoint its exact location.
         </p>
       </div>
@@ -48,13 +48,11 @@ export function LocationStep({
       />
 
       <div className={`p-6 rounded-xl border ${
-        theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-gray-50 border-gray-200'
+        t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-gray-50 border-gray-200'
       }`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${
-              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-            }`}>
+            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${t.textTertiary}`}>
               Confirmed Address
             </label>
             <input
@@ -63,7 +61,7 @@ export function LocationStep({
               onChange={(e) => onLocationChange({ address: e.target.value })}
               placeholder="Address will be populated from map..."
               className={`w-full px-4 py-3 rounded-lg border text-sm transition-all shadow-sm ${
-                theme === 'dark'
+                t.isDark
                   ? 'bg-gray-900 border-gray-600 text-gray-100 focus:bg-gray-800'
                   : 'bg-white border-gray-300 text-gray-900 focus:bg-white'
               } focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400`}
@@ -75,9 +73,7 @@ export function LocationStep({
           </div>
 
           <div>
-            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${
-              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-            }`}>
+            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${t.textTertiary}`}>
               Latitude
             </label>
             <input
@@ -86,7 +82,7 @@ export function LocationStep({
               value={locationData.latitude || ''}
               readOnly
               className={`w-full px-4 py-3 rounded-lg border text-sm shadow-sm ${
-                theme === 'dark'
+                t.isDark
                   ? 'bg-gray-900/50 border-gray-700 text-gray-500'
                   : 'bg-gray-100/50 border-gray-200 text-gray-400'
               }`}
@@ -94,9 +90,7 @@ export function LocationStep({
           </div>
 
           <div>
-            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${
-              theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-            }`}>
+            <label className={`block text-xs font-bold uppercase tracking-widest mb-2 ${t.textTertiary}`}>
               Longitude
             </label>
             <input
@@ -105,7 +99,7 @@ export function LocationStep({
               value={locationData.longitude || ''}
               readOnly
               className={`w-full px-4 py-3 rounded-lg border text-sm shadow-sm ${
-                theme === 'dark'
+                t.isDark
                   ? 'bg-gray-900/50 border-gray-700 text-gray-500'
                   : 'bg-gray-100/50 border-gray-200 text-gray-400'
               }`}
@@ -114,29 +108,29 @@ export function LocationStep({
         </div>
 
         {(locationData.city || locationData.state || locationData.country) && (
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className={`mt-6 pt-6 border-t grid grid-cols-2 md:grid-cols-4 gap-4 ${t.border}`}>
             {locationData.city && (
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">City</label>
-                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.city}</p>
+                <label className={`block text-xs font-bold uppercase mb-1 ${t.isDark ? 'text-gray-600' : 'text-gray-500'}`}>City</label>
+                <p className={`text-sm font-medium ${t.isDark ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.city}</p>
               </div>
             )}
             {locationData.state && (
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">State</label>
-                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.state}</p>
+                <label className={`block text-xs font-bold uppercase mb-1 ${t.isDark ? 'text-gray-600' : 'text-gray-500'}`}>State</label>
+                <p className={`text-sm font-medium ${t.isDark ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.state}</p>
               </div>
             )}
             {locationData.country && (
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">Country</label>
-                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.country}</p>
+                <label className={`block text-xs font-bold uppercase mb-1 ${t.isDark ? 'text-gray-600' : 'text-gray-500'}`}>Country</label>
+                <p className={`text-sm font-medium ${t.isDark ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.country}</p>
               </div>
             )}
             {locationData.postalCode && (
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-600 uppercase mb-1">Postcode</label>
-                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.postalCode}</p>
+                <label className={`block text-xs font-bold uppercase mb-1 ${t.isDark ? 'text-gray-600' : 'text-gray-500'}`}>Postcode</label>
+                <p className={`text-sm font-medium ${t.isDark ? 'text-gray-300' : 'text-gray-700'}`}>{locationData.postalCode}</p>
               </div>
             )}
           </div>
@@ -152,4 +146,3 @@ export function LocationStep({
     </div>
   );
 }
-

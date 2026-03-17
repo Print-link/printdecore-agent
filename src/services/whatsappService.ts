@@ -1,14 +1,15 @@
 import { apiService } from './api';
+import type { WhatsAppChat, WhatsAppMessage } from '../types/whatsapp';
+
+// Re-export types so existing imports from whatsappService still work
+export type { WhatsAppChat, WhatsAppMessage } from '../types/whatsapp';
 
 // Simple browser-compatible EventEmitter
 class EventEmitter {
-	private events: { [key: string]: Array<(...args: any[]) => void> } = {};
+	private events: Record<string, Array<(...args: any[]) => void>> = {};
 
 	on(event: string, listener: (...args: any[]) => void) {
-		if (!this.events[event]) {
-			this.events[event] = [];
-		}
-		this.events[event].push(listener);
+		(this.events[event] ??= []).push(listener);
 	}
 
 	off(event: string, listener: (...args: any[]) => void) {
@@ -18,50 +19,15 @@ class EventEmitter {
 	}
 
 	emit(event: string, ...args: any[]) {
-		if (this.events[event]) {
-			this.events[event].forEach((listener) => {
-				try {
-					listener(...args);
-				} catch (error) {
-					console.error(`Error in event listener for ${event}:`, error);
-				}
-			});
-		}
+		this.events[event]?.forEach((listener) => {
+			try { listener(...args); } catch (e) { console.error(`Event listener error [${event}]:`, e); }
+		});
 	}
 
 	removeAllListeners(event?: string) {
-		if (event) {
-			delete this.events[event];
-		} else {
-			this.events = {};
-		}
+		if (event) delete this.events[event];
+		else this.events = {};
 	}
-}
-
-export interface WhatsAppChat {
-	id: string;
-	name: string;
-	unreadCount: number;
-	lastMessage?: {
-		body: string;
-		timestamp: number;
-	};
-	isGroup: boolean;
-	pictureUrl?: string;
-}
-
-export interface WhatsAppMessage {
-	id: string;
-	from: string;
-	to: string;
-	body: string;
-	timestamp: number;
-	isFromMe: boolean;
-	hasMedia: boolean;
-	mediaUrl?: string;
-	mediaType?: string;
-	mediaFilename?: string;
-	contactName?: string;
 }
 
 class WhatsAppService extends EventEmitter {

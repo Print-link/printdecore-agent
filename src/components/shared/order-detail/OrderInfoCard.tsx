@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { CheckCircle, Clock, Package, Spinner } from '../../icons';
-import { useTheme } from '../../../contexts/ThemeContext';
-import { getStatusColor } from '../utils/orderUtils';
+import { useThemeClasses } from '../../../lib/theme';
 import type { ClerkOrder } from '../../../types';
+import { Card, Button, StatusBadge, Select } from '../../ui';
 
 interface OrderInfoCardProps {
 	order: ClerkOrder;
@@ -25,7 +25,7 @@ const TIME_OPTIONS = [
 ];
 
 export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsReceived }: OrderInfoCardProps) {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const [showTimeDropdown, setShowTimeDropdown] = useState(false);
 	const [selectedTime, setSelectedTime] = useState<number | null>(null);
 
@@ -66,42 +66,24 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 		: null;
 
 	return (
-		<div
-			className={`p-3 sm:p-4 rounded-lg ${
-				theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-			}`}
-		>
+		<Card padding="sm" className="p-3 sm:p-4">
 			<div className="flex items-center justify-between mb-3 flex-wrap gap-2">
 				<div>
-					<p
-						className={`text-sm font-medium mb-1 ${
-							theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-						}`}
-					>
+					<p className={`text-sm font-medium mb-1 ${t.textSecondary}`}>
 						Order Number
 					</p>
-					<p
-						className={`text-lg font-bold ${
-							theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-						}`}
-					>
+					<p className={`text-lg font-bold ${t.text}`}>
 						{order.orderNumber}
 					</p>
 				</div>
-				<span
-					className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-						order.status
-					)}`}
-				>
-					{order.status}
-				</span>
+				<StatusBadge status={order.status} className="px-3 py-1 text-xs font-semibold" />
 			</div>
 
 			{/* Show estimated completion time if order is received */}
 			{order.status === 'RECEIVED' && formattedEstimatedTime && (
 				<div
 					className={`mb-3 p-2 rounded-md flex items-center gap-2 ${
-						theme === 'dark' ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-700'
+						t.isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-700'
 					}`}
 				>
 					<Clock size={16} />
@@ -115,16 +97,12 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 			{order.comment && (
 				<div
 					className={`mb-3 p-3 rounded-md border ${
-						theme === 'dark' 
-							? 'bg-gray-800/50 border-gray-700 text-gray-300' 
+						t.isDark
+							? 'bg-gray-800/50 border-gray-700 text-gray-300'
 							: 'bg-gray-50 border-gray-200 text-gray-700'
 					}`}
 				>
-					<p
-						className={`text-xs font-semibold mb-1.5 ${
-							theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-						}`}
-					>
+					<p className={`text-xs font-semibold mb-1.5 ${t.textSecondary}`}>
 						Customer Comment:
 					</p>
 					<p className="text-sm whitespace-pre-wrap">{order.comment}</p>
@@ -133,111 +111,77 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 
 			<div className="flex items-center justify-between">
 				<div>
-					<p
-						className={`text-sm font-medium mb-1 ${
-							theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-						}`}
-					>
+					<p className={`text-sm font-medium mb-1 ${t.textSecondary}`}>
 						Total Price
 					</p>
-					<p
-						className={`text-xl font-bold ${
-							theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-						}`}
-					>
+					<p className={`text-xl font-bold ${t.text}`}>
 						₵{order.totalPrice.toFixed(2)}
 					</p>
 				</div>
 
 				{/* Time Selection Dropdown */}
 				{showTimeDropdown && (
-					<div
-						className={`flex flex-col gap-2 p-3 rounded-lg border ${
-							theme === 'dark'
-								? 'bg-gray-800 border-gray-600'
-								: 'bg-white border-gray-200'
-						}`}
-					>
-						<p
-							className={`text-sm font-medium ${
-								theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-							}`}
-						>
+					<Card padding="sm" className="flex flex-col gap-2 p-3">
+						<p className={`text-sm font-medium ${t.isDark ? 'text-gray-300' : 'text-gray-700'}`}>
 							Estimated Completion Time:
 						</p>
-						<select
-							value={selectedTime || ''}
+						<Select
+							value={selectedTime?.toString() || ''}
 							onChange={(e) => handleTimeSelect(Number(e.target.value))}
-							className={`px-3 py-2 rounded-md text-sm border ${
-								theme === 'dark'
-									? 'bg-gray-700 border-gray-600 text-gray-200'
-									: 'bg-white border-gray-300 text-gray-900'
-							}`}
-						>
-							<option value="">Select time...</option>
-							{TIME_OPTIONS.map((option) => (
-								<option key={option.minutes} value={option.minutes}>
-									{option.label}
-								</option>
-							))}
-						</select>
+							placeholder="Select time..."
+							options={TIME_OPTIONS.map((option) => ({
+								value: option.minutes.toString(),
+								label: option.label,
+							}))}
+						/>
 						<div className="flex gap-2 mt-1">
-							<button
+							<Button
+								variant="secondary"
+								size="sm"
 								onClick={handleCancelTimeSelection}
 								disabled={isUpdating}
-								className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-									theme === 'dark'
-										? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-										: 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-								}`}
+								className="flex-1"
 							>
 								Cancel
-							</button>
-							<button
+							</Button>
+							<Button
+								size="sm"
 								onClick={handleConfirmReceived}
 								disabled={!selectedTime || isUpdating}
-								className="flex-1 px-3 py-1.5 rounded-md text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+								loading={isUpdating}
+								icon={isUpdating ? undefined : Package}
+								className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
 							>
-								{isUpdating ? (
-									<>
-										<Spinner size="xs" className="text-white" />
-										Updating...
-									</>
-								) : (
-									<>
-										<Package size={14} />
-										Confirm
-									</>
-								)}
-							</button>
+								{isUpdating ? 'Updating...' : 'Confirm'}
+							</Button>
 						</div>
-					</div>
+					</Card>
 				)}
 
 				{/* Mark as Received Button (for PAID/PENDING orders) */}
 				{canMarkAsReceived && !showTimeDropdown && (
-					<button
+					<Button
 						onClick={handleMarkAsReceivedClick}
 						disabled={isUpdating}
-						className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+						icon={Package}
+						className="bg-blue-500 hover:bg-blue-600 text-white"
 					>
-						<Package size={16} />
 						{isUpdating ? 'Updating...' : 'Mark as Received'}
-					</button>
+					</Button>
 				)}
 
 				{/* Mark as Completed Button (for RECEIVED/IN_PROGRESS orders) */}
 				{canMarkAsCompleted && !showTimeDropdown && (
-					<button
+					<Button
 						onClick={onMarkAsComplete}
 						disabled={isUpdating}
-						className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+						icon={CheckCircle}
+						className="bg-green-500 hover:bg-green-600 text-white"
 					>
-						<CheckCircle size={16} />
 						{isUpdating ? 'Updating...' : 'Mark as Completed'}
-					</button>
+					</Button>
 				)}
 			</div>
-		</div>
+		</Card>
 	);
 }

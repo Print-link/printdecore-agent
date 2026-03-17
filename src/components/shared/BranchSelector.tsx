@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Search, Store, X, Spinner } from '../icons';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useThemeClasses } from '../../lib/theme';
+import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
 import { apiService } from '../../services/api';
@@ -13,7 +14,7 @@ interface BranchSelectorProps {
 }
 
 export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
   const { user } = useAuthStore();
   const { selectedBranch, selectBranch, clearBranch, setLoading, setError } = useBranchStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -89,7 +90,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
     try {
       setIsSwitching(true);
       setSelectedBranchId(branch.id);
-      
+
       // Show immediate visual feedback
       await new Promise((resolve) => setTimeout(resolve, 150));
 
@@ -98,7 +99,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
       setShowTransition(true);
       setLoading(true);
       setError(null);
-      
+
       // Keep dropdown open briefly to show selection
       await new Promise((resolve) => setTimeout(resolve, 200));
       setIsOpen(false);
@@ -109,7 +110,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
 
       // Wait for transition animation
       await new Promise((resolve) => setTimeout(resolve, 400));
-      
+
       // Navigate to dashboard
       navigate('/clerk/dashboard');
 
@@ -202,9 +203,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
       />
       <div
         ref={dropdownRef}
-        className={`relative border-b ${
-          theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-        } p-3`}
+        className={cn('relative border-b p-3', t.border)}
       >
         {/* Current Branch Display */}
         <button
@@ -218,11 +217,12 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
             }
           }}
           disabled={isSwitching}
-          className={`w-full p-2 border-none bg-transparent cursor-pointer text-left flex items-center gap-2 rounded-lg transition-all ${
+          className={cn(
+            'w-full p-2 border-none bg-transparent cursor-pointer text-left flex items-center gap-2 rounded-lg transition-all',
             isSwitching
               ? 'opacity-60 cursor-not-allowed'
-              : theme === 'dark' ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100'
-          }`}
+              : t.isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100'
+          )}
         >
           {/* Branch Image Thumbnail */}
           {selectedBranch.branchCoverImage ? (
@@ -237,27 +237,22 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
               />
             </div>
           ) : (
-            <div className={`w-8 h-8 rounded-md flex-shrink-0 flex items-center justify-center ${
-              theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
-            }`}>
+            <div className={cn(
+              'w-8 h-8 rounded-md flex-shrink-0 flex items-center justify-center',
+              t.isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
+            )}>
               <Store size={16} />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className={`text-sm font-semibold truncate mb-0.5 ${
-              theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-            }`}>
+            <div className={cn('text-sm font-semibold truncate mb-0.5', t.text)}>
               {selectedBranch.name}
             </div>
-            <div className={`text-xs truncate ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <div className={cn('text-xs truncate', t.textSecondary)}>
               {formatAddress(selectedBranch.location)}
             </div>
           </div>
-          <div className={`text-xs flex-shrink-0 ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <div className={cn('text-xs flex-shrink-0', t.textSecondary)}>
             {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </div>
         </button>
@@ -265,22 +260,19 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
         {/* Dropdown */}
         {isOpen && (
           <div
-            className={`absolute top-full left-0 right-0 rounded-lg shadow-xl z-[1000] max-h-[500px] overflow-hidden mt-1 flex flex-col transition-all duration-200 ${
-              theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-            }`}
+            className={cn(
+              'absolute top-full left-0 right-0 rounded-lg shadow-xl z-[1000] max-h-[500px] overflow-hidden mt-1 flex flex-col transition-all duration-200',
+              t.surface
+            )}
             style={{
               animation: 'fadeInDown 0.2s ease-out',
             }}
           >
             {/* Search Input */}
-            <div className={`p-3 border-b ${
-              theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-            }`}>
+            <div className={cn('p-3 border-b', t.border)}>
               <div className="relative flex items-center">
                 <Search
-                  className={`absolute left-2.5 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                  }`}
+                  className={cn('absolute left-2.5', t.textSecondary)}
                   size={14}
                 />
                 <input
@@ -292,11 +284,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
                     setSearchQuery(e.target.value);
                     setVisibleCount(5);
                   }}
-                  className={`w-full pl-8 pr-2 py-2 rounded-md border text-xs outline-none ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-gray-100'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+                  className={cn('w-full pl-8 pr-2 py-2 rounded-md border text-xs outline-none', t.input)}
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') {
                       setIsOpen(false);
@@ -307,32 +295,33 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
             </div>
 
             {/* Deselect Branch Option */}
-            <div className={`border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={cn('border-b', t.border)}>
               <button
                 onClick={handleDeselectBranch}
                 disabled={isSwitching}
-                className={`w-full p-3 border-none bg-transparent cursor-pointer text-left flex items-center gap-3 transition-all ${
+                className={cn(
+                  'w-full p-3 border-none bg-transparent cursor-pointer text-left flex items-center gap-3 transition-all',
                   isSwitching
                     ? 'opacity-50 cursor-not-allowed'
-                    : theme === 'dark'
+                    : t.isDark
                     ? 'hover:bg-red-900/20 active:bg-red-900/30 text-red-400'
                     : 'hover:bg-red-50 active:bg-red-100 text-red-600'
-                }`}
+                )}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  theme === 'dark' ? 'bg-red-900/30' : 'bg-red-100'
-                }`}>
+                <div className={cn(
+                  'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
+                  t.isDark ? 'bg-red-900/30' : 'bg-red-100'
+                )}>
                   <X size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-semibold ${
-                    theme === 'dark' ? 'text-red-400' : 'text-red-600'
-                  }`}>
+                  <div className={cn(
+                    'text-sm font-semibold',
+                    t.isDark ? 'text-red-400' : 'text-red-600'
+                  )}>
                     Deselect Branch
                   </div>
-                  <div className={`text-xs ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
-                  }`}>
+                  <div className="text-xs text-gray-500">
                     Return to overview
                   </div>
                 </div>
@@ -342,15 +331,11 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
             {/* Branches List */}
             <div className="overflow-y-auto max-h-[400px]">
               {isLoadingBranches ? (
-                <div className={`p-6 text-center ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <div className={cn('p-6 text-center', t.textSecondary)}>
                   Loading branches...
                 </div>
               ) : visibleBranches.length === 0 ? (
-                <div className={`p-6 text-center ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <div className={cn('p-6 text-center', t.textSecondary)}>
                   {searchQuery ? 'No branches found' : 'No other branches available'}
                 </div>
               ) : (
@@ -358,21 +343,23 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
                   {visibleBranches.map((branch) => {
                     const isSelected = selectedBranchId === branch.id;
                     const isActive = isSelected && isSwitching;
-                    
+
                     return (
                       <button
                         key={branch.id}
                         onClick={() => handleBranchSelect(branch)}
                         disabled={isSwitching}
-                        className={`w-full p-3 border-none bg-transparent cursor-pointer text-left flex items-center gap-3 border-b transition-all relative group ${
+                        className={cn(
+                          'w-full p-3 border-none bg-transparent cursor-pointer text-left flex items-center gap-3 border-b transition-all relative group',
                           isActive
-                            ? theme === 'dark'
+                            ? t.isDark
                               ? 'bg-amber-500/20 border-amber-500/30 shadow-inner'
                               : 'bg-amber-100 border-amber-200 shadow-inner'
-                            : theme === 'dark'
+                            : t.isDark
                             ? 'border-gray-700 hover:bg-gray-700/50 active:bg-gray-700/70'
-                            : 'border-gray-200 hover:bg-gray-50 active:bg-gray-100'
-                        } ${isSwitching && !isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            : 'border-gray-200 hover:bg-gray-50 active:bg-gray-100',
+                          isSwitching && !isActive && 'opacity-50 cursor-not-allowed'
+                        )}
                         style={{
                           transform: isActive ? 'scale(0.98)' : 'scale(1)',
                         }}
@@ -382,15 +369,17 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
                             <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded">
                               <Spinner size="sm" />
                             </div>
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                              theme === 'dark' ? 'bg-amber-400' : 'bg-amber-500'
-                            }`} />
+                            <div className={cn(
+                              'absolute left-0 top-0 bottom-0 w-1',
+                              t.isDark ? 'bg-amber-400' : 'bg-amber-500'
+                            )} />
                           </>
                         )}
                         {/* Branch Image Thumbnail */}
-                        <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border transition-all ${
+                        <div className={cn(
+                          'w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border transition-all',
                           isActive ? 'ring-2 ring-amber-400 scale-105 shadow-lg' : 'group-hover:scale-105'
-                        }`}>
+                        )}>
                           {branch.branchCoverImage ? (
                             <img
                               src={branch.branchCoverImage}
@@ -401,24 +390,24 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
                               }}
                             />
                           ) : (
-                            <div className={`w-full h-full flex items-center justify-center ${
-                              theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
-                            }`}>
+                            <div className={cn(
+                              'w-full h-full flex items-center justify-center',
+                              t.isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
+                            )}>
                               <Store size={18} />
                             </div>
                           )}
                         </div>
-                        <div className={`flex-1 min-w-0 transition-all ${isActive ? 'translate-x-1' : ''}`}>
-                          <div className={`text-sm font-semibold truncate mb-0.5 transition-colors ${
+                        <div className={cn('flex-1 min-w-0 transition-all', isActive && 'translate-x-1')}>
+                          <div className={cn(
+                            'text-sm font-semibold truncate mb-0.5 transition-colors',
                             isActive
                               ? 'text-amber-600 dark:text-amber-400'
-                              : theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-                          }`}>
+                              : t.text
+                          )}>
                             {branch.name}
                           </div>
-                          <div className={`text-xs truncate ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                          }`}>
+                          <div className={cn('text-xs truncate', t.textSecondary)}>
                             {formatAddress(branch.location)}
                           </div>
                         </div>
@@ -429,11 +418,12 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
                   {hasMore && (
                     <button
                       onClick={() => setVisibleCount((prev) => prev + 10)}
-                      className={`w-full p-3 border-none bg-transparent cursor-pointer text-center border-t transition-all ${
-                        theme === 'dark'
+                      className={cn(
+                        'w-full p-3 border-none bg-transparent cursor-pointer text-center border-t transition-all',
+                        t.isDark
                           ? 'text-amber-400 border-gray-700 hover:bg-gray-700/50'
                           : 'text-amber-600 border-gray-200 hover:bg-gray-50'
-                      }`}
+                      )}
                     >
                       Show {Math.min(10, filteredBranches.length - visibleCount)} more
                     </button>
@@ -447,4 +437,3 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
     </>
   );
 }
-

@@ -252,19 +252,16 @@ export function PricingConfigForm({
 				isOpen={showAddBaseConfig}
 				onClose={() => setShowAddBaseConfig(false)}
 				onAdd={addBaseConfiguration}
-				theme={theme}
 			/>
 			<AddOptionDialog
 				isOpen={showAddOption}
 				onClose={() => setShowAddOption(false)}
 				onAdd={addOption}
-				theme={theme}
 			/>
 			<AddCustomSpecDialog
 				isOpen={showAddCustomSpec}
 				onClose={() => setShowAddCustomSpec(false)}
 				onAdd={addCustomSpecification}
-				theme={theme}
 			/>
 		</>
 	);

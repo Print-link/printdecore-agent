@@ -1,14 +1,16 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiService } from "../../services/api";
 import { Mail, ArrowLeft } from "../../components/icons";
+import { Card, Button, Input } from "../../components/ui";
+import { useThemeClasses } from "../../lib/theme";
+import { cn } from "../../lib/utils";
 import printAgentLogo from "../../assets/images/printAgentLogo.png";
 
 export default function ForgotPasswordPage() {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { success, error: showError } = useToast();
 	const [email, setEmail] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
@@ -37,11 +39,10 @@ export default function ForgotPasswordPage() {
 
 	return (
 		<div
-			className={`min-h-screen flex items-center justify-center p-5 ${
-				theme === "dark"
-					? "bg-gradient-to-br from-gray-900 to-gray-800"
-					: "bg-gradient-to-br from-white to-gray-50"
-			}`}
+			className={cn(
+				"min-h-screen flex items-center justify-center p-5 bg-gradient-to-br",
+				t.isDark ? "from-gray-900 to-gray-800" : "from-white to-gray-50"
+			)}
 		>
 			<div className="w-full max-w-md space-y-8">
 				{/* Logo Section */}
@@ -56,105 +57,70 @@ export default function ForgotPasswordPage() {
 				</div>
 
 				{/* Form Section */}
-				<div
-					className={`rounded-lg p-8 ${
-						theme === "dark"
-							? "bg-gray-800 border border-gray-700"
-							: "bg-white border border-gray-200"
-					}`}
-				>
+				<Card padding="lg" className="rounded-lg">
 					{!isSubmitted ? (
 						<>
 							<div className="text-center mb-6">
 								<div
-									className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
-										theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-									}`}
+									className={cn(
+										"inline-flex items-center justify-center w-16 h-16 rounded-full mb-4",
+										t.isDark ? "bg-gray-700" : "bg-gray-100"
+									)}
 								>
 									<Mail
-										className={`w-8 h-8 ${
-											theme === "dark" ? "text-gray-300" : "text-gray-600"
-										}`}
+										className={cn(
+											"w-8 h-8",
+											t.isDark ? "text-gray-300" : "text-gray-600"
+										)}
 									/>
 								</div>
-								<h2
-									className={`text-2xl font-bold mb-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
+								<h2 className={cn("text-2xl font-bold mb-2", t.text)}>
 									Forgot Password?
 								</h2>
-								<p
-									className={`text-sm ${
-										theme === "dark" ? "text-gray-400" : "text-gray-600"
-									}`}
-								>
+								<p className={cn("text-sm", t.textSecondary)}>
 									Enter your email address and we'll send you a link to reset
 									your password.
 								</p>
 							</div>
 
 							<form onSubmit={handleSubmit} className="space-y-6">
-								<div>
-									<label
-										className={`block text-sm font-medium mb-2 ${
-											theme === "dark" ? "text-gray-300" : "text-gray-700"
-										}`}
-									>
-										Email
-									</label>
-									<input
-										type="email"
-										value={email}
-										onChange={(e) => setEmail(e.target.value)}
-										placeholder="Enter your email"
-										required
-										className={`w-full px-4 py-2 rounded-md border ${
-											theme === "dark"
-												? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-												: "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-										} focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent`}
-									/>
-								</div>
+								<Input
+									label="Email"
+									type="email"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									placeholder="Enter your email"
+									required
+								/>
 
-								<button
+								<Button
 									type="submit"
-									disabled={isLoading}
-									className={`w-full py-3 px-4 rounded-md font-semibold text-sm transition-all ${
-										isLoading
-											? "bg-amber-300 cursor-not-allowed"
-											: "bg-amber-400 hover:bg-amber-500 active:bg-amber-600"
-									} text-gray-900`}
+									loading={isLoading}
+									className="w-full py-3"
 								>
 									{isLoading ? "Sending..." : "Send Reset Link"}
-								</button>
+								</Button>
 							</form>
 						</>
 					) : (
 						<div className="text-center">
 							<div
-								className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
-									theme === "dark" ? "bg-green-900/30" : "bg-green-100"
-								}`}
+								className={cn(
+									"inline-flex items-center justify-center w-16 h-16 rounded-full mb-4",
+									t.isDark ? "bg-green-900/30" : "bg-green-100"
+								)}
 							>
 								<Mail
-									className={`w-8 h-8 ${
-										theme === "dark" ? "text-green-400" : "text-green-600"
-									}`}
+									className={cn(
+										"w-8 h-8",
+										t.isDark ? "text-green-400" : "text-green-600"
+									)}
 								/>
 							</div>
-							<h2
-								className={`text-2xl font-bold mb-2 ${
-									theme === "dark" ? "text-gray-100" : "text-gray-900"
-								}`}
-							>
+							<h2 className={cn("text-2xl font-bold mb-2", t.text)}>
 								Check Your Email
 							</h2>
-							<p
-								className={`text-sm mb-6 ${
-									theme === "dark" ? "text-gray-400" : "text-gray-600"
-								}`}
-							>
+							<p className={cn("text-sm mb-6", t.textSecondary)}>
 								We've sent a password reset link to <strong>{email}</strong>.
 								Please check your inbox and follow the instructions to reset your
 								password.
@@ -164,11 +130,12 @@ export default function ForgotPasswordPage() {
 									setIsSubmitted(false);
 									setEmail("");
 								}}
-								className={`text-sm ${
-									theme === "dark"
+								className={cn(
+									"text-sm font-medium",
+									t.isDark
 										? "text-amber-400 hover:text-amber-300"
 										: "text-amber-600 hover:text-amber-700"
-								} font-medium`}
+								)}
 							>
 								Send to a different email
 							</button>
@@ -178,19 +145,19 @@ export default function ForgotPasswordPage() {
 					<div className="mt-6 text-center">
 						<Link
 							to="/login"
-							className={`inline-flex items-center gap-2 text-sm ${
-								theme === "dark"
+							className={cn(
+								"inline-flex items-center gap-2 text-sm transition-colors",
+								t.isDark
 									? "text-gray-400 hover:text-gray-300"
 									: "text-gray-600 hover:text-gray-900"
-							} transition-colors`}
+							)}
 						>
 							<ArrowLeft size={16} />
 							Back to Login
 						</Link>
 					</div>
-				</div>
+				</Card>
 			</div>
 		</div>
 	);
 }
-

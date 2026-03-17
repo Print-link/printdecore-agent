@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../stores/authStore';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../lib/theme';
 import { useToast } from '../../../contexts/ToastContext';
 import { apiService } from '../../../services/api';
 import { useBranchForm } from './hooks/useBranchForm';
@@ -12,6 +12,7 @@ import {
 	LocationStep,
 	OperatingHoursStep,
 } from './components';
+import { Button } from '../../../components/ui';
 import { AlertCircle, Save, Spinner, Info, MapPin, Clock, ArrowLeft } from '../../../components/icons';
 
 const SECTIONS = [
@@ -24,7 +25,7 @@ export default function BranchEditPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { user } = useAuthStore();
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { success, error: showError } = useToast();
 	const queryClient = useQueryClient();
 	const [activeSection, setActiveSection] = useState('basic');
@@ -195,42 +196,34 @@ export default function BranchEditPage() {
 	return (
 		<div className="max-w-5xl mx-auto pb-12 pt-4 px-4">
 			{/* Sticky Header */}
-			<div className={`sticky top-0 z-20 pb-4 mb-8 pt-2 ${theme === 'dark' ? 'bg-gray-900/95' : 'bg-gray-50/95'
-				} backdrop-blur-sm border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'
-				}`}>
+			<div className={`sticky top-0 z-20 pb-4 mb-8 pt-2 ${t.surfaceInset}/95 backdrop-blur-sm border-b ${t.border}`}>
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<button
 							onClick={() => navigate('/clerk/branches')}
-							className={`p-2 rounded-full transition-colors border-none cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
-								}`}
+							className={`p-2 rounded-full transition-colors border-none cursor-pointer ${t.isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`}
 						>
 							<ArrowLeft size={20} />
 						</button>
 						<div>
-							<h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+							<h1 className={`text-2xl font-bold ${t.text}`}>
 								Edit Branch
 							</h1>
-							<p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+							<p className={`text-sm ${t.textSecondary}`}>
 								{branch.name}
 							</p>
 						</div>
 					</div>
-					<button
+					<Button
 						onClick={handleSubmit}
 						disabled={updateBranchMutation.isPending}
-						className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all shadow-lg active:scale-95 border-none cursor-pointer ${updateBranchMutation.isPending
-							? 'bg-gray-400 cursor-not-allowed text-white'
-							: 'bg-amber-400 hover:bg-amber-500 text-gray-900'
-							}`}
+						loading={updateBranchMutation.isPending}
+						icon={updateBranchMutation.isPending ? undefined : Save}
+						size="lg"
+						className="shadow-lg active:scale-95"
 					>
-						{updateBranchMutation.isPending ? (
-							<Spinner size="sm" />
-						) : (
-							<Save size={18} />
-						)}
 						{updateBranchMutation.isPending ? 'Updating...' : 'Update Branch'}
-					</button>
+					</Button>
 				</div>
 
 				{/* Horizontal Navigation */}
@@ -257,13 +250,12 @@ export default function BranchEditPage() {
 
 			<div className="space-y-8">
 				{/* Basic Info Section */}
-				<section id="basic" className={`p-8 rounded-2xl border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'
-					} shadow-sm`}>
+				<section id="basic" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
 					<div className="flex items-center gap-3 mb-6">
 						<div className="p-2 bg-amber-400/10 text-amber-500 rounded-lg">
 							<Info size={20} />
 						</div>
-						<h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+						<h2 className={`text-xl font-bold ${t.text}`}>
 							Basic Identity
 						</h2>
 					</div>
@@ -278,13 +270,12 @@ export default function BranchEditPage() {
 				</section>
 
 				{/* Location Section */}
-				<section id="location" className={`p-8 rounded-2xl border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'
-					} shadow-sm`}>
+				<section id="location" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
 					<div className="flex items-center gap-3 mb-6">
 						<div className="p-2 bg-blue-400/10 text-blue-500 rounded-lg">
 							<MapPin size={20} />
 						</div>
-						<h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+						<h2 className={`text-xl font-bold ${t.text}`}>
 							Location & Address
 						</h2>
 					</div>
@@ -296,13 +287,12 @@ export default function BranchEditPage() {
 				</section>
 
 				{/* Hours Section */}
-				<section id="hours" className={`p-8 rounded-2xl border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'
-					} shadow-sm`}>
+				<section id="hours" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
 					<div className="flex items-center gap-3 mb-6">
 						<div className="p-2 bg-green-400/10 text-green-500 rounded-lg">
 							<Clock size={20} />
 						</div>
-						<h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+						<h2 className={`text-xl font-bold ${t.text}`}>
 							Operating Hours
 						</h2>
 					</div>

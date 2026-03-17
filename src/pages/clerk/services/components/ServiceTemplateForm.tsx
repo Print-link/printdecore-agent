@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X, ChevronDown, ChevronRight } from '../../../../components/icons';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { Button, Input, Select } from '../../../../components/ui';
+import { useThemeClasses } from '../../../../lib/theme';
+import { cn } from '../../../../lib/utils';
 import { apiService } from '../../../../services/api';
 import type { ServiceTemplate, CreateServiceTemplateData, UpdateServiceTemplateData, PricingConfig, BaseConfiguration, PricingOption, CustomSpecification } from '../../../../types';
 import { BaseConfigurationsSection } from './pricing-config/components/BaseConfigurationsSection';
@@ -50,10 +52,10 @@ export function ServiceTemplateForm({
   onClose,
   onSuccess,
 }: ServiceTemplateFormProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
   const [pricingFormulas, setPricingFormulas] = useState<any[]>([]);
   const [isLoadingFormulas, setIsLoadingFormulas] = useState(false);
-  
+
   const [formData, setFormData] = useState<CreateServiceTemplateData>({
     subCategoryId,
     branchId,
@@ -68,11 +70,11 @@ export function ServiceTemplateForm({
 
   // Pricing config state
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(getDefaultTemplatePricingConfig());
-  
+
   // Section expansion states
   const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
   const [isCustomSpecsExpanded, setIsCustomSpecsExpanded] = useState(false);
-  
+
   // Dialog states
   const [showAddBaseConfig, setShowAddBaseConfig] = useState(false);
   const [showAddOption, setShowAddOption] = useState(false);
@@ -129,7 +131,7 @@ export function ServiceTemplateForm({
         supportsPrintCut: editingTemplate.supportsPrintCut,
         pricingFormulaId: editingTemplate.pricingFormulaId || '',
       });
-      
+
       // Load pricing config if exists
       if (editingTemplate.pricingConfig) {
         setPricingConfig({
@@ -264,26 +266,28 @@ export function ServiceTemplateForm({
     setCheckedBaseConfigs(newChecked);
   };
 
-  const SectionHeader = ({ title, isExpanded, onToggle, count, description }: { 
-    title: string; 
-    isExpanded: boolean; 
-    onToggle: () => void; 
-    count?: number; 
+  const SectionHeader = ({ title, isExpanded, onToggle, count, description }: {
+    title: string;
+    isExpanded: boolean;
+    onToggle: () => void;
+    count?: number;
     description?: string;
   }) => (
     <button
       onClick={onToggle}
-      className={`w-full flex items-center justify-between py-4 border-b ${
-        theme === 'dark' ? 'border-gray-800 text-gray-400 hover:text-gray-300' : 'border-gray-100 text-gray-500 hover:text-gray-700'
-      } transition-colors group`}
+      className={cn(
+        'w-full flex items-center justify-between py-4 border-b transition-colors group',
+        t.isDark ? 'border-gray-800 text-gray-400 hover:text-gray-300' : 'border-gray-100 text-gray-500 hover:text-gray-700'
+      )}
     >
       <div className="flex items-center gap-3">
         {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         <span className="text-[10px] font-black uppercase tracking-widest">{title}</span>
         {count !== undefined && count > 0 && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-            theme === 'dark' ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'
-          }`}>
+          <span className={cn(
+            'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
+            t.isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'
+          )}>
             {count}
           </span>
         )}
@@ -299,25 +303,23 @@ export function ServiceTemplateForm({
   return (
     <>
       <div
-        className={`fixed inset-0 z-50 flex flex-col transition-all duration-300 animate-in fade-in zoom-in-95 ${
-          theme === "dark" ? "bg-gray-900 font-sans" : "bg-gray-50 font-sans"
-        }`}
+        className={cn(
+          'fixed inset-0 z-50 flex flex-col transition-all duration-300 animate-in fade-in zoom-in-95 font-sans',
+          t.isDark ? 'bg-gray-900' : 'bg-gray-50'
+        )}
       >
         <div className="flex flex-col h-full max-w-[1400px] mx-auto w-full">
           {/* Header */}
-          <div className={`flex items-center justify-between px-6 py-4 border-b ${
-            theme === 'dark' ? 'border-gray-800' : 'border-gray-200'
-          }`}>
-            <h2 className={`text-xl font-bold m-0 ${
-              theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-            }`}>
+          <div className={cn('flex items-center justify-between px-6 py-4 border-b', t.border)}>
+            <h2 className={cn('text-xl font-bold m-0', t.text)}>
               {editingTemplate ? 'Edit Custom Template' : 'Create Custom Template'}
             </h2>
             <button
               onClick={onClose}
-              className={`p-2 rounded-full transition-colors ${
-                theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
-              }`}
+              className={cn(
+                'p-2 rounded-full transition-colors',
+                t.isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+              )}
             >
               <X size={20} />
             </button>
@@ -336,80 +338,44 @@ export function ServiceTemplateForm({
                 <form onSubmit={handleSubmit} className="space-y-8 pb-20">
                   {/* Basic Template Information */}
                   <div className="space-y-4">
-                    <h3 className={`text-sm font-black uppercase tracking-widest ${
-                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                    }`}>
+                    <h3 className={cn('text-sm font-black uppercase tracking-widest', t.textTertiary)}>
                       Basic Information
                     </h3>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${
-                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Template Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-amber-500 outline-none transition-all ${
-                          theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700 text-gray-100'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="e.g. Special A4 Glossy"
-                      />
-                    </div>
+                    <Input
+                      label="Template Name *"
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Special A4 Glossy"
+                    />
+
+                    <Select
+                      label="Measurement Unit *"
+                      value={formData.measurementUnit}
+                      onChange={(e) => setFormData({ ...formData, measurementUnit: e.target.value as any })}
+                      options={[
+                        { value: 'FEET', label: 'Square Feet' },
+                        { value: 'INCH', label: 'Square Inch' },
+                        { value: 'UNIT', label: 'Per Unit / Page' },
+                      ]}
+                    />
 
                     <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${
-                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Measurement Unit *
-                      </label>
-                      <select
-                        value={formData.measurementUnit}
-                        onChange={(e) => setFormData({ ...formData, measurementUnit: e.target.value as any })}
-                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-amber-500 outline-none transition-all ${
-                          theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700 text-gray-100'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                      >
-                        <option value="FEET">Square Feet</option>
-                        <option value="INCH">Square Inch</option>
-                        <option value="UNIT">Per Unit / Page</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${
-                        theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Pricing Formula *
-                      </label>
-                      <select
+                      <Select
+                        label="Pricing Formula *"
                         value={formData.pricingFormulaId}
                         onChange={(e) => setFormData({ ...formData, pricingFormulaId: e.target.value })}
-                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-amber-500 outline-none transition-all ${
-                          theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700 text-gray-100'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
+                        options={pricingFormulas.map(formula => ({
+                          value: formula.id,
+                          label: `${formula.code} - ${formula.description}`,
+                        }))}
                         disabled={isLoadingFormulas}
                         required
-                      >
-                        {pricingFormulas.map(formula => (
-                          <option key={formula.id} value={formula.id}>
-                            {formula.code} - {formula.description}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       {isAreaBased && (
-                        <p className={`mt-1.5 text-xs ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <p className={cn('mt-1.5 text-xs', t.textTertiary)}>
                           Area-based formula selected. Pricing configuration will be available below.
                         </p>
                       )}
@@ -466,7 +432,7 @@ export function ServiceTemplateForm({
                         <BaseConfigurationsSection
                           baseConfigurations={pricingConfig.baseConfigurations || []}
                           checkedIndices={checkedBaseConfigs}
-                          theme={theme}
+                          theme={t.isDark ? 'dark' : 'light'}
                           onAdd={() => setShowAddBaseConfig(true)}
                           onToggle={handleToggleBaseConfig}
                           onUpdate={updateBaseConfiguration}
@@ -488,7 +454,7 @@ export function ServiceTemplateForm({
                             <OptionsSection
                               options={pricingConfig.options || []}
                               editingIndex={editingOption}
-                              theme={theme}
+                              theme={t.isDark ? 'dark' : 'light'}
                               onAdd={() => setShowAddOption(true)}
                               onEdit={setEditingOption}
                               onUpdate={updateOption}
@@ -513,7 +479,7 @@ export function ServiceTemplateForm({
                             <CustomSpecificationsSection
                               customSpecifications={pricingConfig.customSpecifications || []}
                               editingIndex={editingCustomSpec}
-                              theme={theme}
+                              theme={t.isDark ? 'dark' : 'light'}
                               onAdd={() => setShowAddCustomSpec(true)}
                               onEdit={setEditingCustomSpec}
                               onUpdate={updateCustomSpecification}
@@ -527,25 +493,25 @@ export function ServiceTemplateForm({
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-                    <button
+                  <div className={cn('flex gap-3 pt-4 border-t', t.border)}>
+                    <Button
+                      variant="secondary"
                       type="button"
                       onClick={onClose}
-                      className={`flex-1 px-4 py-2.5 rounded-lg border font-medium transition-colors ${
-                        theme === 'dark'
-                          ? 'border-gray-700 bg-transparent hover:bg-gray-800 text-gray-300'
-                          : 'border-gray-300 bg-transparent hover:bg-gray-50 text-gray-700'
-                      }`}
+                      className="flex-1"
+                      size="lg"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      loading={isSubmitting}
+                      className="flex-1 shadow-lg shadow-amber-500/20"
+                      size="lg"
                     >
                       {isSubmitting ? 'Saving...' : 'Save Template'}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -559,19 +525,16 @@ export function ServiceTemplateForm({
         isOpen={showAddBaseConfig}
         onClose={() => setShowAddBaseConfig(false)}
         onAdd={addBaseConfiguration}
-        theme={theme}
       />
       <AddOptionDialog
         isOpen={showAddOption}
         onClose={() => setShowAddOption(false)}
         onAdd={addOption}
-        theme={theme}
       />
       <AddCustomSpecDialog
         isOpen={showAddCustomSpec}
         onClose={() => setShowAddCustomSpec(false)}
         onAdd={addCustomSpecification}
-        theme={theme}
       />
     </>
   );

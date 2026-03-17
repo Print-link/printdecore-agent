@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useThemeClasses } from '../../lib/theme';
+import { cn } from '../../lib/utils';
 import { useToast } from "../../contexts/ToastContext";
 import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from "../../services/api";
+import { Card, Button } from '../../components/ui';
 import type {
 	ServiceCategory,
 	ServiceSubCategory,
@@ -37,7 +39,7 @@ interface NavigationState {
 export default function ServicesPage() {
 	const { user } = useAuthStore();
 	const { selectedBranch } = useBranchStore();
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { success, error: showError } = useToast();
 	const { isClerk, hasPermission } = usePermissions();
 
@@ -115,34 +117,22 @@ export default function ServicesPage() {
 	// Check access - managers always pass, clerks need services.view
 	if (!hasPermission(PERMISSIONS.SERVICES_VIEW)) {
 		return (
-			<div
-				className={`p-6 rounded-lg border ${
-					theme === "dark"
-						? "bg-gray-800 border-gray-700"
-						: "bg-white border-gray-200"
-				}`}
-			>
-				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+			<Card>
+				<p className={t.textSecondary}>
 					Access denied. You need service permissions.
 				</p>
-			</div>
+			</Card>
 		);
 	}
 
 	// Check if branch is available
 	if (!branchId) {
 		return (
-			<div
-				className={`p-6 rounded-lg border ${
-					theme === "dark"
-						? "bg-gray-800 border-gray-700"
-						: "bg-white border-gray-200"
-				}`}
-			>
-				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+			<Card>
+				<p className={t.textSecondary}>
 					{isClerk ? "No branch assigned. Please contact your manager." : "Please select a branch to manage services"}
 				</p>
-			</div>
+			</Card>
 		);
 	}
 
@@ -383,24 +373,17 @@ export default function ServicesPage() {
 				{items.map((item, index) => (
 					<div key={index} className="flex items-center gap-2">
 						<span
-							className={`text-sm ${
+							className={cn(
+								'text-sm',
 								index === items.length - 1
-									? theme === "dark"
-										? "text-gray-100 font-semibold"
-										: "text-gray-900 font-semibold"
-									: theme === "dark"
-									? "text-gray-400"
-									: "text-gray-600"
-							}`}
+									? cn(t.text, 'font-semibold')
+									: t.textSecondary
+							)}
 						>
 							{item}
 						</span>
 						{index < items.length - 1 && (
-							<span
-								className={theme === "dark" ? "text-gray-400" : "text-gray-600"}
-							>
-								/
-							</span>
+							<span className={t.textSecondary}>/</span>
 						)}
 					</div>
 				))}
@@ -409,49 +392,32 @@ export default function ServicesPage() {
 	};
 
 	return (
-		<div
-			className={`p-3 h-full overflow-auto ${
-				theme === "dark" ? "bg-gray-900" : "bg-gray-50"
-			}`}
-		>
+		<div className={cn('p-3 h-full overflow-auto', t.surfaceInset)}>
 			<div className="max-w-[1400px] mx-auto">
 				{/* Header */}
 				<div className="mb-6">
 					<div className="flex justify-between items-center mb-2">
 						<div>
-							<h1
-								className={`text-2xl font-semibold m-0 mb-1 ${
-									theme === "dark" ? "text-gray-100" : "text-gray-900"
-								}`}
-							>
+							<h1 className={cn('text-2xl font-semibold m-0 mb-1', t.text)}>
 								Services Configuration
 							</h1>
-							<p
-								className={`text-sm m-0 ${
-									theme === "dark" ? "text-gray-400" : "text-gray-600"
-								}`}
-							>
+							<p className={cn('text-sm m-0', t.textSecondary)}>
 								Browse platform services and configure branch-specific pricing
 							</p>
 						</div>
 						{navState.view === "agent-services" && canManageServices && (
-							<button
+							<Button
 								onClick={() => {
 									setEditingService(null);
 									setShowServiceForm(true);
 								}}
-								className="px-5 py-2.5 rounded-lg border-none bg-amber-400 hover:bg-amber-500 cursor-pointer text-sm font-semibold text-gray-900"
-								title="Create a new service configuration for this branch"
+								size="lg"
 							>
 								+ Configure New Service
-							</button>
+							</Button>
 						)}
 					</div>
-					<p
-						className={`text-sm m-0 mb-2 ${
-							theme === "dark" ? "text-gray-400" : "text-gray-600"
-						}`}
-					>
+					<p className={cn('text-sm m-0 mb-2', t.textSecondary)}>
 						Branch: <strong>{branchName}</strong>
 					</p>
 					{renderBreadcrumb()}
@@ -466,17 +432,11 @@ export default function ServicesPage() {
 
 				{/* Loading State */}
 				{isLoading && categories.length === 0 && (
-					<div
-						className={`rounded-lg border p-10 text-center ${
-							theme === "dark"
-								? "bg-gray-800 border-gray-700"
-								: "bg-white border-gray-200"
-						}`}
-					>
-						<p className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
+					<Card>
+						<p className={cn('text-center', t.text)}>
 							Loading...
 						</p>
-					</div>
+					</Card>
 				)}
 
 				{/* Content Views */}

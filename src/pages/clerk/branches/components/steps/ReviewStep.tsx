@@ -1,4 +1,5 @@
-import { useTheme } from '../../../../../contexts/ThemeContext';
+import { useThemeClasses } from '../../../../../lib/theme';
+import { cn } from '../../../../../lib/utils';
 import type { BranchFormData, LocationFormData, OperatingHours } from '../../hooks/useBranchForm';
 
 interface ReviewStepProps {
@@ -7,106 +8,79 @@ interface ReviewStepProps {
   operatingHours: OperatingHours;
 }
 
+function ReviewField({ label, value }: { label: string; value: string }) {
+  const t = useThemeClasses();
+  return (
+    <p>
+      <span className={t.textSecondary}>{label}:</span>{' '}
+      <span className={t.text}>{value}</span>
+    </p>
+  );
+}
+
 export function ReviewStep({
   formData,
   locationData,
   operatingHours,
 }: ReviewStepProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
+
+  const sectionClasses = cn('p-4 rounded-lg', t.isDark ? 'bg-gray-700' : 'bg-gray-50');
+  const headingClasses = cn('font-semibold mb-3', t.text);
 
   return (
     <div className="space-y-6">
-      <div className={`p-4 rounded-lg ${
-        theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-      }`}>
-        <h3 className={`font-semibold mb-3 ${
-          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-        }`}>
+      <div className={sectionClasses}>
+        <h3 className={headingClasses}>
           Basic Information
         </h3>
         <div className="space-y-2 text-sm">
-          <p>
-            <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Name:</span>{' '}
-            <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{formData.name}</span>
-          </p>
+          <ReviewField label="Name" value={formData.name} />
           {formData.phoneNumber && (
-            <p>
-              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Phone:</span>{' '}
-              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{formData.phoneNumber}</span>
-            </p>
+            <ReviewField label="Phone" value={formData.phoneNumber} />
           )}
           {formData.branchEmailAddress && (
-            <p>
-              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Email:</span>{' '}
-              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{formData.branchEmailAddress}</span>
-            </p>
+            <ReviewField label="Email" value={formData.branchEmailAddress} />
           )}
           <p>
-            <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Status:</span>{' '}
-            <span className={`capitalize ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+            <span className={t.textSecondary}>Status:</span>{' '}
+            <span className={cn('capitalize', t.text)}>
               {formData.status.replace('_', ' ')}
             </span>
           </p>
-          <p>
-            <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Main Branch:</span>{' '}
-            <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>
-              {formData.isMainBranch ? 'Yes' : 'No'}
-            </span>
-          </p>
+          <ReviewField label="Main Branch" value={formData.isMainBranch ? 'Yes' : 'No'} />
         </div>
       </div>
 
-      <div className={`p-4 rounded-lg ${
-        theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-      }`}>
-        <h3 className={`font-semibold mb-3 ${
-          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-        }`}>
+      <div className={sectionClasses}>
+        <h3 className={headingClasses}>
           Location
         </h3>
         <div className="space-y-2 text-sm">
-          <p>
-            <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Address:</span>{' '}
-            <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{locationData.address}</span>
-          </p>
+          <ReviewField label="Address" value={locationData.address} />
           {locationData.city && (
-            <p>
-              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>City:</span>{' '}
-              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{locationData.city}</span>
-            </p>
+            <ReviewField label="City" value={locationData.city} />
           )}
           {locationData.state && (
-            <p>
-              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>State:</span>{' '}
-              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{locationData.state}</span>
-            </p>
+            <ReviewField label="State" value={locationData.state} />
           )}
           {locationData.country && (
-            <p>
-              <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Country:</span>{' '}
-              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{locationData.country}</span>
-            </p>
+            <ReviewField label="Country" value={locationData.country} />
           )}
-          <p>
-            <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Coordinates:</span>{' '}
-            <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>
-              {locationData.latitude.toFixed(6)}, {locationData.longitude.toFixed(6)}
-            </span>
-          </p>
+          <ReviewField
+            label="Coordinates"
+            value={`${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`}
+          />
         </div>
       </div>
 
-      <div className={`p-4 rounded-lg ${
-        theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-      }`}>
-        <h3 className={`font-semibold mb-3 ${
-          theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-        }`}>
+      <div className={sectionClasses}>
+        <h3 className={headingClasses}>
           Operating Hours
         </h3>
         <div className="space-y-1 text-sm">
           {Object.entries(operatingHours).map(([day, hours]) => (
-            <p key={day} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
+            <p key={day} className={t.isDark ? 'text-gray-300' : 'text-gray-700'}>
               <span className="capitalize font-medium">{day}:</span>{' '}
               {hours.open && hours.close ? `${hours.open} - ${hours.close}` : 'Not set'}
             </p>
@@ -116,4 +90,3 @@ export function ReviewStep({
     </div>
   );
 }
-

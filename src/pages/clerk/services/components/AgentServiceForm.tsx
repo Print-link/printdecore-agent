@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X } from '../../../../components/icons';
-import { useTheme } from '../../../../contexts/ThemeContext';
+import { Modal, Button, Input } from '../../../../components/ui';
+import { useThemeClasses } from '../../../../lib/theme';
+import { cn } from '../../../../lib/utils';
 import { apiService } from '../../../../services/api';
 import type {
   AgentService,
@@ -28,7 +29,7 @@ export function AgentServiceForm({
   onClose,
   onSuccess,
 }: AgentServiceFormProps) {
-  const { theme } = useTheme();
+  const t = useThemeClasses();
   const [formData, setFormData] = useState<CreateAgentServiceData>({
     branchId,
     serviceTemplateId: template?.id || editingService?.serviceTemplateId || '',
@@ -100,8 +101,6 @@ export function AgentServiceForm({
       });
     }
   }, [isOpen, editingService, template, branchId]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,292 +175,208 @@ export function AgentServiceForm({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5"
-      onClick={onClose}
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={editingService ? 'Edit Service' : 'Create Service'}
+      maxWidth="md"
     >
-      <div
-        className={`rounded-xl p-6 max-w-[450px] w-full max-h-[90vh] overflow-auto shadow-xl ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-5">
-          <h2 className={`text-xl font-semibold m-0 ${
-            theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
-          }`}>
-            {editingService ? 'Edit Service' : 'Create Service'}
-          </h2>
-          <button
-            onClick={onClose}
-            className={`p-2 rounded-md border-none bg-transparent cursor-pointer flex items-center justify-center ${
-              theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <X size={20} />
-          </button>
+      {error && (
+        <div className="p-3 rounded-lg bg-red-500/20 border border-red-500 text-red-500 text-sm mb-5">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="p-3 rounded-lg bg-red-500/20 border border-red-500 text-red-500 text-sm mb-5">
-            {error}
-          </div>
-        )}
+      {!editingService && template && (
+        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500 text-blue-500 text-sm mb-5">
+          <strong>Configure Branch Pricing:</strong> Set pricing and options for{' '}
+          <strong>{template.name}</strong> at your branch. The service template is platform-owned
+          and cannot be modified.
+        </div>
+      )}
 
-        {!editingService && template && (
-          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500 text-blue-500 text-sm mb-5">
-            <strong>Configure Branch Pricing:</strong> Set pricing and options for{' '}
-            <strong>{template.name}</strong> at your branch. The service template is platform-owned
-            and cannot be modified.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {template && (
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Service Template{' '}
-                <span className={`text-xs font-normal ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  (Platform-owned, read-only)
-                </span>
-              </label>
-              <div className={`p-3 rounded-lg border ${
-                theme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-100'
-                  : 'bg-gray-50 border-gray-300 text-gray-900'
-              }`}>
-                <div className="font-semibold mb-1">{template.name}</div>
-                {template.description && (
-                  <div className={`text-xs mt-1 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    {template.description}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  <span className={`text-[11px] ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Unit: {template.measurementUnit}
-                  </span>
-                  {template.allowsCustomSize && (
-                    <span className={`text-[11px] ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      • Custom Size
-                    </span>
-                  )}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {template && (
+          <div>
+            <label className={cn('block text-sm font-medium mb-2', t.textSecondary)}>
+              Service Template{' '}
+              <span className={cn('text-xs font-normal', t.textTertiary)}>
+                (Platform-owned, read-only)
+              </span>
+            </label>
+            <div className={cn('p-3 rounded-lg border', t.input)}>
+              <div className="font-semibold mb-1">{template.name}</div>
+              {template.description && (
+                <div className={cn('text-xs mt-1', t.textTertiary)}>
+                  {template.description}
                 </div>
+              )}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className={cn('text-[11px]', t.textTertiary)}>
+                  Unit: {template.measurementUnit}
+                </span>
+                {template.allowsCustomSize && (
+                  <span className={cn('text-[11px]', t.textTertiary)}>
+                    • Custom Size
+                  </span>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
+        <Input
+          label={isBondPaper ? 'Price per Page *' : 'Price per Unit *'}
+          type="number"
+          step="0.01"
+          value={formData.pricePerUnit || ''}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              pricePerUnit: parseFloat(e.target.value) || 0,
+            })
+          }
+          placeholder="0.00"
+          required
+        />
+        {isBondPaper && (
+          <div className={cn('-mt-3 text-xs', t.textTertiary)}>
+            Base price per page (black & white)
+          </div>
+        )}
+
+        {!isBondPaper && (
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-            }`}>
-              {isBondPaper ? 'Price per Page *' : 'Price per Unit *'}
+            <label className={cn('block text-sm font-medium mb-2', t.textSecondary)}>
+              Constant (for inch to sqft conversion)
+              <span className={cn('text-xs font-normal ml-2', t.textTertiary)}>
+                Optional - defaults to null
+              </span>
             </label>
-            <input
+            <Input
               type="number"
-              step="0.01"
-              value={formData.pricePerUnit || ''}
-              onChange={(e) =>
+              value={formData.constant ?? ''}
+              onChange={(e) => {
+                const value = e.target.value;
                 setFormData({
                   ...formData,
-                  pricePerUnit: parseFloat(e.target.value) || 0,
-                })
-              }
-              className={`w-full p-3 rounded-lg border text-sm ${
-                theme === 'dark'
-                  ? 'bg-gray-700 border-gray-600 text-gray-100'
-                  : 'bg-white border-gray-300 text-gray-900'
-              } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-              placeholder="0.00"
-              required
+                  constant: value === '' ? null : parseFloat(value) || null,
+                });
+              }}
+              placeholder="Leave empty for null (default)"
             />
-            {isBondPaper && (
-              <div className={`mt-1.5 text-xs ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Base price per page (black & white)
-              </div>
-            )}
           </div>
+        )}
 
-          {!isBondPaper && (
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Constant (for inch to sqft conversion)
-                <span className={`text-xs font-normal ml-2 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Optional - defaults to null
-                </span>
-              </label>
-              <input
-                type="number"
-                value={formData.constant ?? ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({
-                    ...formData,
-                    constant: value === '' ? null : parseFloat(value) || null,
-                  });
-                }}
-                className={`w-full p-3 rounded-lg border text-sm ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 border-gray-600 text-gray-100'
-                    : 'bg-white border-gray-300 text-gray-900'
-                } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                placeholder="Leave empty for null (default)"
-              />
+        {isBondPaper && template?.supportsColor && (
+          <div>
+            <label className={cn('block text-sm font-medium mb-2', t.textSecondary)}>
+              Color Price Modifier (per page)
+              <span className={cn('text-xs font-normal ml-2', t.textTertiary)}>
+                Optional - fixed amount added per page when color is selected
+              </span>
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={formData.colorPriceModifier ?? ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({
+                  ...formData,
+                  colorPriceModifier: value === '' ? null : parseFloat(value) || null,
+                });
+              }}
+              placeholder="e.g., 0.25 (additional amount per page for color)"
+            />
+            <div className={cn(
+              'mt-1.5 p-2 rounded-md text-xs',
+              t.isDark ? 'bg-blue-500/10 text-gray-400' : 'bg-blue-50 text-gray-600'
+            )}>
+              <strong>Bond Paper Pricing:</strong> This is a fixed amount added to the unit price per page when color printing is selected. Example: If unit price is 0.50 and modifier is 0.25, color printing costs 0.75 per page.
             </div>
-          )}
+          </div>
+        )}
 
-          {isBondPaper && template?.supportsColor && (
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Color Price Modifier (per page)
-                <span className={`text-xs font-normal ml-2 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Optional - fixed amount added per page when color is selected
-                </span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.colorPriceModifier ?? ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({
-                    ...formData,
-                    colorPriceModifier: value === '' ? null : parseFloat(value) || null,
-                  });
-                }}
-                className={`w-full p-3 rounded-lg border text-sm ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 border-gray-600 text-gray-100'
-                    : 'bg-white border-gray-300 text-gray-900'
-                } focus:outline-none focus:ring-2 focus:ring-amber-400`}
-                placeholder="e.g., 0.25 (additional amount per page for color)"
-              />
-              <div className={`mt-1.5 p-2 rounded-md text-xs ${
-                theme === 'dark'
-                  ? 'bg-blue-500/10 text-gray-400'
-                  : 'bg-blue-50 text-gray-600'
-              }`}>
-                <strong>Bond Paper Pricing:</strong> This is a fixed amount added to the unit price per page when color printing is selected. Example: If unit price is 0.50 and modifier is 0.25, color printing costs 0.75 per page.
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="cursor-pointer w-[18px] h-[18px]"
+            />
+            <span className={cn('text-sm', t.textSecondary)}>
+              Active
+            </span>
+          </label>
+          {template?.supportsColor && (
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                checked={formData.supportsColor}
+                onChange={(e) => setFormData({ ...formData, supportsColor: e.target.checked })}
                 className="cursor-pointer w-[18px] h-[18px]"
               />
-              <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                Active
+              <span className={cn('text-sm', t.textSecondary)}>
+                Supports Color
               </span>
             </label>
-            {template?.supportsColor && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.supportsColor}
-                  onChange={(e) => setFormData({ ...formData, supportsColor: e.target.checked })}
-                  className="cursor-pointer w-[18px] h-[18px]"
-                />
-                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Supports Color
-                </span>
-              </label>
-            )}
-            {template?.supportsFrontBack && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.supportsFrontBack}
-                  onChange={(e) =>
-                    setFormData({ ...formData, supportsFrontBack: e.target.checked })
-                  }
-                  className="cursor-pointer w-[18px] h-[18px]"
-                />
-                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Supports Front/Back
-                </span>
-              </label>
-            )}
-            {template?.supportsPrintCut && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.supportsPrintCut}
-                  onChange={(e) => setFormData({ ...formData, supportsPrintCut: e.target.checked })}
-                  className="cursor-pointer w-[18px] h-[18px]"
-                />
-                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Supports Print & Cut
-                </span>
-              </label>
-            )}
-            {template?.supportsFrontBack && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.supportsFrontOnly}
-                  onChange={(e) =>
-                    setFormData({ ...formData, supportsFrontOnly: e.target.checked })
-                  }
-                  className="cursor-pointer w-[18px] h-[18px]"
-                />
-                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Supports Front Only
-                </span>
-              </label>
-            )}
-          </div>
+          )}
+          {template?.supportsFrontBack && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.supportsFrontBack}
+                onChange={(e) =>
+                  setFormData({ ...formData, supportsFrontBack: e.target.checked })
+                }
+                className="cursor-pointer w-[18px] h-[18px]"
+              />
+              <span className={cn('text-sm', t.textSecondary)}>
+                Supports Front/Back
+              </span>
+            </label>
+          )}
+          {template?.supportsPrintCut && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.supportsPrintCut}
+                onChange={(e) => setFormData({ ...formData, supportsPrintCut: e.target.checked })}
+                className="cursor-pointer w-[18px] h-[18px]"
+              />
+              <span className={cn('text-sm', t.textSecondary)}>
+                Supports Print & Cut
+              </span>
+            </label>
+          )}
+          {template?.supportsFrontBack && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.supportsFrontOnly}
+                onChange={(e) =>
+                  setFormData({ ...formData, supportsFrontOnly: e.target.checked })
+                }
+                className="cursor-pointer w-[18px] h-[18px]"
+              />
+              <span className={cn('text-sm', t.textSecondary)}>
+                Supports Front Only
+              </span>
+            </label>
+          )}
+        </div>
 
-          <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className={`px-5 py-2.5 rounded-lg border transition-colors ${
-                theme === 'dark'
-                  ? 'border-gray-600 bg-transparent hover:bg-gray-700 text-gray-300'
-                  : 'border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700'
-              } text-sm font-medium`}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`px-5 py-2.5 rounded-lg border-none text-sm font-semibold ${
-                isSubmitting
-                  ? 'bg-amber-300 cursor-not-allowed opacity-60'
-                  : 'bg-amber-400 hover:bg-amber-500 cursor-pointer'
-              } text-gray-900`}
-            >
-              {isSubmitting ? 'Saving...' : editingService ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" type="button" onClick={onClose} size="lg">
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting} loading={isSubmitting} size="lg">
+            {isSubmitting ? 'Saving...' : editingService ? 'Update' : 'Create'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
-

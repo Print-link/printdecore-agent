@@ -1,5 +1,7 @@
 import { ArrowLeft, Edit, Trash2, Settings } from "../../../../components/icons";
-import { useTheme } from "../../../../contexts/ThemeContext";
+import { Card, Badge, IconButton } from "../../../../components/ui";
+import { useThemeClasses } from "../../../../lib/theme";
+import { cn } from "../../../../lib/utils";
 import type { AgentService } from "../../../../types";
 
 interface AgentServicesViewProps {
@@ -19,68 +21,47 @@ export function AgentServicesView({
 	onBack,
 	isLoading,
 }: AgentServicesViewProps) {
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 
 	return (
-		<div
-			className={`rounded-lg border p-6 ${
-				theme === "dark"
-					? "bg-gray-800 border-gray-700"
-					: "bg-white border-gray-200"
-			}`}
-		>
+		<Card padding="lg" className="rounded-lg">
 			<div className="flex items-center gap-3 mb-5">
 				<button
 					onClick={onBack}
-					className={`p-2 rounded-md border flex items-center justify-center transition-colors ${
-						theme === "dark"
-							? "border-gray-600 bg-transparent hover:bg-gray-700 text-gray-300"
-							: "border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-					}`}
+					className={cn(
+						'p-2 rounded-md border flex items-center justify-center transition-colors',
+						t.isDark
+							? 'border-gray-600 bg-transparent hover:bg-gray-700 text-gray-300'
+							: 'border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700'
+					)}
 				>
 					<ArrowLeft size={18} />
 				</button>
 				<div>
 					<div className="flex items-center gap-2 mb-1">
-						<h2
-							className={`text-lg font-semibold m-0 ${
-								theme === "dark" ? "text-gray-100" : "text-gray-900"
-							}`}
-						>
+						<h2 className={cn('text-lg font-semibold m-0', t.text)}>
 							Agent Services (Branch-Specific Pricing)
 						</h2>
-						<span className="px-2 py-0.5 rounded text-[11px] font-medium uppercase bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+						<Badge color="green" className="text-[11px] uppercase">
 							Editable
-						</span>
+						</Badge>
 					</div>
-					<p
-						className={`text-xs m-0 ${
-							theme === "dark" ? "text-gray-400" : "text-gray-600"
-						}`}
-					>
+					<p className={cn('text-xs m-0', t.textSecondary)}>
 						Configure pricing for your branch. These are the services you can
 						create, update, and delete.
 					</p>
 				</div>
 			</div>
 			{isLoading ? (
-				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+				<p className={t.textSecondary}>
 					Loading services...
 				</p>
 			) : agentServices.length === 0 ? (
 				<div className="py-6 text-center">
-					<p
-						className={`text-sm mb-2 ${
-							theme === "dark" ? "text-gray-400" : "text-gray-600"
-						}`}
-					>
+					<p className={cn('text-sm mb-2', t.textSecondary)}>
 						No services configured for this branch.
 					</p>
-					<p
-						className={`text-xs m-0 ${
-							theme === "dark" ? "text-gray-400" : "text-gray-600"
-						}`}
-					>
+					<p className={cn('text-xs m-0', t.textSecondary)}>
 						Browse categories → subcategories → templates to create your first
 						service configuration.
 					</p>
@@ -90,34 +71,22 @@ export function AgentServicesView({
 					{agentServices.map((service) => (
 						<div
 							key={service.id}
-							className={`p-4 rounded-lg border flex justify-between items-center gap-4 ${
-								theme === "dark"
-									? "bg-gray-800 border-gray-600"
-									: "bg-white border-gray-200"
-							}`}
+							className={cn(
+								'p-4 rounded-lg border flex justify-between items-center gap-4',
+								t.isDark
+									? 'bg-gray-800 border-gray-600'
+									: 'bg-white border-gray-200'
+							)}
 						>
 							<div className="flex-1">
-								<h3
-									className={`text-base font-semibold m-0 mb-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
+								<h3 className={cn('text-base font-semibold m-0 mb-2', t.text)}>
 									{service.serviceTemplate?.name || "Unknown Template"}
 								</h3>
 								<div className="flex flex-wrap gap-3 items-center mb-2">
-									<span
-										className={`text-sm ${
-											theme === "dark" ? "text-gray-400" : "text-gray-600"
-										}`}
-									>
+									<span className={cn('text-sm', t.textSecondary)}>
 										Price/Unit:{" "}
-										<strong
-											className={
-												theme === "dark" ? "text-gray-100" : "text-gray-900"
-											}
-										>
+										<strong className={t.text}>
 											{(() => {
-												// If using flexible pricing, show the minimum base configuration price
 												if (
 													service.pricingConfig?.baseConfigurations &&
 													service.pricingConfig.baseConfigurations.length > 0
@@ -129,7 +98,6 @@ export function AgentServicesView({
 													);
 													return `₵${minPrice.toFixed(2)}`;
 												}
-												// Otherwise, use legacy pricePerUnit
 												return `₵${
 													service?.pricePerUnit?.toFixed(2) || "0.00"
 												}`;
@@ -138,137 +106,92 @@ export function AgentServicesView({
 									</span>
 									{service.constant !== null &&
 										service.constant !== undefined && (
-											<span
-												className={`text-sm ${
-													theme === "dark" ? "text-gray-400" : "text-gray-600"
-												}`}
-											>
+											<span className={cn('text-sm', t.textSecondary)}>
 												Constant:{" "}
-												<strong
-													className={
-														theme === "dark" ? "text-gray-100" : "text-gray-900"
-													}
-												>
+												<strong className={t.text}>
 													{service.constant}
 												</strong>
 											</span>
 										)}
-									<span
-										className={`px-2 py-1 rounded text-xs font-medium ${
-											service.isActive
-												? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-												: "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-										}`}
+									<Badge
+										color={service.isActive ? "green" : "red"}
+										className="text-xs"
 									>
 										{service.isActive ? "Active" : "Inactive"}
-									</span>
+									</Badge>
 								</div>
 								<div className="flex flex-wrap gap-1.5 mb-1">
 									{service.pricingConfig && (
-										<span
-											className={`px-1.5 py-0.5 rounded text-[11px] ${
-												theme === "dark"
-													? "bg-blue-400/20 text-blue-300"
-													: "bg-blue-100 text-blue-700"
-											}`}
-										>
+										<Badge color="blue" className="text-[11px]">
 											Flexible Pricing
-										</span>
+										</Badge>
 									)}
 									{service.supportsColor && (
-										<span
-											className={`px-1.5 py-0.5 rounded text-[11px] ${
-												theme === "dark"
-													? "bg-amber-400/20 text-amber-300"
-													: "bg-amber-100 text-amber-700"
-											}`}
-										>
+										<Badge color="amber" className="text-[11px]">
 											Color
-										</span>
+										</Badge>
 									)}
 									{service.supportsFrontBack && (
-										<span
-											className={`px-1.5 py-0.5 rounded text-[11px] ${
-												theme === "dark"
-													? "bg-amber-400/20 text-amber-300"
-													: "bg-amber-100 text-amber-700"
-											}`}
-										>
+										<Badge color="amber" className="text-[11px]">
 											Front/Back
-										</span>
+										</Badge>
 									)}
 									{service.supportsPrintCut && (
-										<span
-											className={`px-1.5 py-0.5 rounded text-[11px] ${
-												theme === "dark"
-													? "bg-amber-400/20 text-amber-300"
-													: "bg-amber-100 text-amber-700"
-											}`}
-										>
+										<Badge color="amber" className="text-[11px]">
 											Print & Cut
-										</span>
+										</Badge>
 									)}
 									{service.supportsFrontOnly && (
-										<span
-											className={`px-1.5 py-0.5 rounded text-[11px] ${
-												theme === "dark"
-													? "bg-amber-400/20 text-amber-300"
-													: "bg-amber-100 text-amber-700"
-											}`}
-										>
+										<Badge color="amber" className="text-[11px]">
 											Front Only
-										</span>
+										</Badge>
 									)}
 								</div>
 								{service.subCategory && (
-									<p
-										className={`text-xs m-0 mt-1 ${
-											theme === "dark" ? "text-gray-400" : "text-gray-600"
-										}`}
-									>
+									<p className={cn('text-xs m-0 mt-1', t.textSecondary)}>
 										{service.category?.name} → {service.subCategory.name}
 									</p>
 								)}
 							</div>
 							<div className="flex gap-2">
-								<button
+								<IconButton
+									icon={Settings}
+									label="Configure Flexible Pricing"
 									onClick={() => onConfigurePricing(service)}
-									className={`p-2 rounded-md border flex items-center justify-center transition-colors ${
-										theme === "dark"
-											? "border-gray-600 bg-transparent hover:bg-gray-700 text-gray-300"
-											: "border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-									}`}
-									title="Configure Flexible Pricing"
-								>
-									<Settings size={18} />
-								</button>
-								<button
+									className={cn(
+										'rounded-md border',
+										t.isDark
+											? 'border-gray-600 hover:bg-gray-700 text-gray-300'
+											: 'border-gray-300 hover:bg-gray-100 text-gray-700'
+									)}
+								/>
+								<IconButton
+									icon={Edit}
+									label="Edit"
 									onClick={() => onEdit(service)}
-									className={`p-2 rounded-md border flex items-center justify-center transition-colors ${
-										theme === "dark"
-											? "border-gray-600 bg-transparent hover:bg-gray-700 text-gray-300"
-											: "border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-									}`}
-									title="Edit"
-								>
-									<Edit size={18} />
-								</button>
-								<button
+									className={cn(
+										'rounded-md border',
+										t.isDark
+											? 'border-gray-600 hover:bg-gray-700 text-gray-300'
+											: 'border-gray-300 hover:bg-gray-100 text-gray-700'
+									)}
+								/>
+								<IconButton
+									icon={Trash2}
+									label="Delete"
 									onClick={() => onDelete(service.id)}
-									className={`p-2 rounded-md border flex items-center justify-center transition-colors ${
-										theme === "dark"
-											? "border-gray-600 bg-transparent hover:bg-red-900/30 text-red-400"
-											: "border-gray-300 bg-transparent hover:bg-red-50 text-red-600"
-									}`}
-									title="Delete"
-								>
-									<Trash2 size={18} />
-								</button>
+									className={cn(
+										'rounded-md border',
+										t.isDark
+											? 'border-gray-600 hover:bg-red-900/30 text-red-400'
+											: 'border-gray-300 hover:bg-red-50 text-red-600'
+									)}
+								/>
 							</div>
 						</div>
 					))}
 				</div>
 			)}
-		</div>
+		</Card>
 	);
 }

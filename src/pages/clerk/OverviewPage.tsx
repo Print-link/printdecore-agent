@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
-import { useTheme } from '../../contexts/ThemeContext';
 import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
 import { Package, DollarSign, TrendingUp, Store, Star, MessageSquare, ArrowRight, Spinner } from "../../components/icons";
@@ -17,12 +16,32 @@ import {
 	Cell,
 } from "recharts";
 import type { CategoryAnalytics, BranchReview } from "../../types";
-import { EmptyState } from "../../components/shared/EmptyState";
+import { Card, PageHeader, EmptyState } from '../../components/ui';
+import { useThemeClasses } from '../../lib/theme';
+import { cn } from '../../lib/utils';
+
+// ─── Local stat card ─────────────────────────────────────────────────
+function StatCard({ label, value, icon }: { label: string; value: ReactNode; icon: ReactNode }) {
+	const t = useThemeClasses();
+	return (
+		<Card padding="lg">
+			<div className="flex items-center justify-between">
+				<div>
+					<p className={cn('text-sm font-medium', t.textSecondary)}>{label}</p>
+					<p className={cn('text-3xl font-bold mt-2', t.text)}>{value}</p>
+				</div>
+				{icon}
+			</div>
+		</Card>
+	);
+}
+
+const COLORS = ["#fbbf24", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#f59e0b"];
 
 export default function OverviewPage() {
 	const { user } = useAuthStore();
 	const { selectedBranch } = useBranchStore();
-	const { theme } = useTheme();
+	const t = useThemeClasses();
 	const { isManager, isClerk, hasPermission } = usePermissions();
 
 	// For clerks, use their branch for branch-level analytics
@@ -85,28 +104,13 @@ export default function OverviewPage() {
 
 	if (!hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)) {
 		return (
-			<div
-				className={`p-6 rounded-lg ${
-					theme === "dark"
-						? "bg-gray-800 border border-gray-700"
-						: "bg-white border border-gray-200"
-				}`}
-			>
-				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+			<Card>
+				<p className={t.textSecondary}>
 					Access denied. You need analytics permissions.
 				</p>
-			</div>
+			</Card>
 		);
 	}
-
-	const COLORS = [
-		"#fbbf24",
-		"#3b82f6",
-		"#10b981",
-		"#8b5cf6",
-		"#ef4444",
-		"#f59e0b",
-	];
 
 	if (isLoadingStats && !stats) {
 		return (
@@ -119,159 +123,27 @@ export default function OverviewPage() {
 	return (
 		<div className="space-y-6">
 			{/* Header */}
-			<div>
-				<h1
-					id="walkthrough-dashboard-welcome"
-					className={`text-4xl font-bold mb-2 ${
-						theme === "dark" ? "text-gray-100" : "text-gray-900"
-					}`}
-				>
-					Overview Dashboard
-				</h1>
-				<p
-					className={`text-lg ${
-						theme === "dark" ? "text-gray-400" : "text-gray-600"
-					}`}
-				>
-					See how all your branches are performing
-				</p>
-			</div>
+			<PageHeader
+				title="Overview Dashboard"
+				description="See how all your branches are performing"
+			/>
 
 			{/* Stats Grid */}
 			{stats && (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-					<div
-						className={`p-6 rounded-lg ${
-							theme === "dark"
-								? "bg-gray-800 border border-gray-700"
-								: "bg-white border border-gray-200"
-						}`}
-					>
-						<div className="flex items-center justify-between">
-							<div>
-								<p
-									className={`text-sm font-medium ${
-										theme === "dark" ? "text-gray-400" : "text-gray-600"
-									}`}
-								>
-									Total Orders
-								</p>
-								<p
-									className={`text-3xl font-bold mt-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
-									{stats.totalOrders}
-								</p>
-							</div>
-							<Package className="text-blue-500" size={32} />
-						</div>
-					</div>
-
-					<div
-						className={`p-6 rounded-lg ${
-							theme === "dark"
-								? "bg-gray-800 border border-gray-700"
-								: "bg-white border border-gray-200"
-						}`}
-					>
-						<div className="flex items-center justify-between">
-							<div>
-								<p
-									className={`text-sm font-medium ${
-										theme === "dark" ? "text-gray-400" : "text-gray-600"
-									}`}
-								>
-									Total Revenue
-								</p>
-								<p
-									className={`text-3xl font-bold mt-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
-									₵{stats.totalRevenue?.toFixed(2) || "0.00"}
-								</p>
-							</div>
-							<DollarSign className="text-green-500" size={32} />
-						</div>
-					</div>
-
-					<div
-						className={`p-6 rounded-lg ${
-							theme === "dark"
-								? "bg-gray-800 border border-gray-700"
-								: "bg-white border border-gray-200"
-						}`}
-					>
-						<div className="flex items-center justify-between">
-							<div>
-								<p
-									className={`text-sm font-medium ${
-										theme === "dark" ? "text-gray-400" : "text-gray-600"
-									}`}
-								>
-									Branches
-								</p>
-								<p
-									className={`text-3xl font-bold mt-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
-									{stats.branchCount}
-								</p>
-							</div>
-							<Store className="text-purple-500" size={32} />
-						</div>
-					</div>
-
-					<div
-						className={`p-6 rounded-lg ${
-							theme === "dark"
-								? "bg-gray-800 border border-gray-700"
-								: "bg-white border border-gray-200"
-						}`}
-					>
-						<div className="flex items-center justify-between">
-							<div>
-								<p
-									className={`text-sm font-medium ${
-										theme === "dark" ? "text-gray-400" : "text-gray-600"
-									}`}
-								>
-									Today's Revenue
-								</p>
-								<p
-									className={`text-3xl font-bold mt-2 ${
-										theme === "dark" ? "text-gray-100" : "text-gray-900"
-									}`}
-								>
-									₵{stats.todayRevenue?.toFixed(2) || "0.00"}
-								</p>
-							</div>
-							<TrendingUp className="text-amber-500" size={32} />
-						</div>
-					</div>
+					<StatCard label="Total Orders" value={stats.totalOrders} icon={<Package className="text-blue-500" size={32} />} />
+					<StatCard label="Total Revenue" value={`₵${stats.totalRevenue?.toFixed(2) || "0.00"}`} icon={<DollarSign className="text-green-500" size={32} />} />
+					<StatCard label="Branches" value={stats.branchCount} icon={<Store className="text-purple-500" size={32} />} />
+					<StatCard label="Today's Revenue" value={`₵${stats.todayRevenue?.toFixed(2) || "0.00"}`} icon={<TrendingUp className="text-amber-500" size={32} />} />
 				</div>
 			)}
 
 			{/* Charts and Reviews Grid */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Branch Performance Chart */}
-				<div
-					className={`lg:col-span-2 p-6 rounded-2xl shadow-sm ${
-						theme === "dark"
-							? "bg-gray-800 border border-gray-700"
-							: "bg-white border border-gray-200"
-					}`}
-				>
+				<Card className="lg:col-span-2 shadow-sm rounded-2xl" padding="lg">
 					<div className="flex items-center justify-between mb-6">
-						<h3
-							className={`text-lg font-bold ${
-								theme === "dark" ? "text-gray-100" : "text-gray-900"
-							}`}
-						>
-							Branch Performance
-						</h3>
+						<h3 className={cn('text-lg font-bold', t.text)}>Branch Performance</h3>
 						<div className="flex gap-2">
 							<span className="flex items-center gap-1 text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full">
 								<DollarSign size={12} /> Revenue
@@ -284,18 +156,18 @@ export default function OverviewPage() {
 							<BarChart data={branchChartData}>
 								<CartesianGrid
 									strokeDasharray="3 3"
-									stroke={theme === "dark" ? "#374151" : "#f3f4f6"}
+									stroke={t.isDark ? "#374151" : "#f3f4f6"}
 									vertical={false}
 								/>
 								<XAxis
 									dataKey="name"
-									stroke={theme === "dark" ? "#9ca3af" : "#6b7280"}
+									stroke={t.isDark ? "#9ca3af" : "#6b7280"}
 									fontSize={12}
 									tickLine={false}
 									axisLine={false}
 								/>
 								<YAxis
-									stroke={theme === "dark" ? "#9ca3af" : "#6b7280"}
+									stroke={t.isDark ? "#9ca3af" : "#6b7280"}
 									fontSize={12}
 									tickLine={false}
 									axisLine={false}
@@ -303,7 +175,7 @@ export default function OverviewPage() {
 								/>
 								<RechartsTooltip
 									contentStyle={{
-										backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+										backgroundColor: t.isDark ? "#1f2937" : "#ffffff",
 										border: "none",
 										borderRadius: "12px",
 										boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
@@ -312,9 +184,9 @@ export default function OverviewPage() {
 								/>
 								<Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
 									{branchChartData.map((_, index) => (
-										<Cell 
-											key={`cell-${index}`} 
-											fill={COLORS[index % COLORS.length]} 
+										<Cell
+											key={`cell-${index}`}
+											fill={COLORS[index % COLORS.length]}
 											fillOpacity={0.8}
 										/>
 									))}
@@ -329,35 +201,24 @@ export default function OverviewPage() {
 							className="h-[350px]"
 						/>
 					)}
-				</div>
+				</Card>
 
 				{/* Latest Reviews Section */}
-				<div
-					className={`p-6 rounded-2xl shadow-sm ${
-						theme === "dark"
-							? "bg-gray-800 border border-gray-700"
-							: "bg-white border border-gray-200"
-					}`}
-				>
+				<Card className="shadow-sm rounded-2xl" padding="lg">
 					<div className="flex items-center justify-between mb-6">
-						<h3
-							className={`text-lg font-bold ${
-								theme === "dark" ? "text-gray-100" : "text-gray-900"
-							}`}
-						>
-							Latest Reviews
-						</h3>
+						<h3 className={cn('text-lg font-bold', t.text)}>Latest Reviews</h3>
 						<MessageSquare className="text-blue-500" size={20} />
 					</div>
 
 					<div className="space-y-4">
 						{reviews.length > 0 ? (
 							reviews.map((review: BranchReview) => (
-								<div 
+								<div
 									key={review.id}
-									className={`p-4 rounded-xl border ${
-										theme === 'dark' ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-100'
-									}`}
+									className={cn(
+										'p-4 rounded-xl border',
+										t.isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-100'
+									)}
 								>
 									<div className="flex items-start gap-3">
 										<div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 text-blue-600 dark:text-blue-400 font-bold uppercase overflow-hidden">
@@ -369,7 +230,7 @@ export default function OverviewPage() {
 										</div>
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center justify-between mb-1">
-												<h4 className={`text-sm font-semibold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+												<h4 className={cn('text-sm font-semibold truncate', t.text)}>
 													{review.customerName}
 												</h4>
 												<div className="flex items-center gap-0.5">
@@ -377,11 +238,11 @@ export default function OverviewPage() {
 													<span className="text-xs font-bold text-amber-500">{review.rating}</span>
 												</div>
 											</div>
-											<p className={`text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+											<p className={cn('text-xs mb-2', t.textSecondary)}>
 												at <span className="font-medium">{review.branchName}</span>
 											</p>
 											{review.review && (
-												<p className={`text-sm italic line-clamp-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+												<p className={cn('text-sm italic line-clamp-2', t.isDark ? 'text-gray-300' : 'text-gray-600')}>
 													"{review.review}"
 												</p>
 											)}
@@ -398,25 +259,13 @@ export default function OverviewPage() {
 							/>
 						)}
 					</div>
-				</div>
+				</Card>
 			</div>
 
 			{/* Category Analytics */}
-			<div
-				className={`p-6 rounded-2xl shadow-sm ${
-					theme === "dark"
-						? "bg-gray-800 border border-gray-700"
-						: "bg-white border border-gray-200"
-				}`}
-			>
+			<Card className="shadow-sm rounded-2xl" padding="lg">
 				<div className="flex items-center justify-between mb-6">
-					<h3
-						className={`text-lg font-bold ${
-							theme === "dark" ? "text-gray-100" : "text-gray-900"
-						}`}
-					>
-						Category Performance
-					</h3>
+					<h3 className={cn('text-lg font-bold', t.text)}>Category Performance</h3>
 					<div className="flex items-center gap-2 text-sm text-amber-500 font-medium">
 						Last 30 days <ArrowRight size={16} />
 					</div>
@@ -429,24 +278,21 @@ export default function OverviewPage() {
 							.map((category: CategoryAnalytics, index: number) => (
 								<div
 									key={category.categoryId}
-									className={`p-5 rounded-2xl border transition-all hover:shadow-md ${
-										theme === "dark"
-											? "bg-gray-700/50 border-gray-600 hover:bg-gray-700"
-											: "bg-white border-gray-100 hover:border-amber-200"
-									}`}
+									className={cn(
+										'p-5 rounded-2xl border transition-all hover:shadow-md',
+										t.isDark
+											? 'bg-gray-700/50 border-gray-600 hover:bg-gray-700'
+											: 'bg-white border-gray-100 hover:border-amber-200'
+									)}
 								>
 									<div className="flex items-center gap-3 mb-4">
-										<div 
+										<div
 											className="w-10 h-10 rounded-xl flex items-center justify-center"
 											style={{ backgroundColor: `${COLORS[index % COLORS.length]}20` }}
 										>
 											<Package size={20} style={{ color: COLORS[index % COLORS.length] }} />
 										</div>
-										<h4
-											className={`font-bold truncate ${
-												theme === "dark" ? "text-gray-100" : "text-gray-900"
-											}`}
-										>
+										<h4 className={cn('font-bold truncate', t.text)}>
 											{category.categoryName}
 										</h4>
 									</div>
@@ -471,8 +317,7 @@ export default function OverviewPage() {
 						className="h-[200px]"
 					/>
 				)}
-			</div>
+			</Card>
 		</div>
 	);
 }
-
