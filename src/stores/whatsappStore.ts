@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { whatsappService, type WhatsAppChat, type WhatsAppMessage } from '../services/whatsappService';
+import { playNotificationSound } from '../contexts/SettingsContext';
 
 interface WhatsAppState {
 	// Connection state
@@ -80,6 +81,11 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 			const newMessages = new Map(messages);
 			newMessages.set(chatId, updatedChatMessages);
 			set({ messages: newMessages });
+
+			// Play notification sound for incoming messages
+			if (!message.isFromMe) {
+				playNotificationSound('message');
+			}
 		}
 
 		// Refresh chat list to update last message and unread counts

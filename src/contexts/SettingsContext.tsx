@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import jobSound from '../assets/sounds/public_job_beeps_reverb_large_area_high_pitched_65401.mp3';
 import paymentSound from '../assets/sounds/payment_job_bell_ring_clapper_movement_x5_89158.mp3';
+import messageSound from '../assets/sounds/message_received.wav';
 
 export type FontSize = 'small' | 'medium' | 'large';
 export type UIScale = 'compact' | 'comfortable' | 'spacious';
@@ -10,6 +11,7 @@ interface SoundSettings {
   volume: number;
   jobNotificationEnabled: boolean;
   paymentNotificationEnabled: boolean;
+  messageNotificationEnabled: boolean;
 }
 
 interface Settings {
@@ -28,7 +30,8 @@ interface SettingsContextType {
   setSoundVolume: (volume: number) => void;
   setJobNotificationEnabled: (enabled: boolean) => void;
   setPaymentNotificationEnabled: (enabled: boolean) => void;
-  playSound: (soundType: 'job' | 'payment') => void;
+  setMessageNotificationEnabled: (enabled: boolean) => void;
+  playSound: (soundType: 'job' | 'payment' | 'message') => void;
   resetSettings: () => void;
   getFontSize: () => number;
   getSpacing: () => number;
@@ -44,6 +47,7 @@ const defaultSettings: Settings = {
     volume: 0.7,
     jobNotificationEnabled: true,
     paymentNotificationEnabled: true,
+    messageNotificationEnabled: true,
   },
 };
 
@@ -193,16 +197,28 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const playSound = useCallback((soundType: 'job' | 'payment') => {
+  const setMessageNotificationEnabled = useCallback((enabled: boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      sounds: { ...prev.sounds, messageNotificationEnabled: enabled },
+    }));
+  }, []);
+
+  const playSound = useCallback((soundType: 'job' | 'payment' | 'message') => {
     if (!settings.sounds.enabled) return;
-    
+
     // Only play sound if user has interacted with the page
     // This prevents browser autoplay policy violations
     if (!hasUserInteracted) {
       return;
     }
 
-    const soundFile = soundType === 'job' ? jobSound : paymentSound;
+    // Check per-type toggle
+    if (soundType === 'job' && !settings.sounds.jobNotificationEnabled) return;
+    if (soundType === 'payment' && !settings.sounds.paymentNotificationEnabled) return;
+    if (soundType === 'message' && !settings.sounds.messageNotificationEnabled) return;
+
+    const soundFile = soundType === 'job' ? jobSound : soundType === 'payment' ? paymentSound : messageSound;
 
     try {
       const audio = new Audio(soundFile);
@@ -225,7 +241,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         console.error('Error playing sound:', err);
       }
     }
-  }, [settings.sounds.enabled, settings.sounds.volume, hasUserInteracted]);
+  }, [settings.sounds.enabled, settings.sounds.volume, settings.sounds.jobNotificationEnabled, settings.sounds.paymentNotificationEnabled, settings.sounds.messageNotificationEnabled, hasUserInteracted]);
 
   const resetSettings = useCallback(() => {
     setSettings(defaultSettings);
@@ -254,6 +270,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setSoundVolume,
         setJobNotificationEnabled,
         setPaymentNotificationEnabled,
+        setMessageNotificationEnabled,
         playSound,
         resetSettings,
         getFontSize,
@@ -272,5 +289,28 @@ export function useSettings() {
     throw new Error('useSettings must be used within SettingsProvider');
   }
   return context;
+}
+
+/**
+ * Standalone sound player for use outside React components (e.g. Zustand stores).
+ * Reads settings from localStorage directly and respects sound toggles.
+ */
+export function playNotificationSound(soundType: 'job' | 'payment' | 'message') {
+  try {
+    const saved = localStorage.getItem('appSettings');
+    const sounds = saved ? { ...defaultSettings.sounds, ...(JSON.parse(saved).sounds || {}) } : defaultSettings.sounds;
+
+    if (!sounds.enabled) return;
+    if (soundType === 'job' && !sounds.jobNotificationEnabled) return;
+    if (soundType === 'payment' && !sounds.paymentNotificationEnabled) return;
+    if (soundType === 'message' && !sounds.messageNotificationEnabled) return;
+
+    const soundFile = soundType === 'job' ? jobSound : soundType === 'payment' ? paymentSound : messageSound;
+    const audio = new Audio(soundFile);
+    audio.volume = sounds.volume;
+    audio.play().catch(() => {});
+  } catch {
+    // Ignore errors
+  }
 }
 

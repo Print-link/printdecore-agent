@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { User, LoginCredentials, AuthResponse } from '../types';
 import { apiService } from '../services/api';
 import { queryClient } from '../lib/queryClient';
+import { whatsappService } from '../services/whatsappService';
 
 interface AuthState {
   user: User | null;
@@ -91,6 +92,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 			},
 
 			logout: async () => {
+				// Disconnect WhatsApp entirely before logout
+				// This calls the backend which destroys the Baileys session,
+				// and cleans up frontend SSE/state
+				try {
+					const status = whatsappService.getConnectionStatus();
+					if (status.isConnected || status.isConnecting) {
+						await whatsappService.disconnect();
+					}
+				} catch {
+					// Continue with logout even if WhatsApp disconnect fails
+				}
+
 				const { token } = get();
 				if (token) {
 					try {

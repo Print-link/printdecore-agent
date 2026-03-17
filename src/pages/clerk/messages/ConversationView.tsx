@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useWhatsAppStore } from '../../../stores/whatsappStore';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Send, ArrowLeft, Spinner, FileText, Download } from '../../../components/icons';
 import { Avatar, Button, EmptyState, IconButton } from '../../../components/ui';
 import { useThemeClasses } from '../../../lib/theme';
 import { cn } from '../../../lib/utils';
+import { apiService } from '../../../services/api';
 
 interface ConversationViewProps {
 	chatId: string;
@@ -21,7 +22,65 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 	} = useWhatsAppStore();
 	const [messageText, setMessageText] = useState('');
 	const [isSending, setIsSending] = useState(false);
+	const [loadingMedia, setLoadingMedia] = useState<Set<string>>(new Set());
+	const [downloadingFile, setDownloadingFile] = useState<Set<string>>(new Set());
 	const messagesEndRef = useRef<HTMLDivElement>(null);
+
+	/** Fetch file as blob and trigger browser save-to-disk */
+	const saveFileToDevice = useCallback(async (url: string, filename: string, messageId: string) => {
+		setDownloadingFile(prev => new Set(prev).add(messageId));
+		try {
+			const response = await fetch(url);
+			const blob = await response.blob();
+			const blobUrl = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = blobUrl;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(blobUrl);
+		} catch (error) {
+			console.error('Download failed:', error);
+			// Fallback: open in new tab
+			window.open(url, '_blank');
+		} finally {
+			setDownloadingFile(prev => {
+				const next = new Set(prev);
+				next.delete(messageId);
+				return next;
+			});
+		}
+	}, []);
+
+	/** Fetch media on-demand when mediaUrl is missing, then save to device */
+	const handleDownloadMedia = useCallback(async (messageId: string, filename?: string) => {
+		setLoadingMedia(prev => new Set(prev).add(messageId));
+		try {
+			const result = await apiService.downloadMessageMedia(messageId);
+			if (result?.mediaUrl) {
+				// Update the message in the store with the downloaded mediaUrl
+				const chatMsgs = messages.get(chatId);
+				if (chatMsgs) {
+					const updated = chatMsgs.map(m =>
+						m.id === messageId ? { ...m, mediaUrl: result.mediaUrl } : m
+					);
+					const store = useWhatsAppStore.getState();
+					store.setMessages(chatId, updated);
+				}
+				// Also save to device
+				await saveFileToDevice(result.mediaUrl, filename || result.filename || 'file', messageId);
+			}
+		} catch (error) {
+			console.error('Failed to download media:', error);
+		} finally {
+			setLoadingMedia(prev => {
+				const next = new Set(prev);
+				next.delete(messageId);
+				return next;
+			});
+		}
+	}, [chatId, messages, saveFileToDevice]);
 	const chat = chats.find((c) => c.id === chatId);
 
 	useEffect(() => {
@@ -202,21 +261,41 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 																<>
 																	{/* Video */}
 																	{message.mediaType === 'video' && (
-																		<video
-																			src={message.mediaUrl}
-																			controls
-																			className="max-w-full rounded-lg"
-																			style={{ maxHeight: '300px' }}
-																		/>
+																		<div>
+																			<video
+																				src={message.mediaUrl}
+																				controls
+																				className="max-w-full rounded-lg"
+																				style={{ maxHeight: '300px' }}
+																			/>
+																			<button
+																				onClick={() => saveFileToDevice(message.mediaUrl!, message.mediaFilename || 'video', message.id)}
+																				disabled={downloadingFile.has(message.id)}
+																				className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1 bg-transparent border-none cursor-pointer p-0"
+																			>
+																				{downloadingFile.has(message.id) ? <Spinner size="xs" /> : <Download size={12} />}
+																				{downloadingFile.has(message.id) ? 'Saving...' : 'Download'}
+																			</button>
+																		</div>
 																	)}
 
 																	{/* Audio */}
 																	{message.mediaType === 'audio' && (
-																		<audio
-																			src={message.mediaUrl}
-																			controls
-																			className="w-full"
-																		/>
+																		<div>
+																			<audio
+																				src={message.mediaUrl}
+																				controls
+																				className="w-full"
+																			/>
+																			<button
+																				onClick={() => saveFileToDevice(message.mediaUrl!, message.mediaFilename || 'audio', message.id)}
+																				disabled={downloadingFile.has(message.id)}
+																				className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1 bg-transparent border-none cursor-pointer p-0"
+																			>
+																				{downloadingFile.has(message.id) ? <Spinner size="xs" /> : <Download size={12} />}
+																				{downloadingFile.has(message.id) ? 'Saving...' : 'Download'}
+																			</button>
+																		</div>
 																	)}
 
 																	{/* Document / PDF */}
@@ -230,16 +309,14 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 																					<p className={cn('text-sm font-medium truncate', t.text)}>
 																						{message.mediaFilename || message.body || 'Document'}
 																					</p>
-																					<a
-																						href={message.mediaUrl}
-																						download={message.mediaFilename || message.body || 'document'}
-																						target="_blank"
-																						rel="noopener noreferrer"
-																						className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1"
+																					<button
+																						onClick={() => saveFileToDevice(message.mediaUrl!, message.mediaFilename || message.body || 'document', message.id)}
+																						disabled={downloadingFile.has(message.id)}
+																						className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1 bg-transparent border-none cursor-pointer p-0"
 																					>
-																						<Download size={12} />
-																						Download
-																					</a>
+																						{downloadingFile.has(message.id) ? <Spinner size="xs" /> : <Download size={12} />}
+																						{downloadingFile.has(message.id) ? 'Saving...' : 'Download'}
+																					</button>
 																				</div>
 																			</div>
 																		</div>
@@ -247,17 +324,27 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 
 																	{/* Image (default for image type or no type specified) */}
 																	{(!message.mediaType || message.mediaType === 'image') && (
-																		<a href={message.mediaUrl} target="_blank" rel="noopener noreferrer">
-																			<img
-																				src={message.mediaUrl}
-																				alt="Media"
-																				className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-																				style={{ maxHeight: '400px', objectFit: 'contain' }}
-																				onError={(e) => {
-																					(e.target as HTMLImageElement).style.display = 'none';
-																				}}
-																			/>
-																		</a>
+																		<div>
+																			<a href={message.mediaUrl} target="_blank" rel="noopener noreferrer">
+																				<img
+																					src={message.mediaUrl}
+																					alt="Media"
+																					className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+																					style={{ maxHeight: '400px', objectFit: 'contain' }}
+																					onError={(e) => {
+																						(e.target as HTMLImageElement).style.display = 'none';
+																					}}
+																				/>
+																			</a>
+																			<button
+																				onClick={() => saveFileToDevice(message.mediaUrl!, message.mediaFilename || 'image', message.id)}
+																				disabled={downloadingFile.has(message.id)}
+																				className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1 bg-transparent border-none cursor-pointer p-0"
+																			>
+																				{downloadingFile.has(message.id) ? <Spinner size="xs" /> : <Download size={12} />}
+																				{downloadingFile.has(message.id) ? 'Saving...' : 'Download'}
+																			</button>
+																		</div>
 																	)}
 																</>
 															) : (
@@ -270,10 +357,20 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 																			<p className={cn('text-sm font-medium truncate', t.text)}>
 																				{message.mediaFilename || message.body || 'Media'}
 																			</p>
-																			<p className={cn('text-xs mt-1', t.textSecondary)}>
-																				<Spinner size="xs" className="inline-block mr-1" />
-																				Loading media...
-																			</p>
+																			{loadingMedia.has(message.id) ? (
+																				<p className={cn('text-xs mt-1', t.textSecondary)}>
+																					<Spinner size="xs" className="inline-block mr-1" />
+																					Downloading...
+																				</p>
+																			) : (
+																				<button
+																					onClick={() => handleDownloadMedia(message.id)}
+																					className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1 bg-transparent border-none cursor-pointer p-0"
+																				>
+																					<Download size={12} />
+																					Download media
+																				</button>
+																			)}
 																		</div>
 																	</div>
 																</div>

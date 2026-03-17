@@ -5,6 +5,7 @@ import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
+import { useWhatsAppStore } from '../../stores/whatsappStore';
 import { apiService } from '../../services/api';
 import { BranchTransitionOverlay } from './BranchTransitionOverlay';
 import type { Branch } from '../../types';
@@ -17,6 +18,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
   const t = useThemeClasses();
   const { user } = useAuthStore();
   const { selectedBranch, selectBranch, clearBranch, setLoading, setError } = useBranchStore();
+  const { disconnect: disconnectWhatsApp, isConnected: whatsAppConnected } = useWhatsAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [allBranches, setAllBranches] = useState<Branch[]>([]);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
@@ -91,6 +93,12 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
       setIsSwitching(true);
       setSelectedBranchId(branch.id);
 
+      // Disconnect WhatsApp entirely when switching branches
+      // Manager will need to scan QR code again for the new branch
+      if (whatsAppConnected) {
+        await disconnectWhatsApp();
+      }
+
       // Show immediate visual feedback
       await new Promise((resolve) => setTimeout(resolve, 150));
 
@@ -142,6 +150,12 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
       setLoading(true);
       setError(null);
       setIsOpen(false);
+
+      // Disconnect WhatsApp entirely when leaving a branch
+      // Manager will need to scan QR code again when re-entering
+      if (whatsAppConnected) {
+        await disconnectWhatsApp();
+      }
 
       // Clear the selected branch
       clearBranch();

@@ -63,6 +63,26 @@ async function markWhatsAppChatAsRead(chatId: string): Promise<void> {
 	await apiClient.post(`/whatsapp/chats/${chatId}/read`);
 }
 
+async function downloadMessageMedia(messageId: string): Promise<{
+	mediaUrl: string;
+	mimeType: string;
+	filename?: string;
+} | null> {
+	try {
+		const response = await apiClient.get(`/whatsapp/messages/${messageId}/media`);
+		if (response.data.success) {
+			return {
+				mediaUrl: response.data.mediaUrl,
+				mimeType: response.data.mimeType,
+				filename: response.data.filename,
+			};
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
 export const whatsappApi = {
 	connectWhatsApp,
 	disconnectWhatsApp,
@@ -71,4 +91,5 @@ export const whatsappApi = {
 	getWhatsAppChatMessages,
 	sendWhatsAppMessage,
 	markWhatsAppChatAsRead,
+	downloadMessageMedia,
 };
