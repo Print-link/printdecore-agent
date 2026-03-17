@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useJobs, useAgents, useSubmitJobToPrinter } from '../../hooks/useApi';
-import { Printer, FileText, Clock, CheckCircle, XCircle, AlertTriangle, Play } from 'lucide-react';
+import { Printer, FileText, Clock, CheckCircle, XCircle, AlertTriangle, Play, Spinner } from '../icons';
 import { cn } from '../../lib/utils';
 import type { PrinterAgent, PrintJob } from '../../types';
 
@@ -73,7 +73,7 @@ const ClerkDashboard: React.FC = () => {
   if (jobsLoading || agentsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        <Spinner size="xl" />
       </div>
     );
   }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useWhatsAppStore } from '../../stores/whatsappStore';
 import { formatDistanceToNow } from 'date-fns';
-import { Search, MessageCircle } from 'lucide-react';
+import { Search, MessageCircle } from '../../components/icons';
 import ConversationView from './messages/ConversationView';
 
 export default function MessagesPage() {

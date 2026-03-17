@@ -10,7 +10,8 @@ import {
 	CheckCircle,
 	Plus,
 	Minus,
-} from "lucide-react";
+	Spinner,
+} from "../../components/icons";
 import type { PrintJob } from "../../types";
 
 interface FileInfo {
@@ -635,7 +636,7 @@ export default function SubmitPage() {
 					>
 						{submitMutation.isPending ? (
 							<>
-								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+								<Spinner size="sm" className="text-gray-900" />
 								Submitting...
 							</>
 						) : (

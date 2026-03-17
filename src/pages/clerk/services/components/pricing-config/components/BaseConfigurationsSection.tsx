@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '../../../../../../components/icons';
 import { BaseConfigurationCard } from './BaseConfigurationCard';
 import type { BaseConfiguration } from '../../../../../../types';
 

@@ -16,6 +16,7 @@ import {
   Users,
   UserCircle,
   Settings,
+  Shield,
   Menu,
   X,
   Moon,
@@ -23,12 +24,13 @@ import {
   LogOut,
   XCircle,
   MessageCircle,
-} from "lucide-react";
+  CreditCard,
+} from "../components/icons";
 import { BranchSelector } from "../components/shared/BranchSelector";
 import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
-import WhatsappIcon from "../assets/whatsappIcon.png";
+import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
 
 export default function ClerkLayout() {
   const { user, logout } = useAuthStore();
@@ -44,8 +46,7 @@ export default function ClerkLayout() {
     useWalkthroughStore();
   const { chats, isConnected, ensureStatusChecked } = useWhatsAppStore();
 
-  const isManager = user?.role === "manager";
-  const isClerk = user?.role === "clerk";
+  const { isManager, isClerk, hasPermission } = usePermissions();
   const hasBranchSelected = Boolean(selectedBranch);
 
   // Start walkthrough on login for managers
@@ -164,103 +165,59 @@ export default function ClerkLayout() {
   const navItems = useMemo(() => {
     const items = [];
 
-    // 1. Dashboard - Show for manager when branch selected, or for clerk
-    if ((isManager && hasBranchSelected) || isClerk) {
-      items.push({
-        path: "/clerk/dashboard",
-        label: "Dashboard",
-        icon: LayoutDashboard,
-      });
-    }
-
-    // 2. Jobs/Orders - Manager only when branch selected
-    if (isManager && hasBranchSelected) {
-      items.push({
-        path: "/clerk/jobs",
-        label: "Jobs",
-        icon: ShoppingBag,
-        badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
-      });
-    }
-
-    // 2. Orders - For clerks
-    if (isClerk) {
-      items.push({
-        path: "/clerk/orders",
-        label: "Orders",
-        icon: ShoppingBag,
-        badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
-      });
-    }
-
-    // 3. Messages - Available when WhatsApp is connected, manager w/ branch or clerk
     const unreadMessagesCount = isConnected
       ? chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
       : 0;
-    if ((isManager && hasBranchSelected) || isClerk) {
-      items.push({
-        path: "/clerk/messages",
-        label: "Messages",
-        icon: WhatsappIcon,
-        badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
-      });
+
+    if (isManager) {
+      // ─── Manager Navigation ───────────────────────────────────────
+      if (hasBranchSelected) {
+        items.push({ path: "/clerk/dashboard", label: "Dashboard", icon: LayoutDashboard });
+        items.push({ path: "/clerk/jobs", label: "Jobs", icon: ShoppingBag, badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined });
+        items.push({ path: "/clerk/messages", label: "Messages", icon: MessageCircle, badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined });
+        items.push({ path: "/clerk/services", label: "Services", icon: Wrench });
+        items.push({ path: "/clerk/access-control", label: "Access Control", icon: Shield });
+      } else {
+        items.push({ path: "/clerk/overview", label: "Overview", icon: BarChart3 });
+        items.push({ path: "/clerk/branches", label: "Branches", icon: Store });
+        items.push({ path: "/clerk/user-management", label: "User Management", icon: Users });
+        items.push({ path: "/clerk/billing", label: "Billing", icon: CreditCard });
+      }
+    } else if (isClerk) {
+      // ─── Clerk Navigation (permission-gated) ──────────────────────
+      if (hasPermission(PERMISSIONS.DASHBOARD_VIEW)) {
+        items.push({ path: "/clerk/dashboard", label: "Dashboard", icon: LayoutDashboard });
+      }
+      if (hasPermission(PERMISSIONS.ORDERS_VIEW)) {
+        items.push({ path: "/clerk/orders", label: "Orders", icon: ShoppingBag, badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined });
+      }
+      if (hasPermission(PERMISSIONS.MESSAGES_VIEW)) {
+        items.push({ path: "/clerk/messages", label: "Messages", icon: MessageCircle, badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined });
+      }
+      if (hasPermission(PERMISSIONS.SERVICES_VIEW)) {
+        items.push({ path: "/clerk/services", label: "Services", icon: Wrench });
+      }
+      if (hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)) {
+        items.push({ path: "/clerk/overview", label: "Analytics", icon: BarChart3 });
+      }
+      if (hasPermission(PERMISSIONS.BRANCH_VIEW)) {
+        items.push({ path: "/clerk/branch-info", label: "Branch", icon: Store });
+      }
+      if (hasPermission(PERMISSIONS.ACTIVITY_VIEW)) {
+        items.push({ path: "/clerk/access-control", label: "Activity Log", icon: Shield });
+      }
     }
 
-    // 5. Overview - Manager only when no branch selected (high-level analytics)
-    if (isManager && !hasBranchSelected) {
-      items.push({
-        path: "/clerk/overview",
-        label: "Overview",
-        icon: BarChart3,
-      });
-    }
-
-    // 6. Branches - Manager only when no branch selected
-    if (isManager && !hasBranchSelected) {
-      items.push({
-        path: "/clerk/branches",
-        label: "Branches",
-        icon: Store,
-      });
-    }
-
-    // 7. Services - Manager only when branch selected
-    if (isManager && hasBranchSelected) {
-      items.push({
-        path: "/clerk/services",
-        label: "Services",
-        icon: Wrench,
-      });
-    }
-
-    // 8. User Management - Manager only when branch selected
-    if (isManager && hasBranchSelected) {
-      items.push({
-        path: "/clerk/user-management",
-        label: "User Management",
-        icon: Users,
-      });
-    }
-
-    // 9. Profile - Available to all (personal settings)
-    items.push({
-      path: "/clerk/profile",
-      label: "Profile",
-      icon: UserCircle,
-    });
-
-    // 10. Settings - Available to all (app settings)
-    items.push({
-      path: "/clerk/settings",
-      label: "Settings",
-      icon: Settings,
-    });
+    // Always available to all roles
+    items.push({ path: "/clerk/profile", label: "Profile", icon: UserCircle });
+    items.push({ path: "/clerk/settings", label: "Settings", icon: Settings });
 
     return items;
   }, [
     isManager,
     isClerk,
     hasBranchSelected,
+    hasPermission,
     pendingAndPaidCount,
     isConnected,
     chats,
@@ -300,7 +257,7 @@ export default function ClerkLayout() {
       >
         {/* Sidebar Header */}
         <div
-          className={`h-16 flex items-center justify-between px-4 border-b ${
+          className={`h-16 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} px-4 border-b ${
             theme === "dark" ? "border-gray-700" : "border-gray-200"
           }`}
         >
@@ -324,69 +281,81 @@ export default function ClerkLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className={`flex-1 overflow-y-auto space-y-1 ${isSidebarCollapsed ? "p-2" : "p-4 space-y-2"}`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
-              <button
-                key={item.path}
-                id={
-                  item.label === "Branches"
-                    ? "walkthrough-branches-nav"
-                    : undefined
-                }
-                onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all relative ${
-                  isActive
-                    ? "bg-amber-400 text-gray-900 font-semibold"
-                    : theme === "dark"
-                      ? "text-gray-300 hover:bg-gray-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {item.label.toLowerCase() == "messages" ? (
-                  <img
-                    src={item.icon as string}
-                    className="h-6 w-6 rounded-full"
-                  />
-                ) : (
-                  <Icon size={20} />
-                )}
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center justify-between flex-1">
-                    <span className="text-sm">{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
+              <div key={item.path} className="relative group">
+                <button
+                  id={
+                    item.label === "Branches"
+                      ? "walkthrough-branches-nav"
+                      : undefined
+                  }
+                  onClick={() => navigate(item.path)}
+                  className={`w-full flex items-center rounded-lg transition-all relative ${
+                    isSidebarCollapsed
+                      ? "justify-center p-2.5"
+                      : "gap-3 px-3 py-2.5"
+                  } ${
+                    isActive
+                      ? "bg-amber-400 text-gray-900 font-semibold shadow-sm"
+                      : theme === "dark"
+                        ? "text-gray-400 hover:bg-gray-700/60 hover:text-gray-200"
+                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  <Icon size={20} active={isActive} />
+                  {!isSidebarCollapsed && (
+                    <div className="flex items-center justify-between flex-1 min-w-0">
+                      <span className="text-sm truncate">{item.label}</span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span
+                          className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold min-w-[20px] text-center ${
+                            isActive
+                              ? "bg-gray-900 text-amber-400"
+                              : "bg-amber-400 text-gray-900"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {/* Badge dot when collapsed */}
+                  {isSidebarCollapsed &&
+                    item.badge !== undefined &&
+                    item.badge > 0 && (
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold min-w-[20px] text-center ${
+                        className={`absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold ${
                           isActive
                             ? "bg-gray-900 text-amber-400"
-                            : theme === "dark"
-                              ? "bg-amber-400 text-gray-900"
-                              : "bg-amber-400 text-gray-900"
+                            : "bg-amber-400 text-gray-900"
                         }`}
                       >
+                        {item.badge > 9 ? "9+" : item.badge}
+                      </span>
+                    )}
+                </button>
+                {/* Tooltip on hover when collapsed */}
+                {isSidebarCollapsed && (
+                  <div
+                    className={`absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none ${
+                      theme === "dark"
+                        ? "bg-gray-700 text-gray-100 shadow-lg shadow-black/20"
+                        : "bg-gray-900 text-white shadow-lg"
+                    }`}
+                  >
+                    {item.label}
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
                         {item.badge}
                       </span>
                     )}
                   </div>
                 )}
-                {isSidebarCollapsed &&
-                  item.badge !== undefined &&
-                  item.badge > 0 && (
-                    <span
-                      className={`absolute top-1 right-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                        isActive
-                          ? "bg-gray-900 text-amber-400"
-                          : theme === "dark"
-                            ? "bg-amber-400 text-gray-900"
-                            : "bg-amber-400 text-gray-900"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-              </button>
+              </div>
             );
           })}
         </nav>

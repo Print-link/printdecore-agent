@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiService } from "../../services/api";
-import { Mail, ArrowLeft } from "lucide-react";
+import { Mail, ArrowLeft } from "../../components/icons";
 import printAgentLogo from "../../assets/images/printAgentLogo.png";
 
 export default function ForgotPasswordPage() {

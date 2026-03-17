@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Edit, Trash2, MoreVertical } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { BranchImage } from './BranchImage';
 import { BranchDetails } from './BranchDetails';

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { Printer, Palette, Volume2, Play, MessageCircle, Store } from 'lucide-react';
+import { Printer, Palette, Volume2, Play, MessageCircle, Store, Spinner } from '../../components/icons';
 import StatusPage from './StatusPage';
 import { useWhatsAppStore } from '../../stores/whatsappStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -606,9 +606,7 @@ export default function SettingsPage() {
 
                 {isConnecting && !qrImageUrl && (
                   <div className="text-center py-8">
-                    <div className={`inline-block animate-spin rounded-full h-8 w-8 border-b-2 ${
-                      theme === 'dark' ? 'border-amber-400' : 'border-amber-600'
-                    }`}></div>
+                    <Spinner size="md" />
                     <p className={`text-sm mt-4 ${
                       theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                     }`}>

@@ -1,4 +1,4 @@
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle } from '../../../../components/icons';
 import type { Branch } from '../../../../types';
 
 export const getStatusIcon = (status: Branch['status']) => {

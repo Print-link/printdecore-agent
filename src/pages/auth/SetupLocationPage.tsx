@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search } from "../../components/icons";
 
 export default function SetupLocationPage() {
 	const navigate = useNavigate();

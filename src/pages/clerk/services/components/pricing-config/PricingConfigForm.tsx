@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from '../../../../../components/icons';
 import { useTheme } from '../../../../../contexts/ThemeContext';
 import { usePricingConfig } from './hooks/usePricingConfig';
 import { usePricingConfigForm } from './hooks/usePricingConfigForm';

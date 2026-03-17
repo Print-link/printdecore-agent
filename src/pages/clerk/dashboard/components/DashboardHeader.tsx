@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-react';
+import { Zap } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
 interface DashboardHeaderProps {

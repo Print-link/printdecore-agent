@@ -5,7 +5,7 @@ import { useBranchStore } from "../../stores/branchStore";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiService } from "../../services/api";
-import { Users, Plus, Trash2, X, Key } from "lucide-react";
+import { Users, Plus, Trash2, X, Key, Spinner } from "../../components/icons";
 import type { User } from "../../types";
 
 export default function UserManagementPage() {
@@ -486,7 +486,7 @@ export default function UserManagementPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+          <Spinner size="lg" />
         </div>
       ) : clerks.length === 0 ? (
         <div

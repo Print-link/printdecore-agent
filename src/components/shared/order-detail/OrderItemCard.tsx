@@ -1,4 +1,4 @@
-import { FileText, Tag } from 'lucide-react';
+import { FileText, Tag } from '../../icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { FileThumbnail } from './FileThumbnail';
 import type { ClerkOrderDetail } from '../../../types';

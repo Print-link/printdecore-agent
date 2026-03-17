@@ -17,7 +17,7 @@ import {
 	Key,
 	CheckCircle,
 	InfoIcon,
-} from "lucide-react";
+} from "../../components/icons";
 
 export default function ProfilePage() {
 	const { user, logout, updateUserProfile } = useAuthStore();

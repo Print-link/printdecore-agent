@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useWhatsAppStore } from '../../../stores/whatsappStore';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Send, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Spinner } from '../../../components/icons';
 
 interface ConversationViewProps {
 	chatId: string;
@@ -68,13 +68,10 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 		const textToSend = messageText.trim();
 		setMessageText('');
 		setIsSending(true);
-		
+
 		try {
 			await sendMessage(chatId, textToSend);
-			// Reload messages to ensure we have the latest
-			setTimeout(() => {
-				loadMessages(chatId);
-			}, 500);
+			// Messages update via optimistic update + SSE — no manual reload needed
 		} catch (error) {
 			console.error('Failed to send message:', error);
 			// Restore message text on error
@@ -378,7 +375,7 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 						}`}
 					>
 						{isSending ? (
-							<Loader2 size={20} className="animate-spin" />
+							<Spinner size="sm" className="text-white" />
 						) : (
 							<Send size={20} />
 						)}

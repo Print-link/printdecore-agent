@@ -3,6 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from "../../contexts/ToastContext";
+import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from "../../services/api";
 import type {
 	ServiceCategory,
@@ -38,6 +39,10 @@ export default function ServicesPage() {
 	const { selectedBranch } = useBranchStore();
 	const { theme } = useTheme();
 	const { success, error: showError } = useToast();
+	const { isClerk, hasPermission } = usePermissions();
+
+	// Clerks can only manage services if they have the services.manage permission
+	const canManageServices = hasPermission(PERMISSIONS.SERVICES_MANAGE);
 
 	const [categories, setCategories] = useState<ServiceCategory[]>([]);
 	const [subCategories, setSubCategories] = useState<ServiceSubCategory[]>([]);
@@ -60,6 +65,10 @@ export default function ServicesPage() {
 	const [showTemplateForm, setShowTemplateForm] = useState(false);
 	const [editingTemplate, setEditingTemplate] = useState<ServiceTemplate | null>(null);
 
+	// Resolve the active branch ID: clerks use their assigned branch, managers use selected branch
+	const branchId = isClerk ? user?.branch_id : selectedBranch?.id;
+	const branchName = isClerk ? "Your Branch" : selectedBranch?.name || "";
+
 	const loadCategories = async () => {
 		setIsLoading(true);
 		setError(null);
@@ -76,11 +85,11 @@ export default function ServicesPage() {
 	};
 
 	const loadAgentServices = useCallback(async () => {
-		if (!selectedBranch?.id) return;
+		if (!branchId) return;
 		setIsLoading(true);
 		setError(null);
 		try {
-			const data = await apiService.getAgentServices(selectedBranch.id);
+			const data = await apiService.getAgentServices(branchId);
 			setAgentServices(data);
 		} catch (err) {
 			setError(
@@ -89,7 +98,7 @@ export default function ServicesPage() {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [selectedBranch?.id]);
+	}, [branchId]);
 
 	// Load categories on mount
 	useEffect(() => {
@@ -98,13 +107,13 @@ export default function ServicesPage() {
 
 	// Load agent services when branch changes
 	useEffect(() => {
-		if (selectedBranch?.id) {
+		if (branchId) {
 			loadAgentServices();
 		}
-	}, [selectedBranch?.id, loadAgentServices]);
+	}, [branchId, loadAgentServices]);
 
-	// Check access
-	if (user?.role !== "manager") {
+	// Check access - managers always pass, clerks need services.view
+	if (!hasPermission(PERMISSIONS.SERVICES_VIEW)) {
 		return (
 			<div
 				className={`p-6 rounded-lg border ${
@@ -114,14 +123,14 @@ export default function ServicesPage() {
 				}`}
 			>
 				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-					Access denied. Manager role required.
+					Access denied. You need service permissions.
 				</p>
 			</div>
 		);
 	}
 
-	// Check if branch is selected
-	if (!selectedBranch) {
+	// Check if branch is available
+	if (!branchId) {
 		return (
 			<div
 				className={`p-6 rounded-lg border ${
@@ -131,7 +140,7 @@ export default function ServicesPage() {
 				}`}
 			>
 				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-					Please select a branch to manage services
+					{isClerk ? "No branch assigned. Please contact your manager." : "Please select a branch to manage services"}
 				</p>
 			</div>
 		);
@@ -153,11 +162,11 @@ export default function ServicesPage() {
 	};
 
 	const loadServiceTemplates = async (subCategoryId: string) => {
-		if (!selectedBranch?.id) return;
+		if (!branchId) return;
 		setIsLoading(true);
 		setError(null);
 		try {
-			const data = await apiService.getServiceTemplates(subCategoryId, selectedBranch.id);
+			const data = await apiService.getServiceTemplates(subCategoryId, branchId);
 			setServiceTemplates(data);
 		} catch (err) {
 			setError(
@@ -183,9 +192,9 @@ export default function ServicesPage() {
 	};
 
 	const handleTemplateSelect = async (template: ServiceTemplate) => {
-		if (!selectedBranch?.id) {
-			setError("Please select a branch first");
-			showError("Please select a branch first", "Branch Required", 3000);
+		if (!branchId) {
+			setError("No branch available");
+			showError("No branch available", "Branch Required", 3000);
 			return;
 		}
 
@@ -200,7 +209,7 @@ export default function ServicesPage() {
 		try {
 			// Check if service already exists for this branch and template
 			const existingServices = await apiService.getAgentServices(
-				selectedBranch.id
+				branchId!
 			);
 			const existingService = existingServices.find(
 				(s) => s.serviceTemplateId === template.id
@@ -219,7 +228,7 @@ export default function ServicesPage() {
 			} else {
 				// Create a minimal service first
 				const serviceData = {
-					branchId: selectedBranch.id.trim(),
+					branchId: branchId!.trim(),
 					serviceTemplateId: template.id.trim(),
 					pricePerUnit: 0, // Will be configured in pricing config
 					isActive: false, // Start as inactive until pricing is configured
@@ -425,7 +434,7 @@ export default function ServicesPage() {
 								Browse platform services and configure branch-specific pricing
 							</p>
 						</div>
-						{navState.view === "agent-services" && (
+						{navState.view === "agent-services" && canManageServices && (
 							<button
 								onClick={() => {
 									setEditingService(null);
@@ -443,7 +452,7 @@ export default function ServicesPage() {
 							theme === "dark" ? "text-gray-400" : "text-gray-600"
 						}`}
 					>
-						Branch: <strong>{selectedBranch.name}</strong>
+						Branch: <strong>{branchName}</strong>
 					</p>
 					{renderBreadcrumb()}
 				</div>
@@ -519,7 +528,7 @@ export default function ServicesPage() {
 				{showServiceForm && editingService && (
 					<AgentServiceForm
 						isOpen={showServiceForm}
-						branchId={selectedBranch.id}
+						branchId={branchId!}
 						template={editingService?.serviceTemplate}
 						editingService={editingService}
 						subCategory={editingService?.subCategory}
@@ -548,7 +557,7 @@ export default function ServicesPage() {
 				{showTemplateForm && navState.selectedSubCategory && (
 					<ServiceTemplateForm
 						isOpen={showTemplateForm}
-						branchId={selectedBranch.id}
+						branchId={branchId!}
 						subCategoryId={navState.selectedSubCategory.id}
 						editingTemplate={editingTemplate}
 						onClose={() => {

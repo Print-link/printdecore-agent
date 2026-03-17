@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Wifi, RefreshCw, CloudOff } from 'lucide-react';
+import { Wifi, RefreshCw, CloudOff } from '../../components/icons';
 
 interface ConnectivityIssueProps {
   message?: string;

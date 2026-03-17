@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "../../contexts/ThemeContext";
 import { apiService } from "../../services/api";
-import { Printer, RefreshCw, Circle } from "lucide-react";
+import { Printer, RefreshCw, Circle, Spinner } from "../../components/icons";
 import type { PrinterAgent } from "../../types";
 
 export default function StatusPage() {
@@ -96,7 +96,7 @@ export default function StatusPage() {
 
 			{isLoading && printers.length === 0 ? (
 				<div className="flex items-center justify-center h-64">
-					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+					<Spinner size="lg" />
 				</div>
 			) : printers.length === 0 ? (
 				<div

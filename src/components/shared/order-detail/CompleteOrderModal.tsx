@@ -1,4 +1,4 @@
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Spinner } from '../../icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import type { ClerkOrder } from '../../../types';
 
@@ -85,7 +85,7 @@ export function CompleteOrderModal({
 					>
 						{isPending ? (
 							<>
-								<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+								<Spinner size="sm" className="text-white" />
 								Completing...
 							</>
 						) : (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuthStore } from '../../stores/authStore';
-import { LogOut, User, BarChart3, Printer, FileText, Users } from 'lucide-react';
+import { LogOut, User, BarChart3, Printer, FileText, Users } from '../icons';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {

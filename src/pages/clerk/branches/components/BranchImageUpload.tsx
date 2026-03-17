@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, X } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
 interface BranchImageUploadProps {

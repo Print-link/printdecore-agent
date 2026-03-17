@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
+import { useBranchStore } from '../../stores/branchStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
-import { Package, DollarSign, TrendingUp, Store, Star, MessageSquare, ArrowRight } from "lucide-react";
+import { Package, DollarSign, TrendingUp, Store, Star, MessageSquare, ArrowRight, Spinner } from "../../components/icons";
 import {
 	BarChart,
 	Bar,
@@ -19,11 +21,24 @@ import { EmptyState } from "../../components/shared/EmptyState";
 
 export default function OverviewPage() {
 	const { user } = useAuthStore();
+	const { selectedBranch } = useBranchStore();
 	const { theme } = useTheme();
+	const { isManager, isClerk, hasPermission } = usePermissions();
 
+	// For clerks, use their branch for branch-level analytics
+	const clerkBranchId = isClerk ? user?.branch_id : undefined;
+
+	// Manager: overview stats across all branches
+	// Clerk with analytics permission: branch-level stats
 	const { data: stats, isLoading: isLoadingStats } = useQuery({
-		queryKey: ["managerOverview", "stats"],
-		queryFn: () => apiService.getManagerOverviewStats(),
+		queryKey: isManager
+			? ["managerOverview", "stats"]
+			: ["managerBranch", "stats", clerkBranchId],
+		queryFn: () =>
+			isManager
+				? apiService.getManagerOverviewStats()
+				: apiService.getManagerBranchStats(clerkBranchId!),
+		enabled: isManager || !!clerkBranchId,
 		staleTime: 30000,
 		refetchInterval: 60000,
 	});
@@ -31,13 +46,20 @@ export default function OverviewPage() {
 	const { data: branchBreakdown = [] } = useQuery({
 		queryKey: ["managerOverview", "branches"],
 		queryFn: () => apiService.getManagerOverviewBranches(),
+		enabled: isManager, // Only managers see multi-branch breakdown
 		staleTime: 30000,
 		refetchInterval: 60000,
 	});
 
 	const { data: categoryAnalytics = [] } = useQuery({
-		queryKey: ["managerOverview", "categoryAnalytics"],
-		queryFn: () => apiService.getManagerOverviewCategoryAnalytics(),
+		queryKey: isManager
+			? ["managerOverview", "categoryAnalytics"]
+			: ["managerBranch", "categoryAnalytics", clerkBranchId],
+		queryFn: () =>
+			isManager
+				? apiService.getManagerOverviewCategoryAnalytics()
+				: apiService.getManagerBranchCategoryAnalytics(clerkBranchId!),
+		enabled: isManager || !!clerkBranchId,
 		staleTime: 60000,
 		refetchInterval: 120000,
 	});
@@ -45,6 +67,7 @@ export default function OverviewPage() {
 	const { data: reviews = [] } = useQuery({
 		queryKey: ["managerOverview", "reviews"],
 		queryFn: () => apiService.getManagerOverviewReviews(5),
+		enabled: isManager, // Only managers see cross-branch reviews
 		staleTime: 60000,
 	});
 
@@ -60,7 +83,7 @@ export default function OverviewPage() {
 		}));
 	}, [branchBreakdown]);
 
-	if (user?.role !== "manager") {
+	if (!hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)) {
 		return (
 			<div
 				className={`p-6 rounded-lg ${
@@ -70,7 +93,7 @@ export default function OverviewPage() {
 				}`}
 			>
 				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-					Access denied. Manager role required.
+					Access denied. You need analytics permissions.
 				</p>
 			</div>
 		);
@@ -88,7 +111,7 @@ export default function OverviewPage() {
 	if (isLoadingStats && !stats) {
 		return (
 			<div className="flex items-center justify-center h-64">
-				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+				<Spinner size="lg" />
 			</div>
 		);
 	}

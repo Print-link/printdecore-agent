@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, ChevronDown, ChevronRight } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { apiService } from '../../../../services/api';
 import type { ServiceTemplate, CreateServiceTemplateData, UpdateServiceTemplateData, PricingConfig, BaseConfiguration, PricingOption, CustomSpecification } from '../../../../types';

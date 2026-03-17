@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '../../../../../../components/icons';
 import { OptionCard } from './OptionCard';
 import type { PricingOption } from "../../../../../../types";
 

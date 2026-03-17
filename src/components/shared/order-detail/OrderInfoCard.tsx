@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, Package } from 'lucide-react';
+import { CheckCircle, Clock, Package, Spinner } from '../../icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getStatusColor } from '../utils/orderUtils';
 import type { ClerkOrder } from '../../../types';
@@ -200,7 +200,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 							>
 								{isUpdating ? (
 									<>
-										<div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+										<Spinner size="xs" className="text-white" />
 										Updating...
 									</>
 								) : (

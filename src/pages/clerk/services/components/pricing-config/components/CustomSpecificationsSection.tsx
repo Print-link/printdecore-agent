@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '../../../../../../components/icons';
 import { CustomSpecCard } from './CustomSpecCard';
 import type { CustomSpecification } from "../../../../../../types";
 

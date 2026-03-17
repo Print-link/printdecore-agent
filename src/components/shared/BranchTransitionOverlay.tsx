@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Store } from 'lucide-react';
+import { Store } from '../icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { Branch } from '../../types';
 

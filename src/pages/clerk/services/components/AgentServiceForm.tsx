@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { X } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { apiService } from '../../../../services/api';
 import type {

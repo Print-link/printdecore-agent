@@ -1,4 +1,4 @@
-import { FileText, CheckCircle, Clock } from "lucide-react";
+import { FileText, CheckCircle, Clock } from "../../../../components/icons";
 import { StatCard } from "./StatCard";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import type { ClerkDashboardStats } from "../../../../types";

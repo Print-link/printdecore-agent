@@ -74,6 +74,8 @@ class WhatsAppService extends EventEmitter {
 	private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
 	private lastQrCode: string | null = null;
 	private sseConnected: boolean = false;
+	// Track message IDs we sent, so we can skip SSE duplicates
+	_sentMessageIds: Set<string> = new Set();
 
 	/** Only run initial status check once when authenticated */
 	private initialStatusChecked = false;
@@ -293,14 +295,21 @@ class WhatsAppService extends EventEmitter {
 				break;
 
 			case 'new_message': {
-				const chatMessages = this.messages.get(data.chatId) || [];
+				// Skip if this is the echo of a message we just sent
+				if (data.message?.id && this._sentMessageIds.has(data.message.id)) {
+					this._sentMessageIds.delete(data.message.id);
+					break;
+				}
+				const chatId = data.chatId;
+				if (!chatId) break;
+				const chatMessages = this.messages.get(chatId) || [];
 				const exists = chatMessages.some(m => m.id === data.message.id);
 				if (!exists) {
-					chatMessages.push(data.message);
-					chatMessages.sort((a, b) => a.timestamp - b.timestamp);
-					this.messages.set(data.chatId, chatMessages);
+					const updated = [...chatMessages, data.message];
+					updated.sort((a, b) => a.timestamp - b.timestamp);
+					this.messages.set(chatId, updated);
 				}
-				this.emit('new_message', data.message, data.chatId);
+				this.emit('new_message', data.message, chatId);
 				break;
 			}
 
@@ -424,8 +433,9 @@ class WhatsAppService extends EventEmitter {
 			throw new Error('WhatsApp client is not connected');
 		}
 
+		const tempId = `temp-${Date.now()}`;
 		const tempMessage: WhatsAppMessage = {
-			id: `temp-${Date.now()}`,
+			id: tempId,
 			from: 'me',
 			to: chatId,
 			body: message,
@@ -435,10 +445,10 @@ class WhatsAppService extends EventEmitter {
 		};
 
 		try {
-			// Optimistic update
+			// Optimistic update — add temp message to THIS chat only
 			const chatMessages = this.messages.get(chatId) || [];
 			chatMessages.push(tempMessage);
-			this.messages.set(chatId, chatMessages);
+			this.messages.set(chatId, [...chatMessages]);
 			this.emit('new_message', tempMessage, chatId);
 
 			const response = await apiService.sendWhatsAppMessage(chatId, message);
@@ -446,19 +456,24 @@ class WhatsAppService extends EventEmitter {
 			// Replace temp message with real one if returned
 			if (response && (response as any).sentMessage) {
 				const realMessage = (response as any).sentMessage;
-				const updated = chatMessages.map(m =>
-					m.id === tempMessage.id ? realMessage : m
+				// Track the real ID so we skip the SSE duplicate when it arrives
+				this._sentMessageIds.add(realMessage.id);
+				setTimeout(() => this._sentMessageIds.delete(realMessage.id), 10000);
+
+				const current = this.messages.get(chatId) || [];
+				const updated = current.map(m =>
+					m.id === tempId ? realMessage : m
 				);
 				this.messages.set(chatId, updated);
-				this.emit('new_message', realMessage, chatId);
+				// Emit a 'messages_updated' event instead of 'new_message' to avoid duplicates
+				this.emit('messages_updated', chatId);
 			}
-			// SSE will send chats_updated — no need to manually loadChats()
 
 			return true;
 		} catch (error) {
 			console.error('Error sending message:', error);
 			const chatMessages = this.messages.get(chatId) || [];
-			this.messages.set(chatId, chatMessages.filter(m => m.id !== tempMessage.id));
+			this.messages.set(chatId, chatMessages.filter(m => m.id !== tempId));
 			this.emit('error', error);
 			throw error;
 		}
@@ -478,6 +493,10 @@ class WhatsAppService extends EventEmitter {
 		} catch (error) {
 			console.error('Error marking as read:', error);
 		}
+	}
+
+	getMessagesForChat(chatId: string): WhatsAppMessage[] | undefined {
+		return this.messages.get(chatId);
 	}
 
 	getConnectionStatus() {

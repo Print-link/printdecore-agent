@@ -1,4 +1,4 @@
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
 export interface Step {

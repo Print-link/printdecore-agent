@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useWalkthroughStore } from '../../stores/walkthroughStore';
 import type { WalkthroughStep } from '../../stores/walkthroughStore';
 import { useTheme } from '../../contexts/ThemeContext';
-import { X, ChevronRight, Check } from 'lucide-react';
+import { X, ChevronRight, Check } from '../icons';
 
 interface WalkthroughTooltipProps {
   step: WalkthroughStep;

@@ -1,4 +1,4 @@
-import { User, Mail, Phone } from 'lucide-react';
+import { User, Mail, Phone } from '../../icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import type { ClerkOrder } from '../../../types';
 

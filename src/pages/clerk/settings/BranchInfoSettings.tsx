@@ -12,7 +12,7 @@ import {
 	LocationStep,
 	OperatingHoursStep,
 } from '../branches/components';
-import { AlertCircle, Save, Loader2, Info, MapPin, Clock } from 'lucide-react';
+import { AlertCircle, Save, Spinner, Info, MapPin, Clock } from '../../../components/icons';
 
 const SECTIONS = [
 	{ id: 'basic', title: 'Basic Identity', icon: Info },
@@ -202,7 +202,7 @@ export default function BranchInfoSettings() {
                         }`}
                     >
                         {updateBranchMutation.isPending ? (
-                            <Loader2 size={18} className="animate-spin" />
+                            <Spinner size="sm" />
                         ) : (
                             <Save size={18} />
                         )}

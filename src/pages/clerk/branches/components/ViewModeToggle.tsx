@@ -1,4 +1,4 @@
-import { List, Grid } from 'lucide-react';
+import { List, Grid } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
 interface ViewModeToggleProps {

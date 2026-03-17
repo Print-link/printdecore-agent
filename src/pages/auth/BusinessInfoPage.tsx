@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
-import { Building, Phone, Globe } from "lucide-react";
+import { Building, Phone, Globe } from "../../components/icons";
 
 export default function BusinessInfoPage() {
 	const navigate = useNavigate();

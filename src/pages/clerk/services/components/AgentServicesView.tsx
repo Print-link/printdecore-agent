@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Settings } from "../../../../components/icons";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import type { AgentService } from "../../../../types";
 

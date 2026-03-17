@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Download, ChevronLeft, ChevronRight } from '../icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FilePreview } from './FilePreview';
 import type { ClerkOrderDetail } from '../../types';

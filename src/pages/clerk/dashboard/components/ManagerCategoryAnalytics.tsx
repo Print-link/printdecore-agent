@@ -1,4 +1,4 @@
-import { PieChart } from 'lucide-react';
+import { PieChart } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { CategoryAnalytics } from '../../../../types';
 

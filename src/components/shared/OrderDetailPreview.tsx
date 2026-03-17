@@ -13,6 +13,7 @@ import {
 	OrderItemsList,
 	CompleteOrderModal,
 } from "./order-detail";
+import { Spinner } from "../icons";
 import { formatOrderDate, downloadFile } from "./utils/orderUtils";
 import type { ClerkOrder } from "../../types";
 
@@ -186,7 +187,7 @@ export default function OrderDetailPreview({
 			<div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
 				{isLoading ? (
 					<div className="flex items-center justify-center h-64">
-						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+						<Spinner size="lg" />
 					</div>
 				) : (
 					<>

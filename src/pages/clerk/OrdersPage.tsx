@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Spinner } from "../../components/icons";
 import OrderDetailPreview from "../../components/shared/OrderDetailPreview";
 import type { ClerkOrder, OrderStatus } from "../../types";
 
@@ -12,13 +13,14 @@ export default function OrdersPage() {
 	const { user } = useAuthStore();
 	const { selectedBranch } = useBranchStore();
 	const { theme } = useTheme();
+	const { isClerk, hasPermission } = usePermissions();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
 	const [selectedOrder, setSelectedOrder] = useState<ClerkOrder | null>(null);
 
 	// Determine which branch_id to use
 	// Clerks use their own branch_id from login, managers use selected branch
-	const branchId = user?.role === "clerk" ? user.branch_id : selectedBranch?.id;
+	const branchId = isClerk ? user?.branch_id : selectedBranch?.id;
 	const queryClient = useQueryClient();
 
 	// Use getBranchOrders API (same as agent app)
@@ -64,7 +66,23 @@ export default function OrdersPage() {
 		return filtered;
 	}, [orders, searchQuery, statusFilter]);
 
-	if (!selectedBranch && user?.role === "manager") {
+	if (!hasPermission(PERMISSIONS.ORDERS_VIEW)) {
+		return (
+			<div
+				className={`p-6 rounded-lg ${
+					theme === "dark"
+						? "bg-gray-800 border border-gray-700"
+						: "bg-white border border-gray-200"
+				}`}
+			>
+				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+					Access denied. You need order permissions.
+				</p>
+			</div>
+		);
+	}
+
+	if (!selectedBranch && !isClerk) {
 		return (
 			<div
 				className={`p-6 rounded-lg ${
@@ -165,7 +183,7 @@ export default function OrdersPage() {
 					<div className="flex-1 overflow-y-auto overflow-x-hidden pr-1 max-h-[40vh] lg:max-h-none">
 						{isLoading ? (
 							<div className="flex items-center justify-center h-64">
-								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+								<Spinner size="lg" />
 							</div>
 						) : filteredOrders.length === 0 ? (
 							<div

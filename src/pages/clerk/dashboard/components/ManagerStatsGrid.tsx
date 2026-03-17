@@ -4,7 +4,7 @@ import {
   Clock,
   DollarSign,
   Store,
-} from 'lucide-react';
+} from '../../../../components/icons';
 import { StatCard } from './StatCard';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { ManagerOverviewStats, ManagerBranchStats } from '../../../../types';

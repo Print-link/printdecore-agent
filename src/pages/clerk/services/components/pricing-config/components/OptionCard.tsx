@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2 } from '../../../../../../components/icons';
 import type { PricingOption } from "../../../../../../types";
 
 interface OptionCardProps {

@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { ViewModeToggle } from './ViewModeToggle';
 

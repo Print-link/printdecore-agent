@@ -5,7 +5,7 @@ import {
 	Banknote,
 	Layers,
 	BadgeDollarSign,
-} from 'lucide-react';
+} from '../../../../components/icons';
 import { KpiCard } from './KpiCard';
 import type {
 	ClerkDashboardStats,

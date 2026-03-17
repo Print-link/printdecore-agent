@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, Loader2, Navigation, MapPin } from 'lucide-react';
+import { Search, Spinner, Navigation, MapPin } from '../../../../../components/icons';
 import { useTheme } from '../../../../../contexts/ThemeContext';
 
 // Fix for default marker icon in Leaflet
@@ -226,7 +226,7 @@ export function LeafletMapPicker({ initialPosition, onLocationSelect }: LeafletM
               } focus:outline-none focus:ring-2 focus:ring-amber-400`}
             />
             {isSearching && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-amber-500" size={18} />
+              <Spinner size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500" />
             )}
           </div>
           <button

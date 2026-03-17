@@ -1,4 +1,4 @@
-import { Save, CheckCircle } from 'lucide-react';
+import { Save, CheckCircle } from '../../../../../../components/icons';
 
 interface PricingConfigActionsProps {
   theme: 'dark' | 'light';

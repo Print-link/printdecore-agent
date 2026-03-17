@@ -142,7 +142,7 @@ class ApiService {
 			avatar: userData.avatar || undefined,
 			branch_id: userData.branch_id || undefined, // Only for clerks
 			role: userData.role || role || "manager",
-			permissions: [],
+			permissions: userData.permissions || [],
 			verified: userData.verified ?? false,
 			// Note: business fields, location, and workingHours belong to branches, not users
 			isActive: userData.isActive !== undefined ? userData.isActive : true,
@@ -192,7 +192,7 @@ class ApiService {
 			avatar: userData.avatar || undefined,
 			branch_id: userData.branch_id || undefined,
 			role: userData.role || "manager",
-			permissions: [],
+			permissions: userData.permissions || [],
 			// Note: business fields, location, and workingHours belong to branches, not users
 			isActive: userData.isActive !== undefined ? userData.isActive : true,
 			isTemporaryPassword: userData.isTemporaryPassword || false,
@@ -236,6 +236,7 @@ class ApiService {
 		avatar?: string | null;
 		branch_id?: string | null;
 		role?: "manager" | "clerk";
+		permissions?: string[];
 		businessName?: string | null;
 		businessPhone?: string | null;
 		businessCoverImage?: string | null;
@@ -268,7 +269,7 @@ class ApiService {
 			avatar: userData.avatar || undefined,
 			branch_id: userData.branch_id || undefined,
 			role: userData.role || "manager",
-			permissions: [],
+			permissions: userData.permissions || [],
 			// Note: business fields, location, and workingHours belong to branches, not users
 			isActive: userData.isActive !== undefined ? userData.isActive : true,
 			isTemporaryPassword: userData.isTemporaryPassword || false,
@@ -1254,6 +1255,123 @@ class ApiService {
 
 	async markWhatsAppChatAsRead(chatId: string): Promise<void> {
 		await this.axiosInstance.post(`/whatsapp/chats/${chatId}/read`);
+	}
+
+	// ─── Permissions API ─────────────────────────────────────────────────
+	async getPermissions(): Promise<{ permissions: any[]; grouped: Record<string, any[]> }> {
+		const response = await this.axiosInstance.get("/permissions");
+		return response.data.data;
+	}
+
+	// ─── Roles API ───────────────────────────────────────────────────────
+	async getRoles(): Promise<any[]> {
+		const response = await this.axiosInstance.get("/roles");
+		return response.data.data;
+	}
+
+	async createRole(data: { name: string; description?: string; permissionIds?: string[] }): Promise<any> {
+		const response = await this.axiosInstance.post("/roles", data);
+		return response.data.data;
+	}
+
+	async updateRole(id: string, data: { name?: string; description?: string; permissionIds?: string[] }): Promise<any> {
+		const response = await this.axiosInstance.put(`/roles/${id}`, data);
+		return response.data.data;
+	}
+
+	async deleteRole(id: string): Promise<void> {
+		await this.axiosInstance.delete(`/roles/${id}`);
+	}
+
+	// ─── User Management API ─────────────────────────────────────────────
+	async getManagedUsers(params?: {
+		search?: string; branchId?: string; roleId?: string; status?: string; page?: number; limit?: number;
+	}): Promise<{ users: any[]; pagination: any }> {
+		const response = await this.axiosInstance.get("/user-management/users", { params });
+		return response.data.data;
+	}
+
+	async getUserPermissions(userId: string): Promise<{ effectivePermissions: string[]; directPermissions: any[] }> {
+		const response = await this.axiosInstance.get(`/user-management/users/${userId}/permissions`);
+		return response.data.data;
+	}
+
+	async updateUserRole(userId: string, roleId: string | null): Promise<void> {
+		await this.axiosInstance.put(`/user-management/users/${userId}/role`, { roleId });
+	}
+
+	async updateUserPermissions(userId: string, permissionIds: string[], branchId?: string): Promise<void> {
+		await this.axiosInstance.put(`/user-management/users/${userId}/permissions`, { permissionIds, branchId });
+	}
+
+	async updateUserStatus(userId: string, isActive: boolean): Promise<void> {
+		await this.axiosInstance.put(`/user-management/users/${userId}/status`, { isActive });
+	}
+
+	async bulkUpdateRoles(userIds: string[], roleId: string | null): Promise<{ updated: number }> {
+		const response = await this.axiosInstance.put("/user-management/bulk-role", { userIds, roleId });
+		return response.data.data;
+	}
+
+	async bulkDeactivateUsers(userIds: string[]): Promise<{ deactivated: number }> {
+		const response = await this.axiosInstance.put("/user-management/bulk-deactivate", { userIds });
+		return response.data.data;
+	}
+
+	async getUserManagementStats(): Promise<any> {
+		const response = await this.axiosInstance.get("/user-management/stats");
+		return response.data.data;
+	}
+
+	// ─── Invitations API ─────────────────────────────────────────────────
+	async sendInvitation(data: {
+		email: string; roleId?: string; branchId?: string; userType?: string; permissionKeys?: string[];
+	}): Promise<any> {
+		const response = await this.axiosInstance.post("/invitations", data);
+		return response.data.data;
+	}
+
+	async getInvitations(status?: string): Promise<any[]> {
+		const response = await this.axiosInstance.get("/invitations", { params: status ? { status } : {} });
+		return response.data.data;
+	}
+
+	async revokeInvitation(id: string): Promise<void> {
+		await this.axiosInstance.put(`/invitations/${id}/revoke`);
+	}
+
+	async getInvitationByToken(token: string): Promise<any> {
+		const response = await this.axiosInstance.get(`/invitations/accept/${token}`);
+		return response.data.data;
+	}
+
+	async acceptInvitation(token: string, data: {
+		firstName: string; lastName: string; password: string; phoneNumber?: string;
+	}): Promise<any> {
+		const response = await this.axiosInstance.post(`/invitations/accept/${token}`, data);
+		return response.data.data;
+	}
+
+	// ─── Access Control API (Branch-scoped) ──────────────────────────────
+	async getBranchAccessControlUsers(branchId: string): Promise<any[]> {
+		const response = await this.axiosInstance.get(`/branches/${branchId}/access-control/users`);
+		return response.data.data;
+	}
+
+	async getBranchUserPermissions(branchId: string, userId: string): Promise<{ effectivePermissions: string[]; directPermissions: any[] }> {
+		const response = await this.axiosInstance.get(`/branches/${branchId}/access-control/users/${userId}/permissions`);
+		return response.data.data;
+	}
+
+	async updateBranchUserPermissions(branchId: string, userId: string, permissionIds: string[]): Promise<void> {
+		await this.axiosInstance.put(`/branches/${branchId}/access-control/users/${userId}/permissions`, { permissionIds });
+	}
+
+	async getBranchActivityLog(branchId: string, page?: number, limit?: number): Promise<{ logs: any[]; pagination: any }> {
+		const response = await this.axiosInstance.get(`/branches/${branchId}/access-control/activity-log`, {
+			params: { page, limit },
+		});
+		return response.data.data;
 	}
 }
 

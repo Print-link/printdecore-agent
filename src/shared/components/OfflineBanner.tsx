@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { WifiOff } from 'lucide-react';
+import { WifiOff } from '../../components/icons';
 
 export function OfflineBanner() {
   const { theme } = useTheme();

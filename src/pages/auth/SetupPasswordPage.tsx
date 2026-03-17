@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
 import { apiService } from "../../services/api";
-import { Lock, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff } from "../../components/icons";
 
 export default function SetupPasswordPage() {
 	const navigate = useNavigate();

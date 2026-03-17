@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
+import { usePermissions, PERMISSIONS } from "../../hooks/usePermissions";
 import { useClerkDashboard } from "./dashboard/hooks/useClerkDashboard";
 import { useManagerOverviewDashboard } from "./dashboard/hooks/useManagerOverviewDashboard";
 import { useManagerBranchDashboard } from "./dashboard/hooks/useManagerBranchDashboard";
@@ -19,8 +20,7 @@ export default function DashboardPage() {
 	const { theme } = useTheme();
 	const { user } = useAuthStore();
 	const { selectedBranch } = useBranchStore();
-	const isManager = user?.role === "manager";
-	const isClerk = user?.role === "clerk";
+	const { isManager, isClerk, hasPermission } = usePermissions();
 	const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
 
 	// All hooks called unconditionally (React rules)
@@ -39,6 +39,22 @@ export default function DashboardPage() {
 	const dashboard = clerkDashboard || managerOverview || managerBranch;
 
 	// ─── Error / loading states ─────────────────────────────────────────
+
+	if (!hasPermission(PERMISSIONS.DASHBOARD_VIEW)) {
+		return (
+			<div
+				className={`p-6 rounded-lg ${
+					theme === "dark"
+						? "bg-gray-800 border border-gray-700"
+						: "bg-white border border-gray-200"
+				}`}
+			>
+				<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
+					Access denied. You need dashboard permissions.
+				</p>
+			</div>
+		);
+	}
 
 	if (isClerk && !user?.branch_id) {
 		return (

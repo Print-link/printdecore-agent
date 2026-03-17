@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Search, Store, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Store, X, Spinner } from '../icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
@@ -380,7 +380,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
                         {isActive && (
                           <>
                             <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded">
-                              <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                              <Spinner size="sm" />
                             </div>
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                               theme === 'dark' ? 'bg-amber-400' : 'bg-amber-500'

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useToast } from "../../contexts/ToastContext";
 import { apiService } from "../../services/api";
-import { Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Lock, ArrowLeft, Eye, EyeOff } from "../../components/icons";
 import printAgentLogo from "../../assets/images/printAgentLogo.png";
 
 export default function ResetPasswordPage() {

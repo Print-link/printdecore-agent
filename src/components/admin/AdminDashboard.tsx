@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAnalytics, useComparisonData } from '../../hooks/useApi';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Printer, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Printer, FileText, AlertTriangle, CheckCircle, Spinner } from '../icons';
 
 const AdminDashboard: React.FC = () => {
   const { data: analytics, isLoading: analyticsLoading } = useAnalytics();
@@ -12,7 +12,7 @@ const AdminDashboard: React.FC = () => {
   if (analyticsLoading || comparisonLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        <Spinner size="xl" />
       </div>
     );
   }

@@ -20,6 +20,7 @@ import SetupPasswordPage from "./pages/auth/SetupPasswordPage";
 import BusinessInfoPage from "./pages/auth/BusinessInfoPage";
 import SetupLocationPage from "./pages/auth/SetupLocationPage";
 import ClerkLayout from "./layouts/ClerkLayout";
+import { Spinner } from "./components/icons";
 
 // updated repo
 
@@ -30,8 +31,14 @@ const BranchesPage = lazy(() => import("./pages/clerk/BranchesPage"));
 const OverviewPage = lazy(() => import("./pages/clerk/OverviewPage"));
 const ProfilePage = lazy(() => import("./pages/clerk/ProfilePage"));
 const SettingsPage = lazy(() => import("./pages/clerk/SettingsPage"));
-const UserManagementPage = lazy(
-  () => import("./pages/clerk/UserManagementPage"),
+const UserManagementGlobalPage = lazy(
+  () => import("./pages/clerk/UserManagementGlobalPage"),
+);
+const AccessControlPage = lazy(
+  () => import("./pages/clerk/AccessControlPage"),
+);
+const AcceptInvitationPage = lazy(
+  () => import("./pages/clerk/AcceptInvitationPage"),
 );
 const ServicesPage = lazy(() => import("./pages/clerk/ServicesPage"));
 const BranchCreatePage = lazy(
@@ -41,6 +48,8 @@ const BranchEditPage = lazy(
   () => import("./pages/clerk/branches/BranchEditPage"),
 );
 const MessagesPage = lazy(() => import("./pages/clerk/MessagesPage"));
+const BranchInfoPage = lazy(() => import("./pages/clerk/BranchInfoPage"));
+const BillingPage = lazy(() => import("./pages/clerk/BillingPage"));
 
 import { queryClient } from "./lib/queryClient";
 
@@ -104,7 +113,7 @@ function SetupLocationRoute({ children }: { children: React.ReactNode }) {
 function LoadingScreen() {
   return (
     <div className="flex items-center justify-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+      <Spinner size="lg" />
     </div>
   );
 }
@@ -187,10 +196,20 @@ function App() {
                     <Route path="settings" element={<SettingsPage />} />
                     <Route
                       path="user-management"
-                      element={<UserManagementPage />}
+                      element={<UserManagementGlobalPage />}
+                    />
+                    <Route
+                      path="access-control"
+                      element={<AccessControlPage />}
                     />
                     <Route path="messages" element={<MessagesPage />} />
+                    <Route path="branch-info" element={<BranchInfoPage />} />
+                    <Route path="billing" element={<BillingPage />} />
                   </Route>
+                  <Route
+                    path="/accept-invitation"
+                    element={<AcceptInvitationPage />}
+                  />
                   <Route path="/" element={<RootRedirect />} />
                 </Routes>
               </Suspense>

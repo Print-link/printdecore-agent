@@ -1,4 +1,4 @@
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText } from '../../icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 interface FileThumbnailProps {

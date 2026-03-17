@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '../../../../components/icons';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { ServiceSubCategory } from '../../../../types';
 

@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock } from '../../../../components/icons';
 import { formatOperatingHours } from '../utils/branchUtils';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { Branch } from '../../../../types';

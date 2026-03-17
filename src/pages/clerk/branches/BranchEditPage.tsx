@@ -12,7 +12,7 @@ import {
 	LocationStep,
 	OperatingHoursStep,
 } from './components';
-import { AlertCircle, Save, Loader2, Info, MapPin, Clock, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Save, Spinner, Info, MapPin, Clock, ArrowLeft } from '../../../components/icons';
 
 const SECTIONS = [
 	{ id: 'basic', title: 'Basic Identity', icon: Info },
@@ -172,7 +172,7 @@ export default function BranchEditPage() {
 	if (isFetching) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<Loader2 className="animate-spin text-amber-400" size={48} />
+				<Spinner size="lg" />
 			</div>
 		);
 	}
@@ -225,7 +225,7 @@ export default function BranchEditPage() {
 							}`}
 					>
 						{updateBranchMutation.isPending ? (
-							<Loader2 size={18} className="animate-spin" />
+							<Spinner size="sm" />
 						) : (
 							<Save size={18} />
 						)}

@@ -64,29 +64,38 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 	});
 
 	whatsappService.on('new_message', (message: WhatsAppMessage, chatId: string) => {
-		const { messages, selectedChatId } = get();
+		if (!chatId || !message) return;
+		const { messages } = get();
 		const chatMessages = messages.get(chatId) || [];
-		
-		// Check if message already exists (avoid duplicates)
-		const exists = chatMessages.some(m => m.id === message.id);
+
+		// Check if message already exists (avoid duplicates) — also check for temp messages
+		const exists = chatMessages.some(m =>
+			m.id === message.id ||
+			(m.id.startsWith('temp-') && m.body === message.body && m.isFromMe && message.isFromMe)
+		);
 		if (!exists) {
-			// Create a new array (not mutate existing) - this ensures React detects the change
 			const updatedChatMessages = [...chatMessages, message];
-			// Sort by timestamp
 			updatedChatMessages.sort((a, b) => a.timestamp - b.timestamp);
-			
-			// Create a completely new Map instance to ensure React detects the change
+
 			const newMessages = new Map(messages);
 			newMessages.set(chatId, updatedChatMessages);
-			
-			// Update state - this will trigger re-render for all components using messages
 			set({ messages: newMessages });
-			
-			console.debug('New message added to chat:', chatId, 'Total messages:', updatedChatMessages.length);
 		}
-		
+
 		// Refresh chat list to update last message and unread counts
 		get().loadChats();
+	});
+
+	// When a sent message's temp ID is replaced with real ID, refresh that chat's messages
+	whatsappService.on('messages_updated', (chatId: string) => {
+		if (!chatId) return;
+		const { messages } = get();
+		const serviceMessages = whatsappService.getMessagesForChat(chatId);
+		if (serviceMessages) {
+			const newMessages = new Map(messages);
+			newMessages.set(chatId, [...serviceMessages]);
+			set({ messages: newMessages });
+		}
 	});
 
 	whatsappService.on('error', (error) => {
@@ -177,8 +186,8 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		sendMessage: async (chatId, message) => {
 			try {
 				await whatsappService.sendMessage(chatId, message);
-				// Reload messages
-				await get().loadMessages(chatId);
+				// Messages are updated via optimistic update + messages_updated event
+				// No need to reload — avoids fetching stale/mixed data
 			} catch (error: any) {
 				set({ error: error?.message || 'Failed to send message' });
 				throw error;
