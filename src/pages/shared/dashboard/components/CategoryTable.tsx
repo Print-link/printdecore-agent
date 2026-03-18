@@ -11,6 +11,7 @@ interface CategoryTableProps {
 
 function getTopStatus(cat: CategoryAnalytics | ClerkCategoryAnalytics): {
 	label: string;
+	count: number;
 	color: string;
 	bgLight: string;
 	bgDark: string;

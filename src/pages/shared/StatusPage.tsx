@@ -122,7 +122,6 @@ export default function StatusPage() {
 									<Circle
 										size={12}
 										className={getStatusColor(printer.status)}
-										fill="currentColor"
 									/>
 									<span
 										className={cn(

@@ -24,7 +24,7 @@ import {
 	RadialBarChart,
 	RadialBar,
 } from "recharts";
-import type { CategoryAnalytics, BranchReview, BranchPerformanceStats } from "../../types";
+import type { CategoryAnalytics, BranchReview, BranchPerformanceStats, ManagerOverviewStats, ManagerBranchStats } from "../../types";
 import { Card, PageHeader, EmptyState, StatusBadge } from '../../components/ui';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
@@ -68,7 +68,7 @@ export default function OverviewPage() {
 	// For clerks, use their branch for branch-level analytics
 	const clerkBranchId = isClerk ? user?.branch_id : undefined;
 
-	const { data: stats, isLoading: isLoadingStats } = useQuery({
+	const { data: stats, isLoading: isLoadingStats } = useQuery<ManagerOverviewStats | ManagerBranchStats>({
 		queryKey: isManager
 			? ["managerOverview", "stats"]
 			: ["managerBranch", "stats", clerkBranchId],
@@ -209,12 +209,14 @@ export default function OverviewPage() {
 						icon={<DollarSign className="text-green-500" size={32} />}
 						subtitle={`₵${stats.thisMonthRevenue?.toFixed(2) || "0.00"} this month`}
 					/>
-					<StatCard
-						label="Branches"
-						value={stats.branchCount}
-						icon={<Store className="text-purple-500" size={32} />}
-						subtitle={`${stats.activeBranchCount || 0} active`}
-					/>
+					{isManager && 'branchCount' in stats && (
+						<StatCard
+							label="Branches"
+							value={stats.branchCount}
+							icon={<Store className="text-purple-500" size={32} />}
+							subtitle={`${stats.activeBranchCount || 0} active`}
+						/>
+					)}
 					<StatCard
 						label="Today's Revenue"
 						value={`₵${stats.todayRevenue?.toFixed(2) || "0.00"}`}

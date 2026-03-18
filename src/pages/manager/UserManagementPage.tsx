@@ -44,7 +44,7 @@ export default function UserManagementGlobalPage() {
   });
   const { data: stats } = useQuery({ queryKey: ['userManagementStats'], queryFn: () => apiService.getUserManagementStats() });
   const { data: branches = [] } = useQuery({
-    queryKey: ['managerBranches', user?.id], queryFn: () => apiService.getBranchesByManagerId(user!.id), enabled: !!user?.id,
+    queryKey: ['managerBranches', user?.id], queryFn: () => apiService.getAllBranches(user!.id), enabled: !!user?.id,
   });
 
   // ─── Mutations ────────────────────────────────────────────────────
