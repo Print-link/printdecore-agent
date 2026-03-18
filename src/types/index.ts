@@ -9,3 +9,4 @@ export * from './services';
 export * from './permissions';
 export * from './whatsapp';
 export * from './legacy';
+export * from './reports';

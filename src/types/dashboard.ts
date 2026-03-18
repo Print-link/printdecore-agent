@@ -81,6 +81,24 @@ export interface BranchCategoryBreakdown {
   revenue: number;
 }
 
+export interface BranchPerformanceStats {
+  branchId: string;
+  branchName: string;
+  totalOrders: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  quotedOrders: number;
+  paidOrders: number;
+  inProgressOrders: number;
+  completedOrders: number;
+  todayOrders: number;
+  todayRevenue: number;
+  thisMonthOrders: number;
+  thisMonthRevenue: number;
+  averageRating: number;
+  reviewCount: number;
+}
+
 export interface ClerkCategoryAnalytics {
   categoryId: string;
   categoryName: string;

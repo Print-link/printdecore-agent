@@ -28,6 +28,7 @@ import {
   MessageCircle,
   CreditCard,
   ChevronDown,
+  FileText,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
 import { BranchSelector } from "../components/shared/BranchSelector";
@@ -235,6 +236,11 @@ export default function ClerkLayout() {
           icon: Shield,
         });
         branch.push({
+          path: "/clerk/reports",
+          label: "Reports",
+          icon: FileText,
+        });
+        branch.push({
           path: "/clerk/branch-info",
           label: "Branch Info",
           icon: Store,
@@ -279,6 +285,13 @@ export default function ClerkLayout() {
           path: "/clerk/overview",
           label: "Analytics",
           icon: BarChart3,
+        });
+      }
+      if (hasPermission(PERMISSIONS.REPORTS_VIEW)) {
+        general.push({
+          path: "/clerk/reports",
+          label: "Reports",
+          icon: FileText,
         });
       }
       if (hasPermission(PERMISSIONS.BRANCH_VIEW)) {

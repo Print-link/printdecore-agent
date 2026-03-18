@@ -7,7 +7,7 @@ import type {
 	ManagerBranchStats,
 	CategoryAnalytics,
 	WeeklyActivityItem,
-	BranchCategoryBreakdown,
+	BranchPerformanceStats,
 	BranchReview,
 } from "../../types";
 
@@ -69,7 +69,7 @@ async function getManagerOverviewBranches(filters?: {
 	endDate?: string;
 	month?: string;
 	year?: string;
-}): Promise<BranchCategoryBreakdown[]> {
+}): Promise<BranchPerformanceStats[]> {
 	const response = await apiClient.get(
 		"/manager/dashboard/overview/branches",
 		{ params: filters }

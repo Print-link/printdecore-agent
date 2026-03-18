@@ -43,16 +43,34 @@ class WhatsAppService extends EventEmitter {
 	// Track message IDs we sent, so we can skip SSE duplicates
 	_sentMessageIds: Set<string> = new Set();
 
-	/** Only run initial status check once when authenticated */
+	/** Only run initial status check once per page load */
 	private initialStatusChecked = false;
 	private initialStatusCheckPromise: Promise<void> | null = null;
 
 	constructor() {
 		super();
+		// Restore connection state from sessionStorage to survive refresh
+		if (typeof sessionStorage !== 'undefined') {
+			this.isConnected = sessionStorage.getItem('wa-connected') === 'true';
+		}
+	}
+
+	/** Persist connection state so refresh doesn't flash disconnected */
+	private persistConnectionState(connected: boolean) {
+		this.isConnected = connected;
+		if (typeof sessionStorage !== 'undefined') {
+			if (connected) {
+				sessionStorage.setItem('wa-connected', 'true');
+			} else {
+				sessionStorage.removeItem('wa-connected');
+			}
+		}
 	}
 
 	/**
 	 * Run initial status check once when we have an auth token.
+	 * Always verifies with backend on fresh page load, even if sessionStorage
+	 * says connected, to catch stale state.
 	 */
 	ensureInitialStatusChecked(): void {
 		if (this.initialStatusChecked || this.initialStatusCheckPromise) {
@@ -70,16 +88,25 @@ class WhatsAppService extends EventEmitter {
 		try {
 			const response = await apiService.getWhatsAppStatus();
 			if (response.connected) {
-				this.isConnected = true;
+				this.persistConnectionState(true);
 				this.emit('ready');
 				this.setupEventSource();
 				this.loadChats(); // One-time load, then SSE handles updates
 			} else if (response.qrCode) {
+				// Backend is waiting for QR scan — clear any stale connected state
+				this.persistConnectionState(false);
 				this.lastQrCode = response.qrCode;
 				this.emit('qr', response.qrCode);
+			} else {
+				// Backend says not connected and no QR — correct stale sessionStorage
+				if (this.isConnected) {
+					this.persistConnectionState(false);
+					this.emit('disconnected');
+				}
 			}
 		} catch (error) {
 			console.debug('Initial WhatsApp status check failed:', error);
+			// On network error, keep sessionStorage state (optimistic) — SSE will correct it
 		}
 	}
 
@@ -293,12 +320,15 @@ class WhatsAppService extends EventEmitter {
 				break;
 
 			case 'disconnected':
-				this.isConnected = false;
+				this.persistConnectionState(false);
 				this.emit('disconnected', data.reason || 'Connection lost');
 				break;
 
 			case 'connected':
-				// SSE connection established
+				// SSE connection established — if backend status says connected, restore state
+				if (data.status === 'connected') {
+					this.handleConnected();
+				}
 				break;
 		}
 	}
@@ -306,7 +336,7 @@ class WhatsAppService extends EventEmitter {
 	// ─── Connection State ───────────────────────────────────────────────
 
 	private handleConnected() {
-		this.isConnected = true;
+		this.persistConnectionState(true);
 		this.isConnecting = false;
 		this.lastQrCode = null;
 		this.stopStatusPolling();
@@ -329,7 +359,7 @@ class WhatsAppService extends EventEmitter {
 			this.eventSource = null;
 		}
 
-		this.isConnected = false;
+		this.persistConnectionState(false);
 		this.isConnecting = false;
 		this.sseConnected = false;
 		this.lastQrCode = null;

@@ -109,8 +109,8 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 	});
 
 	return {
-		// Initial state
-		isConnected: false,
+		// Initial state — restore connection flag from service (which reads sessionStorage)
+		isConnected: whatsappService.getConnectionStatus().isConnected,
 		isConnecting: false,
 		qrCode: null,
 		error: null,

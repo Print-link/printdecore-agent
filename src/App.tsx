@@ -50,6 +50,7 @@ const BranchEditPage = lazy(
 const MessagesPage = lazy(() => import("./pages/clerk/MessagesPage"));
 const BranchInfoPage = lazy(() => import("./pages/clerk/BranchInfoPage"));
 const BillingPage = lazy(() => import("./pages/clerk/BillingPage"));
+const ReportsPage = lazy(() => import("./pages/clerk/ReportsPage"));
 
 import { queryClient } from "./lib/queryClient";
 
@@ -205,6 +206,7 @@ function App() {
                     <Route path="messages" element={<MessagesPage />} />
                     <Route path="branch-info" element={<BranchInfoPage />} />
                     <Route path="billing" element={<BillingPage />} />
+                    <Route path="reports" element={<ReportsPage />} />
                   </Route>
                   <Route
                     path="/accept-invitation"
