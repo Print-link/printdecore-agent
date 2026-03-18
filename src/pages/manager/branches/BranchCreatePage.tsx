@@ -128,7 +128,7 @@ export default function BranchCreatePage() {
 				queryClient.invalidateQueries({ queryKey: ["branches", user.id] });
 			}
 			success("Branch created successfully", "Branch Created", 4000);
-			navigate("/clerk/branches");
+			navigate("/app/branches");
 		},
 		onError: (error: unknown) => {
 			const errorMessage =
@@ -149,7 +149,7 @@ export default function BranchCreatePage() {
 	};
 
 	const handleCancel = () => {
-		navigate("/clerk/branches");
+		navigate("/app/branches");
 	};
 
 	// Submit handler

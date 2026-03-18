@@ -37,7 +37,7 @@ import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
 
-export default function ClerkLayout() {
+export default function AppLayout() {
   const { user, logout } = useAuthStore();
   const { selectedBranch, clearBranch } = useBranchStore();
   const { theme, toggleTheme } = useTheme();
@@ -73,12 +73,12 @@ export default function ClerkLayout() {
     if (!isActive) return;
 
     if (
-      location.pathname === "/clerk/branches" &&
+      location.pathname === "/app/branches" &&
       currentStep === "sidebar-branches"
     ) {
       setStep("branches-create");
     } else if (
-      location.pathname === "/clerk/branches/create" &&
+      location.pathname === "/app/branches/create" &&
       currentStep === "branches-create"
     ) {
       setStep("create-branch-form");
@@ -190,18 +190,18 @@ export default function ClerkLayout() {
     if (isManager) {
       // ─── Manager: General Navigation (always visible) ─────────────
       general.push({
-        path: "/clerk/overview",
+        path: "/app/overview",
         label: "Overview",
         icon: BarChart3,
       });
-      general.push({ path: "/clerk/branches", label: "Branches", icon: Store });
+      general.push({ path: "/app/branches", label: "Branches", icon: Store });
       general.push({
-        path: "/clerk/user-management",
+        path: "/app/user-management",
         label: "User Management",
         icon: Users,
       });
       general.push({
-        path: "/clerk/billing",
+        path: "/app/billing",
         label: "Billing",
         icon: CreditCard,
       });
@@ -209,39 +209,39 @@ export default function ClerkLayout() {
       // ─── Manager: Branch-specific Navigation (when branch selected) ─
       if (hasBranchSelected) {
         branch.push({
-          path: "/clerk/dashboard",
+          path: "/app/dashboard",
           label: "Dashboard",
           icon: LayoutDashboard,
         });
         branch.push({
-          path: "/clerk/jobs",
+          path: "/app/jobs",
           label: "Jobs",
           icon: ShoppingBag,
           badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
         });
         branch.push({
-          path: "/clerk/messages",
+          path: "/app/messages",
           label: "Messages",
           icon: MessageCircle,
           badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
         });
         branch.push({
-          path: "/clerk/services",
+          path: "/app/services",
           label: "Services",
           icon: Wrench,
         });
         branch.push({
-          path: "/clerk/access-control",
+          path: "/app/access-control",
           label: "Access Control",
           icon: Shield,
         });
         branch.push({
-          path: "/clerk/reports",
+          path: "/app/reports",
           label: "Reports",
           icon: FileText,
         });
         branch.push({
-          path: "/clerk/branch-info",
+          path: "/app/branch-info",
           label: "Branch Info",
           icon: Store,
         });
@@ -250,14 +250,14 @@ export default function ClerkLayout() {
       // ─── Clerk Navigation (permission-gated, no branch section) ───
       if (hasPermission(PERMISSIONS.DASHBOARD_VIEW)) {
         general.push({
-          path: "/clerk/dashboard",
+          path: "/app/dashboard",
           label: "Dashboard",
           icon: LayoutDashboard,
         });
       }
       if (hasPermission(PERMISSIONS.ORDERS_VIEW)) {
         general.push({
-          path: "/clerk/orders",
+          path: "/app/orders",
           label: "Orders",
           icon: ShoppingBag,
           badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
@@ -265,7 +265,7 @@ export default function ClerkLayout() {
       }
       if (hasPermission(PERMISSIONS.MESSAGES_VIEW)) {
         general.push({
-          path: "/clerk/messages",
+          path: "/app/messages",
           label: "Messages",
           icon: MessageCircle,
           badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
@@ -273,7 +273,7 @@ export default function ClerkLayout() {
       }
       if (hasPermission(PERMISSIONS.SERVICES_VIEW)) {
         general.push({
-          path: "/clerk/services",
+          path: "/app/services",
           label: "Services",
           icon: Wrench,
         });
@@ -282,28 +282,28 @@ export default function ClerkLayout() {
         hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)
       ) {
         general.push({
-          path: "/clerk/overview",
+          path: "/app/overview",
           label: "Analytics",
           icon: BarChart3,
         });
       }
       if (hasPermission(PERMISSIONS.REPORTS_VIEW)) {
         general.push({
-          path: "/clerk/reports",
+          path: "/app/reports",
           label: "Reports",
           icon: FileText,
         });
       }
       if (hasPermission(PERMISSIONS.BRANCH_VIEW)) {
         general.push({
-          path: "/clerk/branch-info",
+          path: "/app/branch-info",
           label: "Branch",
           icon: Store,
         });
       }
       if (hasPermission(PERMISSIONS.ACTIVITY_VIEW)) {
         general.push({
-          path: "/clerk/access-control",
+          path: "/app/access-control",
           label: "Activity Log",
           icon: Shield,
         });
@@ -312,12 +312,12 @@ export default function ClerkLayout() {
 
     // Always available to all roles
     general.push({
-      path: "/clerk/profile",
+      path: "/app/profile",
       label: "Profile",
       icon: UserCircle,
     });
     general.push({
-      path: "/clerk/settings",
+      path: "/app/settings",
       label: "Settings",
       icon: Settings,
     });
@@ -640,7 +640,7 @@ export default function ClerkLayout() {
               <button
                 onClick={() => {
                   clearBranch();
-                  navigate("/clerk/overview");
+                  navigate("/app/overview");
                 }}
                 className={cn(
                   "p-1.5 rounded-md transition-colors",

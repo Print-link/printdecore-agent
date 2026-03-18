@@ -62,7 +62,7 @@ export default function BranchesPage() {
 			selectBranch(branchDetails);
 
 			await new Promise((resolve) => setTimeout(resolve, 500));
-			navigate("/clerk/dashboard");
+			navigate("/app/dashboard");
 
 			setTimeout(() => {
 				setShowTransition(false);
@@ -82,11 +82,11 @@ export default function BranchesPage() {
 	};
 
 	const handleCreateBranch = () => {
-		navigate("/clerk/branches/create");
+		navigate("/app/branches/create");
 	};
 
 	const handleEditBranch = (branch: Branch) => {
-		navigate(`/clerk/branches/edit/${branch.id}`);
+		navigate(`/app/branches/edit/${branch.id}`);
 	};
 
 	const handleDeleteBranch = async (branch: Branch) => {

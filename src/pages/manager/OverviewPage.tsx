@@ -166,7 +166,7 @@ export default function OverviewPage() {
 			id: branch.branchId,
 			name: branch.branchName,
 		} as any);
-		navigate('/clerk/dashboard');
+		navigate('/app/dashboard');
 	};
 
 	if (!hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)) {

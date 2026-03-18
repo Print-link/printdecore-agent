@@ -120,7 +120,7 @@ export default function BranchEditPage() {
 			}
 			queryClient.invalidateQueries({ queryKey: ["branch", id] });
 			success("Branch updated successfully", "Success", 4000);
-			navigate('/clerk/branches');
+			navigate('/app/branches');
 		},
 		onError: (error: unknown) => {
 			const errorMessage = error instanceof Error ? error.message : "Failed to update branch";
@@ -184,7 +184,7 @@ export default function BranchEditPage() {
 				<AlertCircle className="mx-auto mb-4" size={48} />
 				<p className="text-lg font-semibold">Branch Not Found</p>
 				<button
-					onClick={() => navigate('/clerk/branches')}
+					onClick={() => navigate('/app/branches')}
 					className="mt-4 text-amber-600 font-medium hover:underline"
 				>
 					Return to Branches
@@ -200,7 +200,7 @@ export default function BranchEditPage() {
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
 						<button
-							onClick={() => navigate('/clerk/branches')}
+							onClick={() => navigate('/app/branches')}
 							className={`p-2 rounded-full transition-colors border-none cursor-pointer ${t.isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`}
 						>
 							<ArrowLeft size={20} />

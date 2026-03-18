@@ -1,14 +1,15 @@
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/authStore";
+import { usePermissions } from "../../hooks/usePermissions";
 import { useThemeClasses } from "../../lib/theme";
 import { cn } from "../../lib/utils";
 import { apiService } from "../../services/api";
-import { Card, PageHeader, Button, Input, Section } from "../../components/ui";
+import { Card, PageHeader, Button, Input, Section, StatusBadge } from "../../components/ui";
 import {
 	User,
 	Mail,
-	Lock,
 	MapPin,
 	Calendar,
 	LogOut,
@@ -18,6 +19,12 @@ import {
 	Key,
 	CheckCircle,
 	InfoIcon,
+	Store,
+	Phone,
+	Clock,
+	ChevronDown,
+	ChevronUp,
+	Globe,
 } from "../../components/icons";
 
 function ProfileDetailRow({ icon: Icon, label, value }: { icon: (p: { size: number; className?: string }) => JSX.Element; label: string; value: string }) {
@@ -35,8 +42,17 @@ function ProfileDetailRow({ icon: Icon, label, value }: { icon: (p: { size: numb
 
 export default function ProfilePage() {
 	const { user, logout, updateUserProfile } = useAuthStore();
+	const { isClerk } = usePermissions();
 	const t = useThemeClasses();
 	const navigate = useNavigate();
+
+	// Fetch branch info for clerks
+	const { data: branch } = useQuery({
+		queryKey: ["clerkBranch", user?.branch_id],
+		queryFn: () => apiService.getBranchById(user!.branch_id!),
+		enabled: isClerk && !!user?.branch_id,
+		staleTime: 60000,
+	});
 
 	const [isEditingProfile, setIsEditingProfile] = useState(false);
 	const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -65,13 +81,6 @@ export default function ProfilePage() {
 		return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 	};
 
-	const formatLocation = (location?: { latitude: number; longitude: number; address: string }) => {
-		if (!location?.address) return "N/A";
-		const parts = location.address.split(",").map((p) => p.trim());
-		if (parts.length > 2) return parts.slice(-2).join(", ");
-		if (location.address.length > 50) return location.address.substring(0, 47) + "...";
-		return location.address;
-	};
 
 	const handleProfileSubmit = async (e: FormEvent) => {
 		e.preventDefault();
@@ -190,7 +199,6 @@ export default function ProfilePage() {
 									<ProfileDetailRow icon={Mail} label="Email" value={user?.email || "N/A"} />
 									<ProfileDetailRow icon={User} label="Role" value={user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "N/A"} />
 									<ProfileDetailRow icon={Calendar} label="Member Since" value={formatDate(user?.createdAt)} />
-									<ProfileDetailRow icon={MapPin} label="Location" value={formatLocation(user?.branch_id as unknown as { latitude: number; longitude: number; address: string })} />
 								</div>
 							</div>
 						)}
@@ -245,6 +253,164 @@ export default function ProfilePage() {
 					</Section>
 				</Card>
 			</div>
+
+			{/* My Branch — clerks only */}
+			{isClerk && branch && <BranchInfoCard branch={branch} t={t} />}
 		</div>
+	);
+}
+
+// ─── Collapsible disclosure section ────────────────────────────────────
+
+function DisclosureSection({
+	icon: Icon,
+	title,
+	defaultOpen = false,
+	children,
+}: {
+	icon: (p: { size: number; className?: string }) => JSX.Element;
+	title: string;
+	defaultOpen?: boolean;
+	children: React.ReactNode;
+}) {
+	const [open, setOpen] = useState(defaultOpen);
+	const t = useThemeClasses();
+	const Chevron = open ? ChevronUp : ChevronDown;
+
+	return (
+		<div className={cn("border rounded-xl overflow-hidden transition-colors", t.border)}>
+			<button
+				type="button"
+				onClick={() => setOpen(!open)}
+				className={cn(
+					"w-full flex items-center justify-between px-5 py-3.5 transition-colors",
+					t.isDark ? "hover:bg-gray-700/50" : "hover:bg-gray-50",
+				)}
+			>
+				<div className="flex items-center gap-3">
+					<Icon size={18} className={t.textSecondary} />
+					<span className={cn("text-sm font-semibold", t.text)}>{title}</span>
+				</div>
+				<Chevron size={16} className={t.textTertiary} />
+			</button>
+			{open && (
+				<div className={cn("px-5 pb-4 pt-1 border-t", t.borderSubtle)}>
+					{children}
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ─── Branch info card ──────────────────────────────────────────────────
+
+function BranchInfoCard({ branch, t }: { branch: any; t: ReturnType<typeof useThemeClasses> }) {
+	const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+	const todayHours = branch.operatingHours?.[todayName] || branch.operatingHours?.[todayName.toLowerCase()];
+
+	const hasContact = branch.branchEmailAddress || branch.phoneNumber;
+	const hasLocation = branch.location?.address;
+	const hasHours = branch.operatingHours && Object.keys(branch.operatingHours).length > 0;
+
+	return (
+		<Card padding="none">
+			{/* Header bar */}
+			<div className={cn("px-6 py-5 flex items-center justify-between border-b", t.border)}>
+				<div className="flex items-center gap-4">
+					{branch.branchCoverImage ? (
+						<img src={branch.branchCoverImage} alt={branch.name} className="w-12 h-12 rounded-xl object-cover" />
+					) : (
+						<div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", t.isDark ? "bg-purple-900/30" : "bg-purple-100")}>
+							<Store size={22} className="text-purple-500" />
+						</div>
+					)}
+					<div>
+						<div className="flex items-center gap-2.5">
+							<h3 className={cn("text-lg font-bold", t.text)}>{branch.name}</h3>
+							{branch.isMainBranch && (
+								<span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-400/15 text-amber-600 dark:text-amber-400">
+									Main
+								</span>
+							)}
+						</div>
+						<div className="flex items-center gap-3 mt-1">
+							<StatusBadge status={branch.status} />
+							{todayHours && (
+								<span className={cn("text-xs", t.textTertiary)}>
+									Today: {todayHours.open} — {todayHours.close}
+								</span>
+							)}
+							{!todayHours && hasHours && (
+								<span className="text-xs text-red-400">Closed today</span>
+							)}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Collapsible sections */}
+			<div className="p-4 space-y-3">
+				{/* Contact */}
+				{hasContact && (
+					<DisclosureSection icon={Phone} title="Contact Information" defaultOpen>
+						<div className="space-y-3 pt-2">
+							{branch.branchEmailAddress && (
+								<ProfileDetailRow icon={Mail} label="Email" value={branch.branchEmailAddress} />
+							)}
+							{branch.phoneNumber && (
+								<ProfileDetailRow icon={Phone} label="Phone" value={branch.phoneNumber} />
+							)}
+						</div>
+					</DisclosureSection>
+				)}
+
+				{/* Location */}
+				{hasLocation && (
+					<DisclosureSection icon={MapPin} title="Location">
+						<div className="space-y-3 pt-2">
+							<ProfileDetailRow icon={MapPin} label="Address" value={branch.location.address} />
+							{branch.location.latitude && branch.location.longitude && (
+								<ProfileDetailRow icon={Globe} label="Coordinates" value={`${branch.location.latitude.toFixed(4)}, ${branch.location.longitude.toFixed(4)}`} />
+							)}
+						</div>
+					</DisclosureSection>
+				)}
+
+				{/* Operating Hours */}
+				{hasHours && (
+					<DisclosureSection icon={Clock} title="Operating Hours">
+						<div className={cn("rounded-lg border overflow-hidden mt-2", t.border)}>
+							{['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+								const hours = branch.operatingHours[day] || branch.operatingHours[day.toLowerCase()];
+								const isToday = todayName === day;
+								return (
+									<div
+										key={day}
+										className={cn(
+											"flex items-center justify-between px-4 py-2.5 text-sm border-b last:border-0",
+											t.borderSubtle,
+											isToday && (t.isDark ? "bg-amber-900/15" : "bg-amber-50"),
+										)}
+									>
+										<div className="flex items-center gap-2">
+											{isToday && <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+											<span className={cn("font-medium", isToday ? "text-amber-600 dark:text-amber-400" : t.textSecondary)}>
+												{day}
+											</span>
+										</div>
+										<span className={cn(
+											"font-medium",
+											!hours ? "text-red-400" : isToday ? "text-amber-600 dark:text-amber-400" : t.text,
+										)}>
+											{hours ? `${hours.open} — ${hours.close}` : "Closed"}
+										</span>
+									</div>
+								);
+							})}
+						</div>
+					</DisclosureSection>
+				)}
+			</div>
+		</Card>
 	);
 }

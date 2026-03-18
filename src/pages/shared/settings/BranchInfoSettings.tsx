@@ -5,13 +5,13 @@ import { useBranchStore } from '../../../stores/branchStore';
 import { useThemeClasses } from '../../../lib/theme';
 import { useToast } from '../../../contexts/ToastContext';
 import { apiService } from '../../../services/api';
-import { useBranchForm } from '../branches/hooks/useBranchForm';
-import { useBranchImage } from '../branches/hooks/useBranchImage';
+import { useBranchForm } from '../../manager/branches/hooks/useBranchForm';
+import { useBranchImage } from '../../manager/branches/hooks/useBranchImage';
 import {
 	BasicInfoStep,
 	LocationStep,
 	OperatingHoursStep,
-} from '../branches/components';
+} from '../../manager/branches/components';
 import { Button } from '../../../components/ui';
 import { AlertCircle, Save, Spinner, Info, MapPin, Clock } from '../../../components/icons';
 
