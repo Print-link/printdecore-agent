@@ -13,7 +13,8 @@ import {
 	OperatingHoursStep,
 } from './components';
 import { Button } from '../../../components/ui';
-import { AlertCircle, Save, Spinner, Info, MapPin, Clock, ArrowLeft } from '../../../components/icons';
+import { AlertCircle, Save, Info, MapPin, Clock, ArrowLeft } from '../../../components/icons';
+import { BranchEditSkeleton } from '../../../components/ui/skeletons';
 
 const SECTIONS = [
 	{ id: 'basic', title: 'Basic Identity', icon: Info },
@@ -171,11 +172,7 @@ export default function BranchEditPage() {
 	};
 
 	if (isFetching) {
-		return (
-			<div className="flex items-center justify-center min-h-[400px]">
-				<Spinner size="lg" />
-			</div>
-		);
+		return <BranchEditSkeleton />;
 	}
 
 	if (!branch) {

@@ -24,6 +24,7 @@ export interface WhatsAppMessage {
 export interface WhatsAppStatusResponse {
   connected: boolean;
   connecting?: boolean;
+  syncing?: boolean;
   qrCode?: string;
 }
 

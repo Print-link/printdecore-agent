@@ -6,6 +6,7 @@ import { useClerkDashboard } from "./dashboard/hooks/useClerkDashboard";
 import { useManagerOverviewDashboard } from "./dashboard/hooks/useManagerOverviewDashboard";
 import { useManagerBranchDashboard } from "./dashboard/hooks/useManagerBranchDashboard";
 import { Card, Button, EmptyState } from "../../components/ui";
+import { DashboardSkeleton } from "../../components/ui/skeletons";
 import {
 	DashboardHeader,
 	KpiRow,
@@ -51,11 +52,7 @@ export default function DashboardPage() {
 	}
 
 	if (!dashboard) {
-		return (
-			<Card>
-				<EmptyState title="Loading dashboard..." />
-			</Card>
-		);
+		return <DashboardSkeleton />;
 	}
 
 	const {

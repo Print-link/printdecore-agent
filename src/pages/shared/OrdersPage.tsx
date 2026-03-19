@@ -4,8 +4,9 @@ import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
 import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
-import { Search, RefreshCw, Spinner } from "../../components/icons";
+import { Search, RefreshCw } from "../../components/icons";
 import { Card, IconButton, StatusBadge, EmptyState, Input } from '../../components/ui';
+import { OrdersListSkeleton } from '../../components/ui/skeletons';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import OrderDetailPreview from "../../components/shared/OrderDetailPreview";
@@ -147,9 +148,7 @@ export default function OrdersPage() {
 				>
 					<div className="flex-1 overflow-y-auto overflow-x-hidden pr-1 max-h-[40vh] lg:max-h-none">
 						{isLoading ? (
-							<div className="flex items-center justify-center h-64">
-								<Spinner size="lg" />
-							</div>
+							<OrdersListSkeleton />
 						) : filteredOrders.length === 0 ? (
 							<Card>
 								<EmptyState title="No orders found" />

@@ -7,9 +7,10 @@ import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
 import {
   Shield, Users, Clock, ChevronDown, ChevronRight, Plus,
-  Save, Spinner,
+  Save,
 } from '../../components/icons';
 import { Card, PageHeader, Button, Badge, Tabs, Avatar, EmptyState } from '../../components/ui';
+import { AccessControlSkeleton, ActivityLogSkeleton } from '../../components/ui/skeletons';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import PermissionPicker from '../../components/user-management/PermissionPicker';
@@ -144,7 +145,7 @@ export default function AccessControlPage() {
       {activeTab === 'users' && (
         <div className="space-y-3">
           {usersLoading ? (
-            <div className="flex justify-center py-12"><Spinner size="md" /></div>
+            <AccessControlSkeleton />
           ) : branchUsers.length === 0 ? (
             <Card>
               <EmptyState icon={Users} title="No users assigned to this branch yet." />
@@ -222,7 +223,7 @@ export default function AccessControlPage() {
       {activeTab === 'activity' && (
         <div className="space-y-4">
           {activityLoading ? (
-            <div className="flex justify-center py-12"><Spinner size="md" /></div>
+            <ActivityLogSkeleton />
           ) : !activityData?.logs?.length ? (
             <Card>
               <EmptyState icon={Clock} title="No activity logged for this branch yet." />

@@ -4,7 +4,8 @@ import { useThemeClasses } from "../../lib/theme";
 import { cn } from "../../lib/utils";
 import { apiService } from "../../services/api";
 import { Card, EmptyState, Button } from "../../components/ui";
-import { Printer, RefreshCw, Circle, Spinner } from "../../components/icons";
+import { PrinterGridSkeleton } from "../../components/ui/skeletons";
+import { Printer, RefreshCw, Circle } from "../../components/icons";
 import type { PrinterAgent } from "../../types";
 
 export default function StatusPage() {
@@ -86,9 +87,7 @@ export default function StatusPage() {
 			</div>
 
 			{isLoading && printers.length === 0 ? (
-				<div className="flex items-center justify-center h-64">
-					<Spinner size="lg" />
-				</div>
+				<PrinterGridSkeleton />
 			) : printers.length === 0 ? (
 				<EmptyState
 					icon={Printer}

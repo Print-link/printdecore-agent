@@ -90,6 +90,9 @@ class WhatsAppService extends EventEmitter {
 			if (response.connected) {
 				this.persistConnectionState(true);
 				this.emit('ready');
+				if (response.syncing) {
+					this.emit('syncing');
+				}
 				this.setupEventSource();
 				this.loadChats(); // One-time load, then SSE handles updates
 			} else if (response.qrCode) {
@@ -317,6 +320,14 @@ class WhatsAppService extends EventEmitter {
 
 			case 'message_status':
 				this.emit('message_status', data);
+				break;
+
+			case 'syncing':
+				this.emit('syncing');
+				break;
+
+			case 'sync_complete':
+				this.emit('sync_complete');
 				break;
 
 			case 'disconnected':

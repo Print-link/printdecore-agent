@@ -7,6 +7,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from "../../services/api";
 import { Card, Button } from '../../components/ui';
+import { CategoryGridSkeleton } from '../../components/ui/skeletons';
 import type {
 	ServiceCategory,
 	ServiceSubCategory,
@@ -432,11 +433,7 @@ export default function ServicesPage() {
 
 				{/* Loading State */}
 				{isLoading && categories.length === 0 && (
-					<Card>
-						<p className={cn('text-center', t.text)}>
-							Loading...
-						</p>
-					</Card>
+					<CategoryGridSkeleton />
 				)}
 
 				{/* Content Views */}

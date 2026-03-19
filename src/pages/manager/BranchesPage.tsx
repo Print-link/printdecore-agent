@@ -7,6 +7,7 @@ import { useBranchStore } from "../../stores/branchStore";
 import { apiService } from "../../services/api";
 import { BranchesHeader, BranchesList } from "./branches/components";
 import { BranchTransitionOverlay } from "../../components/shared/BranchTransitionOverlay";
+import { BranchesListSkeleton } from "../../components/ui/skeletons";
 import type { Branch } from "../../types";
 
 export default function BranchesPage() {
@@ -115,18 +116,8 @@ export default function BranchesPage() {
 
 	if (isLoadingBranches && branches.length === 0) {
 		return (
-			<div className={`p-3 h-full overflow-auto`}>
-				<div
-					className={`p-6 rounded-md border text-center ${
-						theme === "dark"
-							? "bg-gray-800 border-gray-700"
-							: "bg-white border-gray-200"
-					}`}
-				>
-					<p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-						Loading branches...
-					</p>
-				</div>
+			<div className="p-3 h-full overflow-auto">
+				<BranchesListSkeleton />
 			</div>
 		);
 	}

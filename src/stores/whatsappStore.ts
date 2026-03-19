@@ -9,6 +9,10 @@ interface WhatsAppState {
 	qrCode: string | null;
 	error: string | null;
 
+	// Loading states
+	isSyncingChats: boolean;
+	isLoadingMessages: boolean;
+
 	// Chats and messages
 	chats: WhatsAppChat[];
 	selectedChatId: string | null;
@@ -64,6 +68,16 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		set({ chats });
 	});
 
+	whatsappService.on('syncing', () => {
+		set({ isSyncingChats: true });
+	});
+
+	whatsappService.on('sync_complete', () => {
+		set({ isSyncingChats: false });
+		// Refresh chats after sync completes to get the full merged data
+		get().loadChats();
+	});
+
 	whatsappService.on('new_message', (message: WhatsAppMessage, chatId: string) => {
 		if (!chatId || !message) return;
 		const { messages } = get();
@@ -114,6 +128,8 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		isConnecting: false,
 		qrCode: null,
 		error: null,
+		isSyncingChats: false,
+		isLoadingMessages: false,
 		chats: [],
 		selectedChatId: null,
 		messages: new Map(),
@@ -182,10 +198,12 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 
 		loadMessages: async (chatId, limit = 50, forceRefresh = false) => {
 			try {
+				set({ isLoadingMessages: true });
 				const messages = await whatsappService.getChatMessages(chatId, limit, forceRefresh);
 				get().setMessages(chatId, messages);
+				set({ isLoadingMessages: false });
 			} catch (error: any) {
-				set({ error: error?.message || 'Failed to load messages' });
+				set({ error: error?.message || 'Failed to load messages', isLoadingMessages: false });
 			}
 		},
 

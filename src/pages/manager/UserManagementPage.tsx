@@ -5,8 +5,9 @@ import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../contexts/ToastContext';
 import { apiService } from '../../services/api';
-import { Users, Shield, Mail, Plus, Search, UserCheck, UserX, Key, Trash2, Spinner } from '../../components/icons';
+import { Users, Shield, Mail, Plus, Search, UserCheck, UserX, Key, Trash2 } from '../../components/icons';
 import { Card, PageHeader, Button, Badge, Tabs, Avatar, EmptyState, StatusBadge } from '../../components/ui';
+import { UserTableSkeleton, CategoryGridSkeleton, TableSkeleton } from '../../components/ui/skeletons';
 import InviteUserModal from '../../components/user-management/InviteUserModal';
 import RoleFormModal from '../../components/user-management/RoleFormModal';
 import type { Role, ManagedUser } from '../../types';
@@ -143,7 +144,7 @@ export default function UserManagementGlobalPage() {
           )}
 
           {usersLoading ? (
-            <div className="flex justify-center py-12"><Spinner size="md" /></div>
+            <UserTableSkeleton />
           ) : users.length === 0 ? (
             <Card><EmptyState icon={Users} title="No users found" /></Card>
           ) : (
@@ -194,7 +195,7 @@ export default function UserManagementGlobalPage() {
             <Button icon={Plus} onClick={() => { setEditingRole(null); setShowRoleModal(true); }}>Create Role</Button>
           </div>
           {rolesLoading ? (
-            <div className="flex justify-center py-12"><Spinner size="md" /></div>
+            <CategoryGridSkeleton count={3} />
           ) : roles.length === 0 ? (
             <Card><EmptyState icon={Shield} title="No custom roles yet" description="Create one to define permission sets." /></Card>
           ) : (
@@ -235,7 +236,7 @@ export default function UserManagementGlobalPage() {
       {activeTab === 'invitations' && (
         <div className="space-y-4">
           {invitationsLoading ? (
-            <div className="flex justify-center py-12"><Spinner size="md" /></div>
+            <TableSkeleton rows={3} cols={4} />
           ) : invitations.length === 0 ? (
             <Card><EmptyState icon={Mail} title="No invitations sent yet" /></Card>
           ) : (

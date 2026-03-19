@@ -7,7 +7,7 @@ import { usePermissions, PERMISSIONS } from '../../hooks/usePermissions';
 import { apiService } from '../../services/api';
 import {
 	Package, DollarSign, TrendingUp, Store, Star, MessageSquare,
-	ArrowRight, Spinner, ShoppingBag, Clock, Check, Eye,
+	ArrowRight, ShoppingBag, Clock, Check, Eye,
 } from "../../components/icons";
 import {
 	BarChart,
@@ -26,6 +26,7 @@ import {
 } from "recharts";
 import type { CategoryAnalytics, BranchReview, BranchPerformanceStats, ManagerOverviewStats, ManagerBranchStats } from "../../types";
 import { Card, PageHeader, EmptyState, StatusBadge } from '../../components/ui';
+import { OverviewSkeleton } from '../../components/ui/skeletons';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 
@@ -180,11 +181,7 @@ export default function OverviewPage() {
 	}
 
 	if (isLoadingStats && !stats) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<Spinner size="lg" />
-			</div>
-		);
+		return <OverviewSkeleton />;
 	}
 
 	return (

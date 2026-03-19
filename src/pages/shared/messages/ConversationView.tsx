@@ -6,6 +6,7 @@ import { Avatar, Button, EmptyState, IconButton } from '../../../components/ui';
 import { useThemeClasses } from '../../../lib/theme';
 import { cn } from '../../../lib/utils';
 import { apiService } from '../../../services/api';
+import { MessagesSkeleton, ConversationHeaderSkeleton } from './skeletons';
 
 interface ConversationViewProps {
 	chatId: string;
@@ -16,6 +17,7 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 	const {
 		chats,
 		messages,
+		isLoadingMessages,
 		sendMessage,
 		loadMessages,
 		setSelectedChat,
@@ -177,36 +179,42 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
 	return (
 		<div className={cn('flex flex-col h-full', t.surfaceInset)}>
 			{/* Header */}
-			<div className={cn('px-6 py-4 border-b flex items-center gap-4', t.isDark ? 'bg-gray-800' : 'bg-white', t.border)}>
-				<IconButton
-					icon={ArrowLeft}
-					onClick={() => setSelectedChat(null)}
-					label="Back"
-				/>
-				{chat && (
-					<>
-						<Avatar
-							src={chat.pictureUrl}
-							name={chat.name}
-							size="md"
-						/>
-						<div className="flex-1 min-w-0">
-							<h3 className={cn('text-base font-semibold', t.text)}>
-								{chat.name}
-							</h3>
-							{chat.isGroup && (
-								<p className={cn('text-xs', t.textSecondary)}>
-									Group
-								</p>
-							)}
-						</div>
-					</>
-				)}
-			</div>
+			{!chat && isLoadingMessages ? (
+				<ConversationHeaderSkeleton />
+			) : (
+				<div className={cn('px-6 py-4 border-b flex items-center gap-4', t.isDark ? 'bg-gray-800' : 'bg-white', t.border)}>
+					<IconButton
+						icon={ArrowLeft}
+						onClick={() => setSelectedChat(null)}
+						label="Back"
+					/>
+					{chat && (
+						<>
+							<Avatar
+								src={chat.pictureUrl}
+								name={chat.name}
+								size="md"
+							/>
+							<div className="flex-1 min-w-0">
+								<h3 className={cn('text-base font-semibold', t.text)}>
+									{chat.name}
+								</h3>
+								{chat.isGroup && (
+									<p className={cn('text-xs', t.textSecondary)}>
+										Group
+									</p>
+								)}
+							</div>
+						</>
+					)}
+				</div>
+			)}
 
 			{/* Messages */}
 			<div className="flex-1 overflow-y-auto p-4 space-y-4">
-				{chatMessages.length === 0 ? (
+				{isLoadingMessages && chatMessages.length === 0 ? (
+					<MessagesSkeleton />
+				) : chatMessages.length === 0 ? (
 					<EmptyState title="No messages yet" />
 				) : (
 					Object.entries(messageGroups).map(([dateKey, dateMessages]) => {

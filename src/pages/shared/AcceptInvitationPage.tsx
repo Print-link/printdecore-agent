@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { apiService } from '../../services/api';
-import { CheckCircle, XCircle, Spinner } from '../../components/icons';
+import { CheckCircle, XCircle } from '../../components/icons';
+import { InvitationFormSkeleton } from '../../components/ui/skeletons';
 
 export default function AcceptInvitationPage() {
   const { theme } = useTheme();
@@ -67,7 +68,7 @@ export default function AcceptInvitationPage() {
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${d ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <Spinner size="lg" />
+        <InvitationFormSkeleton />
       </div>
     );
   }

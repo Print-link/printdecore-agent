@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react';
 import { useWhatsAppStore } from '../../stores/whatsappStore';
 import { formatDistanceToNow } from 'date-fns';
 import { Search, MessageCircle } from '../../components/icons';
-import { Card, Avatar, EmptyState, Badge } from '../../components/ui';
+import { Card, Avatar, EmptyState } from '../../components/ui';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import ConversationView from './messages/ConversationView';
+import { ChatListSkeleton, SyncingBanner } from './messages/skeletons';
 
 export default function MessagesPage() {
 	const t = useThemeClasses();
 	const {
 		isConnected,
+		isSyncingChats,
 		chats,
 		selectedChatId,
 		setSelectedChat,
@@ -87,7 +89,13 @@ export default function MessagesPage() {
 
 				{/* Chat List */}
 				<div className="flex-1 overflow-y-auto">
-					{filteredChats.length === 0 ? (
+					{/* Syncing banner */}
+					{isSyncingChats && chats.length > 0 && <SyncingBanner />}
+
+					{/* States: skeleton → empty → list */}
+					{chats.length === 0 && isSyncingChats ? (
+						<ChatListSkeleton />
+					) : filteredChats.length === 0 ? (
 						<div className={cn('p-8 text-center', t.textSecondary)}>
 							<p className="text-sm">{searchQuery ? 'No conversations found' : 'No conversations yet'}</p>
 						</div>

@@ -4,8 +4,8 @@ import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
 import { usePermissions, PERMISSIONS } from "../../hooks/usePermissions";
 import { apiService } from "../../services/api";
-import { Spinner } from "../../components/icons";
 import BranchInfoSettings from "./settings/BranchInfoSettings";
+import { BranchInfoSkeleton } from "../../components/ui/skeletons";
 import { useThemeClasses } from "../../lib/theme";
 import { cn } from "../../lib/utils";
 
@@ -47,11 +47,7 @@ export default function BranchInfoPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Spinner size="md" />
-      </div>
-    );
+    return <BranchInfoSkeleton />;
   }
 
   return <BranchInfoSettings />;
