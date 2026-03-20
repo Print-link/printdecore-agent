@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Read(//Users/berthajones/Desktop/projects/printdecore/**)"
+      "Read(//Users/berthajones/Desktop/projects/printdecore/**)",
+      "WebFetch(domain:www.builderbot.app)",
+      "Bash(grep -r \"presenceSubscribe\\\\|sendPresenceUpdate\\\\|presence.update\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/node_modules/baileys/src/Socket/*.ts)",
+      "Bash(echo \"Run this SQL against your database::*)"
+    ],
+    "additionalDirectories": [
+      "/Users/berthajones/Desktop/projects/printdecore/piper-client/src/pages",
+      "/Users/berthajones/Desktop/projects/printdecore/piper-client/src"
     ]
   }
 }

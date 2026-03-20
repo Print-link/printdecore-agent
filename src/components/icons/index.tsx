@@ -67,6 +67,12 @@ export const Send = createIcon('solar:plain-bold-duotone', 'Send');
 export const RefreshCw = createIcon('solar:refresh-bold-duotone', 'RefreshCw');
 export const Play = createIcon('solar:play-bold-duotone', 'Play');
 export const X = createIcon('solar:close-circle-linear', 'X');
+export const Reply = createIcon('solar:reply-bold', 'Reply');
+export const Pin = createIcon('solar:pin-bold-duotone', 'Pin');
+export const PinSlash = createIcon('solar:pin-slash-linear', 'PinSlash');
+export const Archive = createIcon('solar:archive-down-bold-duotone', 'Archive');
+export const ArchiveRestore = createIcon('solar:archive-up-bold-duotone', 'ArchiveRestore');
+export const BellOff = createIcon('solar:bell-off-bold-duotone', 'BellOff');
 
 // ─── Status & Feedback ──────────────────────────────────────────────
 export const Check = createIcon('solar:check-circle-bold-duotone', 'Check');
@@ -214,6 +220,41 @@ export function Spinner({ size = 'md', variant = 'ring', className = 'text-amber
   );
 }
 Spinner.displayName = 'Spinner';
+
+// ─── Message Status Ticks (WhatsApp-style) ──────────────────────────
+interface TickProps {
+  className?: string;
+  size?: number;
+}
+
+/** Single check — message sent to server */
+export function TickSent({ className = 'text-current', size = 16 }: TickProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M3 8.5l3.5 3.5L13 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Double check — message delivered to recipient */
+export function TickDelivered({ className = 'text-current', size = 16 }: TickProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M1.5 8.5L5 12l7-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.5 8.5L9 12l5-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Double check blue — message read by recipient */
+export function TickRead({ className = 'text-blue-500', size = 16 }: TickProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M1.5 8.5L5 12l7-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.5 8.5L9 12l5-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 // ─── Type export for components that accept icon as prop ─────────────
 export type IconComponent = typeof LayoutDashboard;

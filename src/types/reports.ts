@@ -39,6 +39,17 @@ export interface OrderDetail {
 	items: OrderItemDetail[];
 }
 
+export interface WhatsAppQuoteSummary {
+	totalQuotes: number;
+	paidQuotes: number;
+	pendingQuotes: number;
+	declinedQuotes: number;
+	expiredQuotes: number;
+	quoteRevenue: number;
+	conversionRate: number;
+	quotesByCategory: Array<{ category: string; count: number; revenue: number }>;
+}
+
 export interface BranchRevenueReport {
 	branch: {
 		name: string;
@@ -61,5 +72,6 @@ export interface BranchRevenueReport {
 	categoryPerformance: CategoryPerformance[];
 	dailyTrend: DailyRevenueTrend[];
 	orders: OrderDetail[];
+	whatsappQuotes?: WhatsAppQuoteSummary;
 	generatedAt: string;
 }

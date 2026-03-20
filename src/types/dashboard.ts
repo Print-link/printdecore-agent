@@ -1,3 +1,23 @@
+export interface WhatsAppQuoteStats {
+  totalQuotes: number;
+  pendingQuotes: number;
+  paidQuotes: number;
+  declinedQuotes: number;
+  expiredQuotes: number;
+  quoteRevenue: number;
+  todayQuotes: number;
+  thisMonthQuotes: number;
+  thisMonthQuoteRevenue: number;
+  conversionRate: number;
+}
+
+export interface ClerkWhatsAppQuoteStats {
+  totalQuotes: number;
+  pendingQuotes: number;
+  paidQuotes: number;
+  thisMonthQuotes: number;
+}
+
 export interface ClerkDashboardStats {
   total: number;
   pending: number;
@@ -8,6 +28,7 @@ export interface ClerkDashboardStats {
   todayOrders: number;
   thisWeekOrders: number;
   thisMonthOrders: number;
+  whatsappQuotes?: ClerkWhatsAppQuoteStats;
 }
 
 export interface ManagerOverviewStats {
@@ -24,6 +45,7 @@ export interface ManagerOverviewStats {
   thisMonthRevenue: number;
   branchCount: number;
   activeBranchCount: number;
+  whatsappQuotes?: WhatsAppQuoteStats;
 }
 
 export interface ManagerBranchStats {
@@ -42,6 +64,7 @@ export interface ManagerBranchStats {
   thisWeekRevenue: number;
   averageRating: number;
   reviewCount: number;
+  whatsappQuotes?: WhatsAppQuoteStats;
 }
 
 export interface BranchReview {

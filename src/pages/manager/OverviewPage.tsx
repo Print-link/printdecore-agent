@@ -193,34 +193,75 @@ export default function OverviewPage() {
 
 			{/* Stats Grid */}
 			{stats && (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-					<StatCard
-						label="Total Orders"
-						value={stats.totalOrders}
-						icon={<Package className="text-blue-500" size={32} />}
-						subtitle={`${stats.todayOrders || 0} today`}
-					/>
-					<StatCard
-						label="Total Revenue"
-						value={`₵${stats.totalRevenue?.toFixed(2) || "0.00"}`}
-						icon={<DollarSign className="text-green-500" size={32} />}
-						subtitle={`₵${stats.thisMonthRevenue?.toFixed(2) || "0.00"} this month`}
-					/>
-					{isManager && 'branchCount' in stats && (
+				<>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 						<StatCard
-							label="Branches"
-							value={stats.branchCount}
-							icon={<Store className="text-purple-500" size={32} />}
-							subtitle={`${stats.activeBranchCount || 0} active`}
+							label="Total Orders"
+							value={stats.totalOrders}
+							icon={<Package className="text-blue-500" size={32} />}
+							subtitle={`${stats.todayOrders || 0} today`}
 						/>
+						<StatCard
+							label="Total Revenue"
+							value={`₵${stats.totalRevenue?.toFixed(2) || "0.00"}`}
+							icon={<DollarSign className="text-green-500" size={32} />}
+							subtitle={`₵${stats.thisMonthRevenue?.toFixed(2) || "0.00"} this month`}
+						/>
+						{isManager && 'branchCount' in stats && (
+							<StatCard
+								label="Branches"
+								value={stats.branchCount}
+								icon={<Store className="text-purple-500" size={32} />}
+								subtitle={`${stats.activeBranchCount || 0} active`}
+							/>
+						)}
+						<StatCard
+							label="Today's Revenue"
+							value={`₵${stats.todayRevenue?.toFixed(2) || "0.00"}`}
+							icon={<TrendingUp className="text-amber-500" size={32} />}
+							subtitle={`${stats.todayOrders || 0} orders`}
+						/>
+					</div>
+
+					{/* WhatsApp Quotes Overview */}
+					{stats.whatsappQuotes && stats.whatsappQuotes.totalQuotes > 0 && (
+						<Card className="shadow-sm rounded-2xl" padding="lg">
+							<h3 className={cn('text-lg font-bold mb-4', t.text)}>WhatsApp Quotes</h3>
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+								<div>
+									<p className={cn('text-sm', t.textSecondary)}>Total Quotes</p>
+									<p className={cn('text-2xl font-bold', t.text)}>{stats.whatsappQuotes.totalQuotes}</p>
+									<p className={cn('text-xs', t.textTertiary)}>{stats.whatsappQuotes.thisMonthQuotes} this month</p>
+								</div>
+								<div>
+									<p className={cn('text-sm', t.textSecondary)}>Quote Revenue</p>
+									<p className={cn('text-2xl font-bold text-green-500')}>
+										₵{stats.whatsappQuotes.quoteRevenue.toFixed(2)}
+									</p>
+									<p className={cn('text-xs', t.textTertiary)}>
+										₵{stats.whatsappQuotes.thisMonthQuoteRevenue.toFixed(2)} this month
+									</p>
+								</div>
+								<div>
+									<p className={cn('text-sm', t.textSecondary)}>Conversion Rate</p>
+									<p className={cn('text-2xl font-bold text-amber-500')}>
+										{stats.whatsappQuotes.conversionRate}%
+									</p>
+									<p className={cn('text-xs', t.textTertiary)}>
+										{stats.whatsappQuotes.paidQuotes} of {stats.whatsappQuotes.totalQuotes} paid
+									</p>
+								</div>
+								<div>
+									<p className={cn('text-sm', t.textSecondary)}>Pending</p>
+									<p className={cn('text-2xl font-bold', t.text)}>{stats.whatsappQuotes.pendingQuotes}</p>
+									<p className={cn('text-xs', t.textTertiary)}>
+										{stats.whatsappQuotes.declinedQuotes} declined, {stats.whatsappQuotes.expiredQuotes} expired
+									</p>
+								</div>
+							</div>
+						</Card>
 					)}
-					<StatCard
-						label="Today's Revenue"
-						value={`₵${stats.todayRevenue?.toFixed(2) || "0.00"}`}
-						icon={<TrendingUp className="text-amber-500" size={32} />}
-						subtitle={`${stats.todayOrders || 0} orders`}
-					/>
-				</div>
+				</>
 			)}
 
 			{/* ─── Branch Performance Section ─────────────────────────────── */}

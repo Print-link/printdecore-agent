@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { whatsappService, type WhatsAppChat, type WhatsAppMessage } from '../services/whatsappService';
+import { apiService } from '../services/api';
 import { playNotificationSound } from '../contexts/SettingsContext';
 
 interface WhatsAppState {
@@ -17,6 +18,7 @@ interface WhatsAppState {
 	chats: WhatsAppChat[];
 	selectedChatId: string | null;
 	messages: Map<string, WhatsAppMessage[]>;
+	typingChats: Set<string>;
 
 	// Actions
 	setIsConnected: (connected: boolean) => void;
@@ -32,7 +34,13 @@ interface WhatsAppState {
 	disconnect: () => Promise<void>;
 	loadChats: () => Promise<void>;
 	loadMessages: (chatId: string) => Promise<void>;
-	sendMessage: (chatId: string, message: string) => Promise<void>;
+	sendMessage: (chatId: string, message: string, quotedMessageId?: string) => Promise<void>;
+	reactToMessage: (chatId: string, messageId: string, emoji: string) => Promise<void>;
+	pinChat: (chatId: string, pinned: boolean) => Promise<void>;
+	archiveChat: (chatId: string, archived: boolean) => Promise<void>;
+	muteChat: (chatId: string, muted: boolean) => Promise<void>;
+	sendTypingIndicator: (chatId: string) => void;
+	stopTypingIndicator: (chatId: string) => void;
 	markAsRead: (chatId: string) => Promise<void>;
 	ensureStatusChecked: () => void;
 }
@@ -80,7 +88,7 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 
 	whatsappService.on('new_message', (message: WhatsAppMessage, chatId: string) => {
 		if (!chatId || !message) return;
-		const { messages } = get();
+		const { messages, selectedChatId } = get();
 		const chatMessages = messages.get(chatId) || [];
 
 		// Check if message already exists (avoid duplicates) — also check for temp messages
@@ -96,8 +104,13 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 			newMessages.set(chatId, updatedChatMessages);
 			set({ messages: newMessages });
 
-			// Play notification sound for incoming messages
-			if (!message.isFromMe) {
+			// If this is an incoming message in the currently viewed chat, mark as read immediately
+			if (!message.isFromMe && selectedChatId === chatId) {
+				get().markAsRead(chatId);
+			}
+
+			// Play notification sound for incoming messages (only if not viewing that chat)
+			if (!message.isFromMe && selectedChatId !== chatId) {
 				playNotificationSound('message');
 			}
 		}
@@ -118,6 +131,63 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		}
 	});
 
+	whatsappService.on('message_status', (data: { chatId?: string; messageId?: string; id?: string; status: string }) => {
+		const msgId = data.messageId || data.id;
+		if (!msgId || !data.status) return;
+		const { messages } = get();
+
+		// If chatId is provided, update just that chat
+		if (data.chatId) {
+			const chatMsgs = messages.get(data.chatId);
+			if (chatMsgs) {
+				const idx = chatMsgs.findIndex(m => m.id === msgId);
+				if (idx >= 0) {
+					const updated = [...chatMsgs];
+					updated[idx] = { ...updated[idx], status: data.status as any };
+					const newMessages = new Map(messages);
+					newMessages.set(data.chatId, updated);
+					set({ messages: newMessages });
+					return;
+				}
+			}
+		}
+
+		// No chatId or not found — search all chats
+		for (const [cid, chatMsgs] of messages) {
+			const idx = chatMsgs.findIndex(m => m.id === msgId);
+			if (idx >= 0) {
+				const updated = [...chatMsgs];
+				updated[idx] = { ...updated[idx], status: data.status as any };
+				const newMessages = new Map(messages);
+				newMessages.set(cid, updated);
+				set({ messages: newMessages });
+				return;
+			}
+		}
+	});
+
+	whatsappService.on('message_reaction', (chatId: string) => {
+		if (!chatId) return;
+		const { messages } = get();
+		const serviceMessages = whatsappService.getMessagesForChat(chatId);
+		if (serviceMessages) {
+			const newMessages = new Map(messages);
+			newMessages.set(chatId, [...serviceMessages]);
+			set({ messages: newMessages });
+		}
+	});
+
+	whatsappService.on('typing', (chatId: string, isTyping: boolean) => {
+		const { typingChats } = get();
+		const next = new Set(typingChats);
+		if (isTyping) {
+			next.add(chatId);
+		} else {
+			next.delete(chatId);
+		}
+		set({ typingChats: next });
+	});
+
 	whatsappService.on('error', (error) => {
 		set({ error: error?.message || 'An error occurred' });
 	});
@@ -133,6 +203,7 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		chats: [],
 		selectedChatId: null,
 		messages: new Map(),
+		typingChats: new Set(),
 
 		// Setters
 		setIsConnected: (connected) => set({ isConnected: connected }),
@@ -207,15 +278,69 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 			}
 		},
 
-		sendMessage: async (chatId, message) => {
+		sendMessage: async (chatId, message, quotedMessageId?) => {
 			try {
-				await whatsappService.sendMessage(chatId, message);
+				await whatsappService.sendMessage(chatId, message, quotedMessageId);
 				// Messages are updated via optimistic update + messages_updated event
 				// No need to reload — avoids fetching stale/mixed data
 			} catch (error: any) {
 				set({ error: error?.message || 'Failed to send message' });
 				throw error;
 			}
+		},
+
+		reactToMessage: async (chatId, messageId, emoji) => {
+			try {
+				await apiService.reactToMessage(chatId, messageId, emoji);
+			} catch (error: any) {
+				console.error('Failed to react:', error);
+			}
+		},
+
+		pinChat: async (chatId, pinned) => {
+			// Optimistic update
+			const { chats } = get();
+			set({ chats: chats.map(c => c.id === chatId ? { ...c, isPinned: pinned } : c) });
+			try {
+				await apiService.pinChat(chatId, pinned);
+			} catch (error: any) {
+				console.error('Failed to pin chat:', error);
+				get().loadChats();
+			}
+		},
+
+		archiveChat: async (chatId, archived) => {
+			const { chats, selectedChatId } = get();
+			set({ chats: chats.map(c => c.id === chatId ? { ...c, isArchived: archived } : c) });
+			// If archiving the selected chat, deselect it
+			if (archived && selectedChatId === chatId) {
+				set({ selectedChatId: null });
+			}
+			try {
+				await apiService.archiveChat(chatId, archived);
+			} catch (error: any) {
+				console.error('Failed to archive chat:', error);
+				get().loadChats();
+			}
+		},
+
+		muteChat: async (chatId, muted) => {
+			const { chats } = get();
+			set({ chats: chats.map(c => c.id === chatId ? { ...c, isMuted: muted } : c) });
+			try {
+				await apiService.muteChat(chatId, muted);
+			} catch (error: any) {
+				console.error('Failed to mute chat:', error);
+				get().loadChats();
+			}
+		},
+
+		sendTypingIndicator: (chatId) => {
+			whatsappService.sendTypingIndicator(chatId);
+		},
+
+		stopTypingIndicator: (chatId) => {
+			whatsappService.stopTypingIndicator(chatId);
 		},
 
 		markAsRead: async (chatId) => {

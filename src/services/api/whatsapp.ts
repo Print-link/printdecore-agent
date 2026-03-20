@@ -51,12 +51,41 @@ async function getWhatsAppChatMessages(
 
 async function sendWhatsAppMessage(
 	chatId: string,
-	message: string
+	message: string,
+	quotedMessageId?: string,
 ): Promise<{ success: boolean; sentMessage?: any }> {
 	const response = await apiClient.post(`/whatsapp/chats/${chatId}/messages`, {
 		message,
+		quotedMessageId,
 	});
 	return response.data;
+}
+
+async function pinChat(chatId: string, pinned: boolean): Promise<void> {
+	await apiClient.post(`/whatsapp/chats/${chatId}/pin`, { pinned });
+}
+
+async function archiveChat(chatId: string, archived: boolean): Promise<void> {
+	await apiClient.post(`/whatsapp/chats/${chatId}/archive`, { archived });
+}
+
+async function muteChat(chatId: string, muted: boolean): Promise<void> {
+	await apiClient.post(`/whatsapp/chats/${chatId}/mute`, { muted });
+}
+
+async function sendTypingIndicator(
+	chatId: string,
+	type: "composing" | "paused" = "composing",
+): Promise<void> {
+	await apiClient.post(`/whatsapp/chats/${chatId}/typing`, { type }).catch(() => {});
+}
+
+async function reactToMessage(
+	chatId: string,
+	messageId: string,
+	emoji: string,
+): Promise<void> {
+	await apiClient.post(`/whatsapp/chats/${chatId}/messages/${messageId}/react`, { emoji });
 }
 
 async function markWhatsAppChatAsRead(chatId: string): Promise<void> {
@@ -90,6 +119,11 @@ export const whatsappApi = {
 	getWhatsAppChats,
 	getWhatsAppChatMessages,
 	sendWhatsAppMessage,
+	pinChat,
+	archiveChat,
+	muteChat,
+	sendTypingIndicator,
+	reactToMessage,
 	markWhatsAppChatAsRead,
 	downloadMessageMedia,
 };

@@ -5,7 +5,26 @@ export interface WhatsAppChat {
   lastMessage?: { body: string; timestamp: number };
   isGroup: boolean;
   pictureUrl?: string;
+  isPinned?: boolean;
+  isArchived?: boolean;
+  isMuted?: boolean;
 }
+
+export interface QuotedMessage {
+  id: string;
+  body: string;
+  isFromMe: boolean;
+  contactName?: string;
+  mediaType?: string;
+}
+
+export interface MessageReaction {
+  emoji: string;
+  from: string;
+  isFromMe: boolean;
+}
+
+export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface WhatsAppMessage {
   id: string;
@@ -19,6 +38,9 @@ export interface WhatsAppMessage {
   mediaType?: string;
   mediaFilename?: string;
   contactName?: string;
+  quotedMessage?: QuotedMessage;
+  reactions?: MessageReaction[];
+  status?: MessageStatus;
 }
 
 export interface WhatsAppStatusResponse {
