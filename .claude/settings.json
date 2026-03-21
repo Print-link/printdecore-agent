@@ -4,7 +4,19 @@
       "Read(//Users/berthajones/Desktop/projects/printdecore/**)",
       "WebFetch(domain:www.builderbot.app)",
       "Bash(grep -r \"presenceSubscribe\\\\|sendPresenceUpdate\\\\|presence.update\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/node_modules/baileys/src/Socket/*.ts)",
-      "Bash(echo \"Run this SQL against your database::*)"
+      "Bash(echo \"Run this SQL against your database::*)",
+      "Bash(wc -l /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src/services/whatsapp*.ts)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(grep -r \"subscription\\\\|billing\\\\|plan\\\\|tier\\\\|quota\\\\|upgrade\\\\|pricing.*page\\\\|feature.*flag\" /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -r \"plan\\\\|subscription\\\\|tier\\\\|billing\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/database/migrations/*.sql)",
+      "Bash(find /Users/berthajones/Desktop/projects/printdecore/printdecore-site/src -type f -name *pricing* -o -name *plan* -o -name *billing*)",
+      "Bash(grep -r \"plan\\\\|subscription\\\\|billing\\\\|tier\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src --include=*.ts)",
+      "Bash(cat /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/database/migrations/*.sql)",
+      "Bash(grep -r \"billing\\\\|subscription\\\\|plan\\\\|tier\" /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/pages --include=*.tsx --include=*.ts)",
+      "Bash(grep -l \"plan\\\\|subscription\\\\|billing\" /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/stores/*.ts)",
+      "Bash(wc -l /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/database/migrations/*.sql)",
+      "Bash(ls -1 /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/pages/shared/*.tsx /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/pages/manager/*.tsx)",
+      "Bash(xargs basename:*)"
     ],
     "additionalDirectories": [
       "/Users/berthajones/Desktop/projects/printdecore/piper-client/src/pages",

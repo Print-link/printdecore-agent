@@ -20,6 +20,10 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import SetupPasswordPage from "./pages/auth/SetupPasswordPage";
 import AppLayout from "./layouts/AppLayout";
 import { Spinner } from "./components/icons";
+import { GuardedRoute } from "./components/shared/PlanGate";
+
+// ─── Public pages ──────────────────────────────────────────────────────
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 
 // ─── Manager pages ──────────────────────────────────────────────────────
 const OverviewPage = lazy(() => import("./pages/manager/OverviewPage"));
@@ -31,6 +35,11 @@ const AccessControlPage = lazy(
   () => import("./pages/manager/AccessControlPage"),
 );
 const BillingPage = lazy(() => import("./pages/manager/BillingPage"));
+const BroadcastsPage = lazy(() => import("./pages/manager/BroadcastsPage"));
+const QuickRepliesPage = lazy(
+  () => import("./pages/manager/QuickRepliesPage"),
+);
+const ContactsPage = lazy(() => import("./pages/manager/ContactsPage"));
 const BranchCreatePage = lazy(
   () => import("./pages/manager/branches/BranchCreatePage"),
 );
@@ -94,7 +103,6 @@ function RootRedirect() {
     return <Navigate to="/app/overview" replace />;
   }
 
-  // Clerks: redirect to the first page they have permission for
   if (isClerk) {
     const routes: Array<{ path: string; permission: string }> = [
       { path: "/app/dashboard", permission: PERMISSIONS.DASHBOARD_VIEW },
@@ -108,7 +116,6 @@ function RootRedirect() {
         return <Navigate to={route.path} replace />;
       }
     }
-    // Fallback: profile is always accessible
     return <Navigate to="/app/profile" replace />;
   }
 
@@ -128,6 +135,12 @@ function App() {
             <Router>
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
+                  {/* Public */}
+                  <Route
+                    path="/payment/callback"
+                    element={<PaymentCallback />}
+                  />
+
                   {/* Auth */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route
@@ -147,7 +160,9 @@ function App() {
                     }
                   />
 
-                  {/* Main app — shared layout for both roles */}
+                  {/* ═══════════════════════════════════════════════════ */}
+                  {/* Main app — all routes guarded by auth + role/perm  */}
+                  {/* ═══════════════════════════════════════════════════ */}
                   <Route
                     path="/app"
                     element={
@@ -156,37 +171,193 @@ function App() {
                       </ProtectedRoute>
                     }
                   >
-                    {/* Shared pages */}
-                    <Route path="dashboard" element={<DashboardPage />} />
-                    <Route path="jobs" element={<OrdersPage />} />
-                    <Route path="orders" element={<OrdersPage />} />
-                    <Route path="services" element={<ServicesPage />} />
-                    <Route path="messages" element={<MessagesPage />} />
-                    <Route path="reports" element={<ReportsPage />} />
+                    {/* ─── Shared pages (both roles, permission-gated for clerks) ─── */}
+
+                    <Route
+                      path="dashboard"
+                      element={
+                        <GuardedRoute
+                          permissions={[PERMISSIONS.DASHBOARD_VIEW]}
+                        >
+                          <DashboardPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="jobs"
+                      element={
+                        <GuardedRoute permissions={[PERMISSIONS.ORDERS_VIEW]}>
+                          <OrdersPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="orders"
+                      element={
+                        <GuardedRoute permissions={[PERMISSIONS.ORDERS_VIEW]}>
+                          <OrdersPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="services"
+                      element={
+                        <GuardedRoute permissions={[PERMISSIONS.SERVICES_VIEW]}>
+                          <ServicesPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="messages"
+                      element={
+                        <GuardedRoute
+                          permissions={[PERMISSIONS.MESSAGES_VIEW]}
+                        >
+                          <MessagesPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="reports"
+                      element={
+                        <GuardedRoute
+                          permissions={[
+                            PERMISSIONS.REPORTS_VIEW,
+                            PERMISSIONS.DASHBOARD_ANALYTICS,
+                          ]}
+                        >
+                          <ReportsPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="branch-info"
+                      element={
+                        <GuardedRoute permissions={[PERMISSIONS.BRANCH_VIEW]}>
+                          <BranchInfoPage />
+                        </GuardedRoute>
+                      }
+                    />
+
+                    {/* Always accessible to any authenticated user */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="settings" element={<SettingsPage />} />
-                    <Route path="branch-info" element={<BranchInfoPage />} />
 
-                    {/* Manager pages */}
-                    <Route path="overview" element={<OverviewPage />} />
-                    <Route path="branches" element={<BranchesPage />} />
+                    {/* ─── Manager-only pages ──────────────────────────────────── */}
+
+                    <Route
+                      path="overview"
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          permissions={[PERMISSIONS.DASHBOARD_ANALYTICS]}
+                        >
+                          <OverviewPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="branches"
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          permissions={[PERMISSIONS.BRANCH_VIEW]}
+                        >
+                          <BranchesPage />
+                        </GuardedRoute>
+                      }
+                    />
                     <Route
                       path="branches/create"
-                      element={<BranchCreatePage />}
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          permissions={[PERMISSIONS.BRANCH_CREATE]}
+                        >
+                          <BranchCreatePage />
+                        </GuardedRoute>
+                      }
                     />
                     <Route
                       path="branches/edit/:id"
-                      element={<BranchEditPage />}
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          permissions={[PERMISSIONS.BRANCH_MANAGE]}
+                        >
+                          <BranchEditPage />
+                        </GuardedRoute>
+                      }
                     />
                     <Route
                       path="user-management"
-                      element={<UserManagementPage />}
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          permissions={[PERMISSIONS.USERS_VIEW]}
+                        >
+                          <UserManagementPage />
+                        </GuardedRoute>
+                      }
                     />
                     <Route
                       path="access-control"
-                      element={<AccessControlPage />}
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          permissions={[PERMISSIONS.USERS_PERMISSIONS]}
+                        >
+                          <AccessControlPage />
+                        </GuardedRoute>
+                      }
                     />
-                    <Route path="billing" element={<BillingPage />} />
+                    <Route
+                      path="billing"
+                      element={
+                        <GuardedRoute roles={["manager"]}>
+                          <BillingPage />
+                        </GuardedRoute>
+                      }
+                    />
+
+                    {/* ─── Plan-gated pages (manager-only + plan feature) ──────── */}
+
+                    <Route
+                      path="broadcasts"
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          planFeature="hasWhatsappBroadcast"
+                          planFeatureLabel="Broadcast Campaigns"
+                        >
+                          <BroadcastsPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="quick-replies"
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          planFeature="hasWhatsapp"
+                          planFeatureLabel="Quick Replies"
+                        >
+                          <QuickRepliesPage />
+                        </GuardedRoute>
+                      }
+                    />
+                    <Route
+                      path="contacts"
+                      element={
+                        <GuardedRoute
+                          roles={["manager"]}
+                          planFeature="hasCrm"
+                          planFeatureLabel="CRM Contacts"
+                        >
+                          <ContactsPage />
+                        </GuardedRoute>
+                      }
+                    />
                   </Route>
 
                   {/* Invitation signup */}

@@ -29,6 +29,9 @@ import {
   CreditCard,
   ChevronDown,
   FileText,
+  Receipt,
+  Zap,
+  Phone,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
 import { BranchSelector } from "../components/shared/BranchSelector";
@@ -36,6 +39,7 @@ import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
+import { useCurrentPlan } from "../hooks/usePlanFeature";
 
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
@@ -53,6 +57,7 @@ export default function AppLayout() {
   const { chats, isConnected, ensureStatusChecked } = useWhatsAppStore();
 
   const { isManager, isClerk, hasPermission } = usePermissions();
+  const { plan } = useCurrentPlan();
   const hasBranchSelected = Boolean(selectedBranch);
   const [isBranchSectionOpen, setIsBranchSectionOpen] = useState(true);
 
@@ -200,6 +205,27 @@ export default function AppLayout() {
         label: "User Management",
         icon: Users,
       });
+      if (plan?.hasWhatsappBroadcast) {
+        general.push({
+          path: "/app/broadcasts",
+          label: "Broadcasts",
+          icon: Receipt,
+        });
+      }
+      if (plan?.hasWhatsapp) {
+        general.push({
+          path: "/app/quick-replies",
+          label: "Quick Replies",
+          icon: Zap,
+        });
+      }
+      if (plan?.hasCrm) {
+        general.push({
+          path: "/app/contacts",
+          label: "Contacts",
+          icon: Phone,
+        });
+      }
       general.push({
         path: "/app/billing",
         label: "Billing",
@@ -331,6 +357,7 @@ export default function AppLayout() {
     pendingAndPaidCount,
     isConnected,
     chats,
+    plan,
   ]);
 
   const handleLogout = async () => {
