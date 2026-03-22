@@ -233,10 +233,61 @@ async function setupPassword(password: string): Promise<User> {
 	return response.data.data.user;
 }
 
+async function registerManager(data: {
+	firstName: string;
+	lastName: string;
+	email: string;
+	password: string;
+	phoneNumber?: string;
+}): Promise<AuthResponse> {
+	const response = await apiClient.post("/auth/register", data);
+
+	if (!response.data.success) {
+		throw new Error(response.data.message || "Registration failed");
+	}
+
+	const respData = response.data.data;
+	const userData = respData.manager || respData;
+	const token = respData.token;
+
+	const user: User = transformToUser(userData);
+
+	if (token) {
+		localStorage.setItem("auth-token", token);
+	}
+
+	return { user, token };
+}
+
+async function sendManagerOtp(email: string): Promise<void> {
+	const response = await apiClient.post("/auth/register/send-otp", { email });
+	if (!response.data.success) {
+		throw new Error(response.data.message || "Failed to send OTP");
+	}
+}
+
+async function verifyOtp(email: string, otp: string): Promise<void> {
+	const response = await apiClient.post("/otp/verify-otp", { email, otp });
+	if (!response.data.success) {
+		throw new Error(response.data.message || "OTP verification failed");
+	}
+}
+
+async function resendManagerOtp(email: string): Promise<void> {
+	const response = await apiClient.post("/otp/resend-otp", { email });
+	if (!response.data.success) {
+		throw new Error(response.data.message || "Failed to resend OTP");
+	}
+}
+
 export { transformToUser };
 
 export const authApi = {
 	login,
+	registerManager,
+	sendManagerOtp,
+	verifyOtp,
+	resendManagerOtp,
 	getProfile,
 	updateProfile,
 	changePassword,
