@@ -9,13 +9,14 @@
  *   import { DashboardSkeleton } from '@/components/ui/skeletons';
  *   if (isLoading) return <DashboardSkeleton />;
  */
+import React from 'react';
 import { Skeleton } from './index';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
-function repeat(n: number, fn: (i: number) => JSX.Element) {
+function repeat(n: number, fn: (i: number) => React.ReactElement) {
 	return Array.from({ length: n }, (_, i) => fn(i));
 }
 
@@ -424,7 +425,6 @@ export function AccessControlSkeleton() {
 }
 
 export function ActivityLogSkeleton({ count = 6 }: { count?: number }) {
-	const t = useThemeClasses();
 	return (
 		<div className="space-y-3">
 			{repeat(count, i => (

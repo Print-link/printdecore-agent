@@ -107,7 +107,7 @@ export default function BroadcastsPage() {
   // Stats
   const totalSent = broadcasts.reduce((s, b) => s + b.sentCount, 0);
   const totalDelivered = broadcasts.reduce((s, b) => s + b.deliveredCount, 0);
-  const totalRecipients = broadcasts.reduce((s, b) => s + b.totalRecipients, 0);
+
 
   return (
     <div className="space-y-6 max-w-5xl">

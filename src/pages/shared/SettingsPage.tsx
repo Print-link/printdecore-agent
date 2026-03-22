@@ -86,7 +86,7 @@ function OptionRow<T extends string>({
 export default function SettingsPage() {
   const { toggleTheme } = useTheme();
   const t = useThemeClasses();
-  const { user } = useAuthStore();
+  const { } = useAuthStore();
   const {
     settings,
     setFontSize,

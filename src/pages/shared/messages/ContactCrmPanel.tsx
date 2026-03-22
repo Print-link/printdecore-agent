@@ -129,6 +129,7 @@ export default function ContactCrmPanel({ chatId, contactPhone, contactName }: C
 	}
 
 	// Display mode — contact exists
+	if (!contact) return null;
 	return (
 		<div className={cn('px-4 py-2 border-b', t.border)}>
 			<div className="flex items-center justify-between mb-1.5">

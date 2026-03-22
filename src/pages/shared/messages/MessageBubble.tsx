@@ -3,7 +3,7 @@ import {
   Spinner, FileText, Download, Reply, TickSent, TickDelivered,
   TickRead, AlertCircle, Clock, BarChart3, ShoppingBag,
 } from "../../../components/icons";
-import type { WhatsAppMessage, MessageStatus, PollVoteResult } from "../../../types/whatsapp";
+import type { WhatsAppMessage, MessageStatus } from "../../../types/whatsapp";
 import { useThemeClasses } from "../../../lib/theme";
 import { cn } from "../../../lib/utils";
 import { format, isToday, isYesterday } from "date-fns";

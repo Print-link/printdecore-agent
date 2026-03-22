@@ -7,7 +7,7 @@ import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import ConversationView from './messages/ConversationView';
 import { ChatListSkeleton, SyncingBanner } from './messages/skeletons';
-import type { WhatsAppChat } from '../../types/whatsapp';
+
 
 export default function MessagesPage() {
 	const t = useThemeClasses();

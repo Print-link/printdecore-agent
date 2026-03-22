@@ -6,7 +6,7 @@ import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import {
   Phone, Mail, Building, Users, Search, DollarSign, ShoppingBag,
-  Edit, Save, X, TrendingUp, User,
+  Edit, Save, X,
 } from '../../components/icons';
 
 export default function ContactsPage() {

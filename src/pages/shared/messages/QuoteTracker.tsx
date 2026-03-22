@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Receipt, CheckCircle, Clock, AlertCircle, X, ChevronDown, ChevronUp, RefreshCw } from '../../../components/icons';
+import { Receipt, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from '../../../components/icons';
 import { Badge } from '../../../components/ui';
 import { useThemeClasses } from '../../../lib/theme';
 import { cn } from '../../../lib/utils';

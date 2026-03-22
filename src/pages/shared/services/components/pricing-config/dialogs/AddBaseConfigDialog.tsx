@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { BaseConfiguration } from "../../../../../../types";
 import { Modal, Input, Select, Button } from '../../../../../../components/ui';
-import { useThemeClasses } from '../../../../../../lib/theme';
 
 interface AddBaseConfigDialogProps {
   isOpen: boolean;
@@ -14,8 +13,6 @@ export function AddBaseConfigDialog({ isOpen, onClose, onAdd }: AddBaseConfigDia
   const [type, setType] = useState<'PRESET' | 'CUSTOM'>('PRESET');
   const [unitPrice, setUnitPrice] = useState<number | string>('');
   const [customValue, setCustomValue] = useState('');
-  const t = useThemeClasses();
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;

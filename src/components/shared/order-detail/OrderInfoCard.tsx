@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, Package, Spinner } from '../../icons';
+import { CheckCircle, Clock, Package } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
 import type { ClerkOrder } from '../../../types';
 import { Card, Button, StatusBadge, Select } from '../../ui';

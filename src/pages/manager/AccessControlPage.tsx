@@ -24,7 +24,7 @@ export default function AccessControlPage() {
   const { selectedBranch } = useBranchStore();
   const t = useThemeClasses();
   const { success, error: showError } = useToast();
-  const { isManager, isClerk, hasPermission } = usePermissions();
+  const { isClerk, hasPermission } = usePermissions();
   const queryClient = useQueryClient();
 
   // Clerks use their assigned branch, managers use selected branch

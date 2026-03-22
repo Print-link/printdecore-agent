@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Button, Badge } from '../../components/ui';
+import { Modal, Button } from '../../components/ui';
 import { Check, Shield, Banknote, Crown, Rocket, Diamond, Zap } from '../../components/icons';
 import type { Plan } from '../../services/api/billing';
 import { useThemeClasses } from '../../lib/theme';

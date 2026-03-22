@@ -10,7 +10,6 @@ import { DashboardSkeleton } from "../../components/ui/skeletons";
 import {
   DashboardHeader,
   KpiRow,
-  OrderPipeline,
   RevenueOverview,
   CategoryTable,
   ActivityCalendar,
@@ -95,36 +94,6 @@ export default function DashboardPage() {
         />
       </Card>
     );
-  }
-
-  // ─── Extract pipeline data ──────────────────────────────────────────
-
-  let pipelineData = {
-    pending: 0,
-    quoted: 0,
-    paid: 0,
-    inProgress: 0,
-    completed: 0,
-  };
-
-  if (isClerk && clerkDashboard?.stats) {
-    const s = clerkDashboard.stats;
-    pipelineData = {
-      pending: s.pending,
-      quoted: s.quoted,
-      paid: s.paid,
-      inProgress: s.inProgress,
-      completed: s.completed,
-    };
-  } else if (isManager && (managerOverview || managerBranch)) {
-    const s = (managerOverview || managerBranch)!.stats as any;
-    pipelineData = {
-      pending: s.pendingOrders,
-      quoted: s.quotedOrders,
-      paid: s.paidOrders,
-      inProgress: s.inProgressOrders,
-      completed: s.completedOrders,
-    };
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────

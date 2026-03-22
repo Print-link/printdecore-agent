@@ -43,6 +43,7 @@ class WhatsAppService extends EventEmitter {
   private statusPollingTimer: ReturnType<typeof setTimeout> | null = null;
   private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastQrCode: string | null = null;
+  // @ts-expect-error written but not read — kept for future debugging
   private sseConnected: boolean = false;
   // Track message IDs we sent, so we can skip SSE duplicates
   _sentMessageIds: Set<string> = new Set();
@@ -260,8 +261,7 @@ class WhatsAppService extends EventEmitter {
       const token = localStorage.getItem("auth-token");
       if (!token) return;
 
-      const API_BASE_URL =
-        import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const url = `${API_BASE_URL}/whatsapp/events?token=${encodeURIComponent(token)}`;
 
       this.eventSource = new EventSource(url);
@@ -343,7 +343,9 @@ class WhatsAppService extends EventEmitter {
           const sMsgs = this.messages.get(sChatId);
           if (sMsgs) {
             const msg = sMsgs.find(
-              (m) => m.id === sMessageId || (m as any).whatsappMessageId === sMessageId,
+              (m) =>
+                m.id === sMessageId ||
+                (m as any).whatsappMessageId === sMessageId,
             );
             if (msg) {
               msg.status = sStatus;
@@ -354,7 +356,9 @@ class WhatsAppService extends EventEmitter {
           // No chatId — search all cached chats
           for (const [cid, msgs] of this.messages) {
             const msg = msgs.find(
-              (m) => m.id === sMessageId || (m as any).whatsappMessageId === sMessageId,
+              (m) =>
+                m.id === sMessageId ||
+                (m as any).whatsappMessageId === sMessageId,
             );
             if (msg) {
               msg.status = sStatus;

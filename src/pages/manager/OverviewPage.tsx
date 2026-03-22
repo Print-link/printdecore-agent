@@ -21,11 +21,9 @@ import {
 	Legend,
 	PieChart,
 	Pie,
-	RadialBarChart,
-	RadialBar,
 } from "recharts";
 import type { CategoryAnalytics, BranchReview, BranchPerformanceStats, ManagerOverviewStats, ManagerBranchStats } from "../../types";
-import { Card, PageHeader, EmptyState, StatusBadge } from '../../components/ui';
+import { Card, PageHeader, EmptyState } from '../../components/ui';
 import { OverviewSkeleton } from '../../components/ui/skeletons';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
@@ -48,14 +46,6 @@ function StatCard({ label, value, icon, subtitle }: { label: string; value: Reac
 }
 
 const COLORS = ["#fbbf24", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#f59e0b"];
-
-const STATUS_COLOR_MAP: Record<string, string> = {
-	PENDING: 'text-amber-500',
-	QUOTED: 'text-blue-500',
-	PAID: 'text-purple-500',
-	IN_PROGRESS: 'text-sky-500',
-	COMPLETED: 'text-green-500',
-};
 
 export default function OverviewPage() {
 	const { user } = useAuthStore();
@@ -532,7 +522,7 @@ export default function OverviewPage() {
 													<YAxis stroke={t.isDark ? "#9ca3af" : "#6b7280"} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `₵${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} />
 													<RechartsTooltip
 														contentStyle={{ backgroundColor: t.isDark ? "#1f2937" : "#fff", border: "none", borderRadius: "12px", boxShadow: "0 10px 25px -5px rgba(0,0,0,.15)", padding: "12px 16px" }}
-														formatter={(value: number) => [`₵${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, "Revenue"]}
+														formatter={(value) => [`₵${(value as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, "Revenue"]}
 														labelStyle={{ fontWeight: 700, marginBottom: 4, color: t.isDark ? "#f3f4f6" : "#111" }}
 													/>
 													<Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
@@ -569,7 +559,7 @@ export default function OverviewPage() {
 														</Pie>
 														<RechartsTooltip
 															contentStyle={{ backgroundColor: t.isDark ? "#1f2937" : "#fff", border: "none", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,.1)", fontSize: 12, padding: "8px 12px" }}
-															formatter={(value: number, name: string) => [value, name]}
+															formatter={(value, name) => [value as number, name as string]}
 														/>
 													</PieChart>
 												</ResponsiveContainer>

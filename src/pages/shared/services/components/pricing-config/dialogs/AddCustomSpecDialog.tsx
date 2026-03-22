@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { CustomSpecification } from '../../../../../../types';
 import { Modal, Input, Button } from '../../../../../../components/ui';
-import { useThemeClasses } from '../../../../../../lib/theme';
 
 interface AddCustomSpecDialogProps {
   isOpen: boolean;
@@ -12,8 +11,6 @@ interface AddCustomSpecDialogProps {
 export function AddCustomSpecDialog({ isOpen, onClose, onAdd }: AddCustomSpecDialogProps) {
   const [name, setName] = useState('');
   const [priceModifier, setPriceModifier] = useState<number | string>('');
-  const t = useThemeClasses();
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;

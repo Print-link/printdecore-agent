@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Spinner, AlertCircle, CheckCircle } from "../components/icons";
+import { Spinner, AlertCircle } from "../components/icons";
 import { apiClient } from "../services/api/client";
 
 /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, MoreVertical } from '../../../../components/icons';
-import { Card, Badge, Button } from '../../../../components/ui';
+import { Badge, Button } from '../../../../components/ui';
 import { useThemeClasses } from '../../../../lib/theme';
 import { cn } from '../../../../lib/utils';
 import { BranchImage } from './BranchImage';

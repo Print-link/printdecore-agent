@@ -64,11 +64,11 @@ export default function SendPollModal({ open, onClose, chatId }: SendPollModalPr
       if (result.sentMessage) {
         const msg = result.sentMessage;
         if (!msg.status) msg.status = 'sent';
-        const messages = whatsappService.messages.get(chatId) || [];
+        const messages = whatsappService.getMessagesForChat(chatId) || [];
         // Avoid duplicate
         if (!messages.some(m => m.id === msg.id)) {
           messages.push(msg);
-          whatsappService.messages.set(chatId, [...messages]);
+          (whatsappService as any).messages.set(chatId, [...messages]);
         }
         whatsappService.emit('messages_updated', chatId);
       }

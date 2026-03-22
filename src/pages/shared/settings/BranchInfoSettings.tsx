@@ -13,7 +13,7 @@ import {
 	OperatingHoursStep,
 } from '../../manager/branches/components';
 import { Button } from '../../../components/ui';
-import { AlertCircle, Save, Spinner, Info, MapPin, Clock, CreditCard } from '../../../components/icons';
+import { AlertCircle, Save, Info, MapPin, Clock, CreditCard } from '../../../components/icons';
 import PaymentSettingsSection from './PaymentSettingsSection';
 
 const SECTIONS = [

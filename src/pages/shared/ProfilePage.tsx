@@ -1,4 +1,4 @@
-import { useState, useCallback, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/authStore";
@@ -27,7 +27,7 @@ import {
 	Globe,
 } from "../../components/icons";
 
-function ProfileDetailRow({ icon: Icon, label, value }: { icon: (p: { size: number; className?: string }) => JSX.Element; label: string; value: string }) {
+function ProfileDetailRow({ icon: Icon, label, value }: { icon: (p: { size: number; className?: string }) => React.ReactElement; label: string; value: string }) {
 	const t = useThemeClasses();
 	return (
 		<div className="flex items-center justify-between">
@@ -268,7 +268,7 @@ function DisclosureSection({
 	defaultOpen = false,
 	children,
 }: {
-	icon: (p: { size: number; className?: string }) => JSX.Element;
+	icon: (p: { size: number; className?: string }) => React.ReactElement;
 	title: string;
 	defaultOpen?: boolean;
 	children: React.ReactNode;

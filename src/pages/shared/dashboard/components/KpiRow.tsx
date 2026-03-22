@@ -75,7 +75,6 @@ function ClerkKpis({ stats }: { stats: ClerkDashboardStats }) {
 
 function ManagerKpis({
 	stats,
-	isBranchView,
 }: {
 	stats: ManagerOverviewStats | ManagerBranchStats;
 	isBranchView: boolean;
