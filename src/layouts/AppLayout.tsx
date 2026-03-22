@@ -35,6 +35,7 @@ import {
 } from "../components/icons";
 import { Avatar } from "../components/ui";
 import { BranchSelector } from "../components/shared/BranchSelector";
+import { settlementsApi } from "../services/api/settlements";
 import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
@@ -60,6 +61,15 @@ export default function AppLayout() {
   const { plan } = useCurrentPlan();
   const hasBranchSelected = Boolean(selectedBranch);
   const [isBranchSectionOpen, setIsBranchSectionOpen] = useState(true);
+
+  // Check if branch has payment method configured
+  const { data: settlementData } = useQuery({
+    queryKey: ["settlement", selectedBranch?.id],
+    queryFn: () => settlementsApi.getSettlementDetails(selectedBranch!.id),
+    enabled: !!selectedBranch?.id && isManager,
+    staleTime: 60000,
+  });
+  const hasNoPaymentMethod = isManager && hasBranchSelected && settlementData && !settlementData.configured;
 
   // Start walkthrough on login for managers
   useEffect(() => {
@@ -180,12 +190,14 @@ export default function AppLayout() {
       label: string;
       icon: typeof LayoutDashboard;
       badge?: number;
+      hasAlert?: boolean;
     }> = [];
     const branch: Array<{
       path: string;
       label: string;
       icon: typeof LayoutDashboard;
       badge?: number;
+      hasAlert?: boolean;
     }> = [];
 
     const unreadMessagesCount = isConnected
@@ -270,6 +282,7 @@ export default function AppLayout() {
           path: "/app/branch-info",
           label: "Branch Info",
           icon: Store,
+          hasAlert: !!hasNoPaymentMethod,
         });
       }
     } else if (isClerk) {
@@ -358,6 +371,7 @@ export default function AppLayout() {
     isConnected,
     chats,
     plan,
+    hasNoPaymentMethod,
   ]);
 
   const handleLogout = async () => {
@@ -581,12 +595,20 @@ export default function AppLayout() {
                                 : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
                           )}
                         >
-                          <Icon size={20} active={isActiveRoute} />
+                          <div className="relative">
+                            <Icon size={20} active={isActiveRoute} />
+                            {item.hasAlert && (
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" />
+                            )}
+                          </div>
                           {!isSidebarCollapsed && (
                             <div className="flex items-center justify-between flex-1 min-w-0">
                               <span className="text-sm truncate">
                                 {item.label}
                               </span>
+                              {item.hasAlert && (
+                                <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />
+                              )}
                               {item.badge !== undefined && item.badge > 0 && (
                                 <span
                                   className={cn(
@@ -750,6 +772,30 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
+
+        {/* Payment method warning banner */}
+        {hasNoPaymentMethod && (
+          <div
+            className={cn(
+              "flex items-center gap-3 px-6 py-2.5 border-b text-sm cursor-pointer transition-colors",
+              t.isDark
+                ? "bg-red-900/20 border-red-800/40 text-red-300 hover:bg-red-900/30"
+                : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100",
+            )}
+            onClick={() => navigate("/app/branch-info")}
+          >
+            <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 animate-pulse" />
+            <span className="font-medium">
+              Payment method not configured
+            </span>
+            <span className={cn("hidden sm:inline", t.isDark ? "text-red-400" : "text-red-600")}>
+              — Set up a bank account or mobile money to receive customer payments.
+            </span>
+            <span className={cn("ml-auto text-xs font-semibold", t.isDark ? "text-red-400" : "text-red-600")}>
+              Configure →
+            </span>
+          </div>
+        )}
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-6">

@@ -3,7 +3,8 @@ import { Modal, Button, Input } from '../../../components/ui';
 import { BarChart3, Plus, X } from '../../../components/icons';
 import { useThemeClasses } from '../../../lib/theme';
 import { cn } from '../../../lib/utils';
-import { useWhatsAppStore } from '../../../stores/whatsappStore';
+import { whatsappFeaturesApi } from '../../../services/api/whatsappFeatures';
+import { whatsappService } from '../../../services/whatsappService';
 
 interface SendPollModalProps {
   open: boolean;
@@ -13,15 +14,16 @@ interface SendPollModalProps {
 
 export default function SendPollModal({ open, onClose, chatId }: SendPollModalProps) {
   const t = useThemeClasses();
-  const { sendMessage } = useWhatsAppStore();
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
+  const [multiSelect, setMultiSelect] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const resetForm = useCallback(() => {
     setQuestion('');
     setOptions(['', '']);
+    setMultiSelect(false);
     setError(null);
   }, []);
 
@@ -41,27 +43,44 @@ export default function SendPollModal({ open, onClose, chatId }: SendPollModalPr
     setOptions(prev => prev.map((o, i) => i === index ? value : o));
   }, []);
 
+  const validOptions = options.filter(o => o.trim());
+
   const handleSend = useCallback(async () => {
-    const validOptions = options.filter(o => o.trim());
     if (!question.trim()) { setError('Question is required'); return; }
     if (validOptions.length < 2) { setError('At least 2 options required'); return; }
-
-    // Build formatted poll text
-    const pollText = `📊 *${question.trim()}*\n${validOptions.map((o, i) => `${i + 1}. ${o.trim()}`).join('\n')}`;
 
     setLoading(true);
     setError(null);
     try {
-      // Use the store's sendMessage — handles optimistic update, dedup, everything
-      await sendMessage(chatId, pollText);
+      // Call the native poll API (sends real WhatsApp poll, not text)
+      const result = await whatsappFeaturesApi.sendPoll(
+        chatId,
+        question.trim(),
+        validOptions.map(o => o.trim()),
+        multiSelect ? validOptions.length : 1,
+      );
+
+      // Add the returned sentMessage to the local message cache so it appears in chat
+      if (result.sentMessage) {
+        const msg = result.sentMessage;
+        if (!msg.status) msg.status = 'sent';
+        const messages = whatsappService.messages.get(chatId) || [];
+        // Avoid duplicate
+        if (!messages.some(m => m.id === msg.id)) {
+          messages.push(msg);
+          whatsappService.messages.set(chatId, [...messages]);
+        }
+        whatsappService.emit('messages_updated', chatId);
+      }
+
       resetForm();
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Failed to send poll');
+      setError(err?.response?.data?.message || err?.message || 'Failed to send poll');
     } finally {
       setLoading(false);
     }
-  }, [chatId, question, options, sendMessage, onClose, resetForm]);
+  }, [chatId, question, validOptions, multiSelect, onClose, resetForm]);
 
   return (
     <Modal open={open} onClose={handleClose} title="Send Poll" maxWidth="md">
@@ -71,19 +90,31 @@ export default function SendPollModal({ open, onClose, chatId }: SendPollModalPr
             <BarChart3 size={20} className="text-white" />
           </div>
           <p className={cn('text-sm', t.textSecondary)}>
-            Send a poll to collect responses from the contact
+            Send a native WhatsApp poll to collect responses
           </p>
         </div>
 
-        <Input label="Question" placeholder="e.g., Which paper size do you prefer?" value={question} onChange={e => { setQuestion(e.target.value); setError(null); }} />
+        <Input
+          label="Question"
+          placeholder="e.g., Which paper size do you prefer?"
+          value={question}
+          onChange={e => { setQuestion(e.target.value); setError(null); }}
+        />
 
         <div>
-          <label className={cn('block text-sm font-medium mb-2', t.textSecondary)}>Options</label>
+          <label className={cn('block text-sm font-medium mb-2', t.textSecondary)}>
+            Options ({validOptions.length}/12)
+          </label>
           <div className="space-y-2">
             {options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className={cn('text-xs w-5 text-center', t.textTertiary)}>{i + 1}</span>
-                <input value={opt} onChange={e => { updateOption(i, e.target.value); setError(null); }} placeholder={`Option ${i + 1}`} className={cn('flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-amber-400', t.input)} />
+                <span className={cn('text-xs w-5 text-center font-medium', t.textTertiary)}>{i + 1}</span>
+                <input
+                  value={opt}
+                  onChange={e => { updateOption(i, e.target.value); setError(null); }}
+                  placeholder={`Option ${i + 1}`}
+                  className={cn('flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-amber-400', t.input)}
+                />
                 {options.length > 2 && (
                   <button onClick={() => removeOption(i)} className={cn('p-1 rounded', t.isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}>
                     <X size={14} className={t.textTertiary} />
@@ -99,12 +130,30 @@ export default function SendPollModal({ open, onClose, chatId }: SendPollModalPr
           )}
         </div>
 
+        {/* Multi-select toggle */}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={multiSelect}
+            onChange={e => setMultiSelect(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+          />
+          <span className={cn('text-sm', t.textSecondary)}>Allow multiple selections</span>
+        </label>
+
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
 
       <div className={cn('flex justify-end gap-3 px-6 py-4 border-t', t.border)}>
         <Button variant="secondary" onClick={handleClose} disabled={loading}>Cancel</Button>
-        <Button onClick={handleSend} loading={loading} icon={BarChart3} disabled={!question.trim() || options.filter(o => o.trim()).length < 2}>Send Poll</Button>
+        <Button
+          onClick={handleSend}
+          loading={loading}
+          icon={BarChart3}
+          disabled={!question.trim() || validOptions.length < 2}
+        >
+          Send Poll
+        </Button>
       </div>
     </Modal>
   );

@@ -13,12 +13,14 @@ import {
 	OperatingHoursStep,
 } from '../../manager/branches/components';
 import { Button } from '../../../components/ui';
-import { AlertCircle, Save, Spinner, Info, MapPin, Clock } from '../../../components/icons';
+import { AlertCircle, Save, Spinner, Info, MapPin, Clock, CreditCard } from '../../../components/icons';
+import PaymentSettingsSection from './PaymentSettingsSection';
 
 const SECTIONS = [
 	{ id: 'basic', title: 'Basic Identity', icon: Info },
 	{ id: 'location', title: 'Location & Address', icon: MapPin },
 	{ id: 'hours', title: 'Operating Hours', icon: Clock },
+	{ id: 'payment', title: 'Payment & Settlement', icon: CreditCard },
 ];
 
 export default function BranchInfoSettings() {
@@ -274,6 +276,32 @@ export default function BranchInfoSettings() {
                         operatingHours={operatingHours}
                         errors={errors}
                         onOperatingHoursChange={updateOperatingHours}
+                    />
+                </section>
+
+                {/* Payment & Settlement Section */}
+                <section id="payment" className={`p-8 rounded-2xl border ${t.isDark ? 'bg-gray-800/40 border-gray-700' : 'bg-white border-gray-100'} shadow-sm`}>
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-purple-400/10 text-purple-500 rounded-lg">
+                            <CreditCard size={20} />
+                        </div>
+                        <div>
+                            <h2 className={`text-xl font-bold ${t.text}`}>
+                                Payment & Settlement
+                            </h2>
+                            <p className={`text-sm ${t.textSecondary}`}>
+                                Configure how you receive payments from customers
+                            </p>
+                        </div>
+                    </div>
+                    <div className={`p-4 rounded-xl mb-6 ${t.isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-amber-50 border border-amber-200'}`}>
+                        <p className={`text-sm ${t.isDark ? 'text-amber-300' : 'text-amber-800'}`}>
+                            Payments are powered by <span className="font-semibold">Paystack</span>. Settlements are processed and deposited into your bank account on the next business day after each transaction.
+                        </p>
+                    </div>
+                    <PaymentSettingsSection
+                        branchId={branch.id}
+                        branchName={branch.name}
                     />
                 </section>
             </div>

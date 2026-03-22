@@ -16,11 +16,17 @@
       "Bash(grep -l \"plan\\\\|subscription\\\\|billing\" /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/stores/*.ts)",
       "Bash(wc -l /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/database/migrations/*.sql)",
       "Bash(ls -1 /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/pages/shared/*.tsx /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src/pages/manager/*.tsx)",
-      "Bash(xargs basename:*)"
+      "Bash(xargs basename:*)",
+      "Bash(find /Users/berthajones/Desktop/projects/padlok/padlokbackend/src/workers -type f -name *.ts)",
+      "Bash(find /Users/berthajones/Desktop/projects/printdecore/printdecore-backend -maxdepth 2 -name .env* -type f)",
+      "Bash(grep -r \"billingWebhookQueue\\\\|redis\\\\|REDIS\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -r \"Redis\\\\|redis\\\\|cache\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src/services --include=*.ts)"
     ],
     "additionalDirectories": [
       "/Users/berthajones/Desktop/projects/printdecore/piper-client/src/pages",
-      "/Users/berthajones/Desktop/projects/printdecore/piper-client/src"
+      "/Users/berthajones/Desktop/projects/printdecore/piper-client/src",
+      "/Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src/workers",
+      "/Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src"
     ]
   }
 }

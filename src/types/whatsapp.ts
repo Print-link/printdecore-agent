@@ -41,6 +41,13 @@ export interface WhatsAppMessage {
   quotedMessage?: QuotedMessage;
   reactions?: MessageReaction[];
   status?: MessageStatus;
+  pollVotes?: PollVoteResult[];
+}
+
+export interface PollVoteResult {
+  optionName: string;
+  voters: string[];
+  count: number;
 }
 
 export interface WhatsAppStatusResponse {

@@ -368,6 +368,25 @@ class WhatsAppService extends EventEmitter {
         break;
       }
 
+      case "poll_vote": {
+        const pvChatId = data.chatId;
+        const pvMsgId = data.pollMessageId;
+        const pvVotes = data.votes;
+        if (!pvChatId || !pvMsgId || !pvVotes) break;
+
+        // Find the poll message in cache and update its votes
+        const pvMsgs = this.messages.get(pvChatId);
+        if (pvMsgs) {
+          const pollMsg = pvMsgs.find((m) => m.id === pvMsgId);
+          if (pollMsg) {
+            pollMsg.pollVotes = pvVotes;
+            this.messages.set(pvChatId, [...pvMsgs]);
+          }
+        }
+        this.emit("poll_vote", data);
+        break;
+      }
+
       case "presence_update": {
         const pChatId = data.chatId;
         const pType = data.type; // "composing" | "paused"

@@ -1,9 +1,9 @@
 import { memo } from "react";
 import {
   Spinner, FileText, Download, Reply, TickSent, TickDelivered,
-  TickRead, AlertCircle, Clock,
+  TickRead, AlertCircle, Clock, BarChart3, ShoppingBag,
 } from "../../../components/icons";
-import type { WhatsAppMessage, MessageStatus } from "../../../types/whatsapp";
+import type { WhatsAppMessage, MessageStatus, PollVoteResult } from "../../../types/whatsapp";
 import { useThemeClasses } from "../../../lib/theme";
 import { cn } from "../../../lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
@@ -31,6 +31,167 @@ function formatTime(timestamp: number): string {
 }
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+// ─── Poll / Catalog body renderer ────────────────────────────────────────
+
+function parsePollBody(body: string): { question: string; options: string[] } | null {
+  // Matches: 📊 *Question*\n1. Option\n2. Option ...
+  const match = body.match(/^📊\s+\*(.+?)\*\n([\s\S]+)$/);
+  if (!match) return null;
+  const options = match[2].split("\n").map(l => l.replace(/^\d+\.\s*/, "").trim()).filter(Boolean);
+  if (options.length < 2) return null;
+  return { question: match[1], options };
+}
+
+function parseCatalogBody(body: string): { header: string; items: { name: string; description?: string; price?: string }[]; footer?: string } | null {
+  // Matches: 📋 *Header*\n\n*1. Item*\n   desc\n   💰 price ...
+  const match = body.match(/^📋\s+\*(.+?)\*\n([\s\S]+)$/);
+  if (!match) return null;
+  const lines = match[2].split("\n");
+  const items: { name: string; description?: string; price?: string }[] = [];
+  let footer: string | undefined;
+  let current: { name: string; description?: string; price?: string } | null = null;
+
+  for (const line of lines) {
+    const itemMatch = line.match(/^\*\d+\.\s+(.+?)\*$/);
+    if (itemMatch) {
+      if (current) items.push(current);
+      current = { name: itemMatch[1] };
+    } else if (current && line.trim().startsWith("💰")) {
+      current.price = line.trim().replace("💰", "").trim();
+    } else if (current && line.trim() && !line.startsWith("_")) {
+      current.description = line.trim();
+    } else if (line.startsWith("_") && line.endsWith("_")) {
+      footer = line.slice(1, -1);
+    }
+  }
+  if (current) items.push(current);
+  if (items.length === 0) return null;
+  return { header: match[1], items, footer };
+}
+
+function PollOrCatalogBody({ message, isFromMe }: { message: WhatsAppMessage; isFromMe: boolean }) {
+  const t = useThemeClasses();
+
+  // Try poll
+  if (message.mediaType === "poll" || message.body.startsWith("📊 *")) {
+    const poll = parsePollBody(message.body);
+    if (poll) {
+      const votes = message.pollVotes;
+      const totalVotes = votes ? votes.reduce((sum, v) => sum + v.count, 0) : 0;
+
+      return (
+        <div className="min-w-[220px]">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 size={16} className={isFromMe ? "text-gray-700" : "text-blue-500"} />
+            <span className="text-xs font-semibold uppercase tracking-wide opacity-60">Poll</span>
+            {totalVotes > 0 && (
+              <span className="text-xs opacity-50 ml-auto">
+                {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-bold mb-2">{poll.question}</p>
+          <div className="space-y-1.5">
+            {poll.options.map((opt, i) => {
+              const voteData = votes?.find(v => v.optionName === opt);
+              const count = voteData?.count || 0;
+              const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "relative px-3 py-2 rounded-lg text-sm border overflow-hidden",
+                    isFromMe
+                      ? "bg-amber-300/40 border-amber-500/30"
+                      : t.isDark ? "bg-gray-600/50 border-gray-500/50" : "bg-gray-50 border-gray-200",
+                  )}
+                >
+                  {/* Vote progress bar */}
+                  {totalVotes > 0 && pct > 0 && (
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 left-0 rounded-lg transition-all duration-500",
+                        isFromMe ? "bg-amber-500/25" : t.isDark ? "bg-blue-500/20" : "bg-blue-100",
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                  <div className="relative flex items-center justify-between gap-2">
+                    <span>{opt}</span>
+                    {totalVotes > 0 && (
+                      <span className="text-xs font-semibold opacity-70 flex-shrink-0">
+                        {count > 0 ? `${pct}%` : ""}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Try catalog
+  if (message.body.startsWith("📋 *")) {
+    const catalog = parseCatalogBody(message.body);
+    if (catalog) {
+      return (
+        <div className="min-w-[220px]">
+          <div className="flex items-center gap-2 mb-2">
+            <ShoppingBag size={16} className={isFromMe ? "text-gray-700" : "text-purple-500"} />
+            <span className="text-xs font-semibold uppercase tracking-wide opacity-60">Catalog</span>
+          </div>
+          <p className="text-sm font-bold mb-2">{catalog.header}</p>
+          <div className="space-y-2">
+            {catalog.items.map((item, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "px-3 py-2 rounded-lg border",
+                  isFromMe
+                    ? "bg-amber-300/40 border-amber-500/30"
+                    : t.isDark ? "bg-gray-600/50 border-gray-500/50" : "bg-gray-50 border-gray-200",
+                )}
+              >
+                <p className="text-sm font-semibold">{item.name}</p>
+                {item.description && <p className="text-xs opacity-70 mt-0.5">{item.description}</p>}
+                {item.price && <p className="text-xs font-bold mt-1">{item.price}</p>}
+              </div>
+            ))}
+          </div>
+          {catalog.footer && (
+            <p className="text-xs opacity-60 mt-2 italic">{catalog.footer}</p>
+          )}
+        </div>
+      );
+    }
+  }
+
+  // Default: plain text with WhatsApp-style bold/italic formatting
+  return <FormattedBody body={message.body} />;
+}
+
+function FormattedBody({ body }: { body: string }) {
+  // Render WhatsApp-style formatting: *bold*, _italic_, ~strikethrough~
+  const parts = body.split(/(\*[^*]+\*|_[^_]+_|~[^~]+~)/g);
+  return (
+    <p className="text-sm whitespace-pre-wrap break-words">
+      {parts.map((part, i) => {
+        if (part.startsWith("*") && part.endsWith("*"))
+          return <strong key={i}>{part.slice(1, -1)}</strong>;
+        if (part.startsWith("_") && part.endsWith("_"))
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        if (part.startsWith("~") && part.endsWith("~"))
+          return <s key={i}>{part.slice(1, -1)}</s>;
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
+}
 
 // ─── Props ──────────────────────────────────────────────────────────────
 
@@ -173,9 +334,9 @@ function MessageBubbleInner({
             </div>
           )}
 
-          {/* Body */}
+          {/* Body — with special rendering for polls and catalogs */}
           {!(message.hasMedia && message.body === "Document") && (
-            <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
+            <PollOrCatalogBody message={message} isFromMe={message.isFromMe} />
           )}
 
           {/* Timestamp + status */}

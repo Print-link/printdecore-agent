@@ -102,10 +102,15 @@ async function changePlan(
   planId: string,
   billingCycle: "monthly" | "yearly"
 ): Promise<{ subscription: Subscription; paymentUrl?: string }> {
-  const response = await apiClient.post("/billing/change-plan", {
-    planId,
-    billingCycle,
-  });
+  const response = await apiClient.post(
+    "/billing/change-plan",
+    { planId, billingCycle },
+    {
+      headers: {
+        "Idempotency-Key": `plan_${planId}_${billingCycle}_${Date.now()}`,
+      },
+    }
+  );
   return response.data.data;
 }
 
