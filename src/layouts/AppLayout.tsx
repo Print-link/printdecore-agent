@@ -32,6 +32,7 @@ import {
   Receipt,
   Zap,
   Phone,
+  Diamond,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
 import { BranchSelector } from "../components/shared/BranchSelector";
@@ -40,7 +41,7 @@ import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
-import { useCurrentPlan } from "../hooks/usePlanFeature";
+import { useCurrentPlan, useTrial } from "../hooks/usePlanFeature";
 
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
@@ -59,6 +60,7 @@ export default function AppLayout() {
 
   const { isManager, isClerk, hasPermission } = usePermissions();
   const { plan } = useCurrentPlan();
+  const { trial } = useTrial();
   const hasBranchSelected = Boolean(selectedBranch);
   const [isBranchSectionOpen, setIsBranchSectionOpen] = useState(true);
 
@@ -238,6 +240,14 @@ export default function AppLayout() {
           icon: Phone,
         });
       }
+      if (plan?.hasWhatsapp) {
+        general.push({
+          path: "/app/messages",
+          label: "Messages",
+          icon: MessageCircle,
+          badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
+        });
+      }
       general.push({
         path: "/app/billing",
         label: "Billing",
@@ -256,12 +266,6 @@ export default function AppLayout() {
           label: "Jobs",
           icon: ShoppingBag,
           badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
-        });
-        branch.push({
-          path: "/app/messages",
-          label: "Messages",
-          icon: MessageCircle,
-          badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
         });
         branch.push({
           path: "/app/services",
@@ -705,6 +709,30 @@ export default function AppLayout() {
           )}
 
           <div className="flex items-center gap-4 ml-auto">
+            {/* Free Trial Banner */}
+            {isManager && trial?.isTrialing && (
+              <button
+                onClick={() => navigate("/app/billing")}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                  trial.daysRemaining <= 3
+                    ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+                    : "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50",
+                )}
+              >
+                <Diamond size={14} />
+                <span>Free Trial</span>
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                  trial.daysRemaining <= 3
+                    ? "bg-red-200 dark:bg-red-800"
+                    : "bg-purple-200 dark:bg-purple-800",
+                )}>
+                  {trial.daysRemaining}d left
+                </span>
+              </button>
+            )}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}

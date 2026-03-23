@@ -68,11 +68,19 @@ export interface RealUsage {
   broadcastsThisMonth: number;
 }
 
+export interface TrialInfo {
+  isTrialing: boolean;
+  trialEndsAt: string | null;
+  daysRemaining: number;
+  totalDays: number;
+}
+
 export interface BillingInfo {
   subscription: Subscription;
   plan: Plan;
   usage: SubscriptionUsage;
   realUsage: RealUsage;
+  trial?: TrialInfo;
 }
 
 export interface BillingHistoryItem {

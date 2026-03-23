@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { billingApi, type BillingInfo, type Plan } from "../services/api/billing";
+import { billingApi, type BillingInfo, type Plan, type TrialInfo } from "../services/api/billing";
 import { useCallback } from "react";
 
 const BILLING_KEY = ["billing", "me"];
@@ -50,5 +50,25 @@ export function useCurrentPlan(): {
     plan: data?.plan ?? null,
     loading: isLoading,
     invalidate,
+  };
+}
+
+/**
+ * Get trial info for the current manager.
+ */
+export function useTrial(): {
+  trial: TrialInfo | null;
+  loading: boolean;
+} {
+  const { data, isLoading } = useQuery<BillingInfo>({
+    queryKey: BILLING_KEY,
+    queryFn: () => billingApi.getMyBilling(),
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  return {
+    trial: data?.trial ?? null,
+    loading: isLoading,
   };
 }
