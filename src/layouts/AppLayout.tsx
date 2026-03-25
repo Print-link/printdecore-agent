@@ -26,13 +26,11 @@ import {
   LogOut,
   XCircle,
   MessageCircle,
-  CreditCard,
   ChevronDown,
   FileText,
   Receipt,
   Zap,
   Phone,
-  Diamond,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
 import { BranchSelector } from "../components/shared/BranchSelector";
@@ -41,7 +39,6 @@ import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
-import { useCurrentPlan, useTrial } from "../hooks/usePlanFeature";
 
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
@@ -59,8 +56,6 @@ export default function AppLayout() {
   const { chats, isConnected, ensureStatusChecked } = useWhatsAppStore();
 
   const { isManager, isClerk, hasPermission } = usePermissions();
-  const { plan } = useCurrentPlan();
-  const { trial } = useTrial();
   const hasBranchSelected = Boolean(selectedBranch);
   const [isBranchSectionOpen, setIsBranchSectionOpen] = useState(true);
 
@@ -105,7 +100,7 @@ export default function AppLayout() {
   // Determine which branch_id to use for fetching orders
   const branchIdForOrders = isClerk ? user?.branch_id : selectedBranch?.id;
 
-  // Fetch orders to get PENDING and PAID count
+  // Fetch orders to get PENDING and PAID count — poll every 15s for fast detection
   const { data: orders = [] } = useQuery({
     queryKey: ["branchOrders", branchIdForOrders],
     queryFn: async () => {
@@ -113,8 +108,8 @@ export default function AppLayout() {
       return await apiService.getBranchOrders(branchIdForOrders);
     },
     enabled: !!branchIdForOrders && (isManager || isClerk),
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 10000,
+    refetchInterval: 15000,
   });
 
   // Calculate PENDING and PAID jobs count
@@ -131,8 +126,9 @@ export default function AppLayout() {
     );
   }, [orders]);
 
-  // Play sound notification every 1 minute when there are PENDING or PAID jobs
+  // Play sound notification when PENDING/PAID orders exist
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevCountRef = useRef(0);
   const pendingAndPaidOrdersRef = useRef(pendingAndPaidOrders);
   const settingsRef = useRef(settings);
 
@@ -142,26 +138,32 @@ export default function AppLayout() {
     settingsRef.current = settings;
   }, [pendingAndPaidOrders, settings]);
 
+  // Play sound IMMEDIATELY when new orders arrive (count increases)
   useEffect(() => {
-    // Clear any existing interval
+    const currentCount = pendingAndPaidOrders.length;
+    if (
+      currentCount > prevCountRef.current &&
+      prevCountRef.current >= 0 &&
+      settings.sounds.enabled &&
+      settings.sounds.jobNotificationEnabled
+    ) {
+      playSound("job");
+    }
+    prevCountRef.current = currentCount;
+  }, [pendingAndPaidOrders.length, settings.sounds.enabled, settings.sounds.jobNotificationEnabled, playSound]);
+
+  // Repeat alarm every 30s while unhandled orders exist
+  useEffect(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
 
-    // Only set up interval if:
-    // 1. Sounds are enabled
-    // 2. Job notification sound is enabled
-    // 3. There are PENDING or PAID orders
     if (
       settings.sounds.enabled &&
       settings.sounds.jobNotificationEnabled &&
       pendingAndPaidOrders.length > 0
     ) {
-      // Set up interval to play sound every 1 minute (60000ms)
-      // Note: Sound will only play if user has interacted with the page
-      // (handled by SettingsContext)
       intervalRef.current = setInterval(() => {
-        // Check again if conditions are still met using refs for latest values
         if (
           settingsRef.current.sounds.enabled &&
           settingsRef.current.sounds.jobNotificationEnabled &&
@@ -169,10 +171,9 @@ export default function AppLayout() {
         ) {
           playSound("job");
         }
-      }, 60000); // 1 minute
+      }, 30000); // 30 seconds
     }
 
-    // Cleanup interval on unmount or when dependencies change
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -219,39 +220,26 @@ export default function AppLayout() {
         label: "User Management",
         icon: Users,
       });
-      if (plan?.hasWhatsappBroadcast) {
-        general.push({
-          path: "/app/broadcasts",
-          label: "Broadcasts",
-          icon: Receipt,
-        });
-      }
-      if (plan?.hasWhatsapp) {
-        general.push({
-          path: "/app/quick-replies",
-          label: "Quick Replies",
-          icon: Zap,
-        });
-      }
-      if (plan?.hasCrm) {
-        general.push({
-          path: "/app/contacts",
-          label: "Contacts",
-          icon: Phone,
-        });
-      }
-      if (plan?.hasWhatsapp) {
-        general.push({
-          path: "/app/messages",
-          label: "Messages",
-          icon: MessageCircle,
-          badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
-        });
-      }
       general.push({
-        path: "/app/billing",
-        label: "Billing",
-        icon: CreditCard,
+        path: "/app/broadcasts",
+        label: "Broadcasts",
+        icon: Receipt,
+      });
+      general.push({
+        path: "/app/quick-replies",
+        label: "Quick Replies",
+        icon: Zap,
+      });
+      general.push({
+        path: "/app/contacts",
+        label: "Contacts",
+        icon: Phone,
+      });
+      general.push({
+        path: "/app/messages",
+        label: "Messages",
+        icon: MessageCircle,
+        badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
       });
 
       // ─── Manager: Branch-specific Navigation (when branch selected) ─
@@ -374,7 +362,6 @@ export default function AppLayout() {
     pendingAndPaidCount,
     isConnected,
     chats,
-    plan,
     hasNoPaymentMethod,
   ]);
 
@@ -709,30 +696,6 @@ export default function AppLayout() {
           )}
 
           <div className="flex items-center gap-4 ml-auto">
-            {/* Free Trial Banner */}
-            {isManager && trial?.isTrialing && (
-              <button
-                onClick={() => navigate("/app/billing")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
-                  trial.daysRemaining <= 3
-                    ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
-                    : "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50",
-                )}
-              >
-                <Diamond size={14} />
-                <span>Free Trial</span>
-                <span className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
-                  trial.daysRemaining <= 3
-                    ? "bg-red-200 dark:bg-red-800"
-                    : "bg-purple-200 dark:bg-purple-800",
-                )}>
-                  {trial.daysRemaining}d left
-                </span>
-              </button>
-            )}
-
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}

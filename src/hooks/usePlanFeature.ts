@@ -1,74 +1,31 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { billingApi, type BillingInfo, type Plan, type TrialInfo } from "../services/api/billing";
-import { useCallback } from "react";
-
-const BILLING_KEY = ["billing", "me"];
-
 /**
- * Check if a plan feature is allowed.
- * Caches billing info for 30 seconds to stay responsive to plan changes.
+ * Plan feature hooks — with billing removed, all features are always allowed.
  */
+
 export function usePlanFeature(
-  feature: string
+  _feature: string
 ): { allowed: boolean; loading: boolean } {
-  const { data, isLoading } = useQuery<BillingInfo>({
-    queryKey: BILLING_KEY,
-    queryFn: () => billingApi.getMyBilling(),
-    staleTime: 30_000, // 30 seconds — responsive to downgrades
-    retry: false,
-  });
-
-  if (isLoading || !data) return { allowed: false, loading: isLoading };
-
-  const value = (data.plan as any)?.[feature];
-  return { allowed: value === true || value === null, loading: false };
+  return { allowed: true, loading: false };
 }
 
-/**
- * Get the full current plan object.
- * Use this for sidebar gating and feature checks that need multiple fields.
- */
 export function useCurrentPlan(): {
-  plan: Plan | null;
+  plan: null;
   loading: boolean;
   invalidate: () => void;
 } {
-  const queryClient = useQueryClient();
-
-  const { data, isLoading } = useQuery<BillingInfo>({
-    queryKey: BILLING_KEY,
-    queryFn: () => billingApi.getMyBilling(),
-    staleTime: 30_000,
-    retry: false,
-  });
-
-  const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: BILLING_KEY });
-  }, [queryClient]);
-
   return {
-    plan: data?.plan ?? null,
-    loading: isLoading,
-    invalidate,
+    plan: null,
+    loading: false,
+    invalidate: () => {},
   };
 }
 
-/**
- * Get trial info for the current manager.
- */
 export function useTrial(): {
-  trial: TrialInfo | null;
+  trial: null;
   loading: boolean;
 } {
-  const { data, isLoading } = useQuery<BillingInfo>({
-    queryKey: BILLING_KEY,
-    queryFn: () => billingApi.getMyBilling(),
-    staleTime: 30_000,
-    retry: false,
-  });
-
   return {
-    trial: data?.trial ?? null,
-    loading: isLoading,
+    trial: null,
+    loading: false,
   };
 }

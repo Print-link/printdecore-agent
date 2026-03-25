@@ -20,7 +20,11 @@
       "Bash(find /Users/berthajones/Desktop/projects/padlok/padlokbackend/src/workers -type f -name *.ts)",
       "Bash(find /Users/berthajones/Desktop/projects/printdecore/printdecore-backend -maxdepth 2 -name .env* -type f)",
       "Bash(grep -r \"billingWebhookQueue\\\\|redis\\\\|REDIS\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src --include=*.ts --include=*.tsx)",
-      "Bash(grep -r \"Redis\\\\|redis\\\\|cache\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src/services --include=*.ts)"
+      "Bash(grep -r \"Redis\\\\|redis\\\\|cache\" /Users/berthajones/Desktop/projects/printdecore/printdecore-backend/src/services --include=*.ts)",
+      "Bash(find /Users/berthajones/Desktop/projects/printdecore/printdecore-backend -type f -name *upload* -o -name *cloudinary*)",
+      "Bash(find /Users/berthajones/Desktop/projects/printdecore/printdecore-agent -type f -name *upload*)",
+      "Bash(grep -r \"payment\\\\|order.*notif\\\\|sound.*payment\" /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src --include=*.tsx --include=*.ts -B 2 -A 2)",
+      "Bash(grep -r \"EventSource\\\\|sse\\\\|SSE\\\\|stream\\\\|subscribe\" /Users/berthajones/Desktop/projects/printdecore/printdecore-agent/src --include=*.tsx --include=*.ts)"
     ],
     "additionalDirectories": [
       "/Users/berthajones/Desktop/projects/printdecore/piper-client/src/pages",

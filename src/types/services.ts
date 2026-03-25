@@ -24,6 +24,7 @@ export interface ServiceCategory {
   name: string;
   description?: string;
   imageUrl?: string;
+  branchId?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -35,6 +36,7 @@ export interface ServiceSubCategory {
   pricingType: 'AREA_BASED' | 'UNIT_ONLY' | 'AREA_FEET' | 'AREA_INCH' | 'MIXED' | 'CUSTOM_QUOTE';
   description?: string;
   imageUrl?: string;
+  branchId?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }

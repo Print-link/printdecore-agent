@@ -15,18 +15,96 @@ import type {
 	RegularFormatProperties,
 } from "../../types";
 
-async function getServiceCategories(): Promise<ServiceCategory[]> {
-	const response = await apiClient.get("/categories");
+async function getServiceCategories(branchId?: string): Promise<ServiceCategory[]> {
+	const response = await apiClient.get("/categories", {
+		params: branchId ? { branchId } : undefined,
+	});
 	return response.data.data || response.data;
 }
 
-async function getServiceSubCategories(
-	categoryId: string
-): Promise<ServiceSubCategory[]> {
-	const response = await apiClient.get("/sub-categories", {
-		params: { categoryId },
+async function createServiceCategory(data: {
+	name: string;
+	description?: string;
+	image?: File;
+	branchId: string;
+}): Promise<ServiceCategory> {
+	const formData = new FormData();
+	formData.append("name", data.name);
+	if (data.description) formData.append("description", data.description);
+	formData.append("branchId", data.branchId);
+	if (data.image) formData.append("image", data.image);
+	const response = await apiClient.post("/categories", formData, {
+		headers: { "Content-Type": "multipart/form-data" },
 	});
 	return response.data.data || response.data;
+}
+
+async function updateServiceCategory(
+	id: string,
+	data: { name?: string; description?: string; image?: File }
+): Promise<ServiceCategory> {
+	const formData = new FormData();
+	if (data.name) formData.append("name", data.name);
+	if (data.description) formData.append("description", data.description);
+	if (data.image) formData.append("image", data.image);
+	const response = await apiClient.put(`/categories/${id}`, formData, {
+		headers: { "Content-Type": "multipart/form-data" },
+	});
+	return response.data.data || response.data;
+}
+
+async function deleteServiceCategory(id: string): Promise<void> {
+	await apiClient.delete(`/categories/${id}`);
+}
+
+async function getServiceSubCategories(
+	categoryId: string,
+	branchId?: string
+): Promise<ServiceSubCategory[]> {
+	const response = await apiClient.get("/sub-categories", {
+		params: { categoryId, ...(branchId ? { branchId } : {}) },
+	});
+	return response.data.data || response.data;
+}
+
+async function createServiceSubCategory(data: {
+	categoryId: string;
+	name: string;
+	pricingType: string;
+	description?: string;
+	image?: File;
+	branchId: string;
+}): Promise<ServiceSubCategory> {
+	const formData = new FormData();
+	formData.append("categoryId", data.categoryId);
+	formData.append("name", data.name);
+	formData.append("pricingType", data.pricingType);
+	if (data.description) formData.append("description", data.description);
+	formData.append("branchId", data.branchId);
+	if (data.image) formData.append("image", data.image);
+	const response = await apiClient.post("/sub-categories", formData, {
+		headers: { "Content-Type": "multipart/form-data" },
+	});
+	return response.data.data || response.data;
+}
+
+async function updateServiceSubCategory(
+	id: string,
+	data: { name?: string; description?: string; pricingType?: string; image?: File }
+): Promise<ServiceSubCategory> {
+	const formData = new FormData();
+	if (data.name) formData.append("name", data.name);
+	if (data.description) formData.append("description", data.description);
+	if (data.pricingType) formData.append("pricingType", data.pricingType);
+	if (data.image) formData.append("image", data.image);
+	const response = await apiClient.put(`/sub-categories/${id}`, formData, {
+		headers: { "Content-Type": "multipart/form-data" },
+	});
+	return response.data.data || response.data;
+}
+
+async function deleteServiceSubCategory(id: string): Promise<void> {
+	await apiClient.delete(`/sub-categories/${id}`);
 }
 
 async function getServiceTemplates(
@@ -189,7 +267,13 @@ async function deleteCategory(id: string): Promise<void> {
 
 export const serviceApi = {
 	getServiceCategories,
+	createServiceCategory,
+	updateServiceCategory,
+	deleteServiceCategory,
 	getServiceSubCategories,
+	createServiceSubCategory,
+	updateServiceSubCategory,
+	deleteServiceSubCategory,
 	getServiceTemplates,
 	createServiceTemplate,
 	updateServiceTemplate,

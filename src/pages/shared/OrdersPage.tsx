@@ -44,8 +44,8 @@ export default function OrdersPage() {
 			return await apiService.getBranchOrders(branchId);
 		},
 		enabled: !!branchId,
-		staleTime: 30000, // 30 seconds
-		refetchInterval: 60000, // Refetch every minute
+		staleTime: 10000, // 10 seconds
+		refetchInterval: 15000, // Refetch every 15 seconds
 	});
 
 	const filteredOrders = useMemo(() => {
