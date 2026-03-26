@@ -1,22 +1,36 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import jobSound from '../assets/sounds/public_job_beeps_reverb_large_area_high_pitched_65401.mp3';
-import paymentSound from '../assets/sounds/payment_job_bell_ring_clapper_movement_x5_89158.mp3';
-import messageSound from '../assets/sounds/message_received.wav';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import jobSound from "../assets/sounds/public_job_beeps_reverb_large_area_high_pitched_65401.mp3";
+import paymentSound from "../assets/sounds/payment_job_bell_ring_clapper_movement_x5_89158.mp3";
+import messageSound from "../assets/sounds/message_received.wav";
 
 // Preload audio files once at module level so playback is instant
 const preloadedAudio: Record<string, HTMLAudioElement> = {};
-function getPreloadedAudio(soundType: 'job' | 'payment' | 'message'): HTMLAudioElement {
-  const soundFile = soundType === 'job' ? jobSound : soundType === 'payment' ? paymentSound : messageSound;
+function getPreloadedAudio(
+  soundType: "job" | "payment" | "message",
+): HTMLAudioElement {
+  const soundFile =
+    soundType === "job"
+      ? jobSound
+      : soundType === "payment"
+        ? paymentSound
+        : messageSound;
   if (!preloadedAudio[soundType]) {
     const audio = new Audio(soundFile);
-    audio.preload = 'auto';
+    audio.preload = "auto";
     preloadedAudio[soundType] = audio;
   }
   return preloadedAudio[soundType];
 }
 
-export type FontSize = 'small' | 'medium' | 'large';
-export type UIScale = 'compact' | 'comfortable' | 'spacious';
+export type FontSize = "small" | "medium" | "large";
+export type UIScale = "compact" | "comfortable" | "spacious";
 
 interface SoundSettings {
   enabled: boolean;
@@ -43,7 +57,7 @@ interface SettingsContextType {
   setJobNotificationEnabled: (enabled: boolean) => void;
   setPaymentNotificationEnabled: (enabled: boolean) => void;
   setMessageNotificationEnabled: (enabled: boolean) => void;
-  playSound: (soundType: 'job' | 'payment' | 'message') => void;
+  playSound: (soundType: "job" | "payment" | "message") => void;
   resetSettings: () => void;
   getFontSize: () => number;
   getSpacing: () => number;
@@ -51,8 +65,8 @@ interface SettingsContextType {
 }
 
 const defaultSettings: Settings = {
-  fontSize: 'medium',
-  uiScale: 'comfortable',
+  fontSize: "medium",
+  uiScale: "comfortable",
   lineHeight: 1.5,
   sounds: {
     enabled: true,
@@ -81,44 +95,103 @@ const iconSizeMap: Record<UIScale, number> = {
   spacious: 1.1,
 };
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined,
+);
 
 function applyCSSVariables(settings: Settings) {
-  if (typeof document === 'undefined') return;
-  
+  if (typeof document === "undefined") return;
+
   const fontSize = fontSizeMap[settings.fontSize];
   const spacing = spacingMap[settings.uiScale];
   const iconSize = iconSizeMap[settings.uiScale];
-  
-  document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
-  document.documentElement.style.setProperty('--font-size-small', `${fontSize - 2}px`);
-  document.documentElement.style.setProperty('--font-size-large', `${fontSize + 2}px`);
-  document.documentElement.style.setProperty('--font-size-xl', `${fontSize + 4}px`);
-  document.documentElement.style.setProperty('--spacing-multiplier', `${spacing}`);
-  document.documentElement.style.setProperty('--icon-size-multiplier', `${iconSize}`);
-  document.documentElement.style.setProperty('--line-height', `${settings.lineHeight}`);
-  
-  document.documentElement.style.setProperty('--spacing-xs', `${4 * spacing}px`);
-  document.documentElement.style.setProperty('--spacing-sm', `${8 * spacing}px`);
-  document.documentElement.style.setProperty('--spacing-md', `${12 * spacing}px`);
-  document.documentElement.style.setProperty('--spacing-lg', `${16 * spacing}px`);
-  document.documentElement.style.setProperty('--spacing-xl', `${24 * spacing}px`);
-  document.documentElement.style.setProperty('--spacing-2xl', `${32 * spacing}px`);
-  
-  document.documentElement.style.setProperty('--icon-size', `${16 * iconSize}px`);
-  document.documentElement.style.setProperty('--icon-size-sm', `${14 * iconSize}px`);
-  document.documentElement.style.setProperty('--icon-size-lg', `${20 * iconSize}px`);
-  document.documentElement.style.setProperty('--icon-size-xl', `${24 * iconSize}px`);
-  
-  document.documentElement.style.setProperty('--border-radius-sm', `${4 * spacing}px`);
-  document.documentElement.style.setProperty('--border-radius-md', `${6 * spacing}px`);
-  document.documentElement.style.setProperty('--border-radius-lg', `${8 * spacing}px`);
+
+  document.documentElement.style.setProperty("--font-size", `${fontSize}px`);
+  document.documentElement.style.setProperty(
+    "--font-size-small",
+    `${fontSize - 2}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--font-size-large",
+    `${fontSize + 2}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--font-size-xl",
+    `${fontSize + 4}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--spacing-multiplier",
+    `${spacing}`,
+  );
+  document.documentElement.style.setProperty(
+    "--icon-size-multiplier",
+    `${iconSize}`,
+  );
+  document.documentElement.style.setProperty(
+    "--line-height",
+    `${settings.lineHeight}`,
+  );
+
+  document.documentElement.style.setProperty(
+    "--spacing-xs",
+    `${4 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--spacing-sm",
+    `${8 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--spacing-md",
+    `${12 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--spacing-lg",
+    `${16 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--spacing-xl",
+    `${24 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--spacing-2xl",
+    `${32 * spacing}px`,
+  );
+
+  document.documentElement.style.setProperty(
+    "--icon-size",
+    `${16 * iconSize}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--icon-size-sm",
+    `${14 * iconSize}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--icon-size-lg",
+    `${20 * iconSize}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--icon-size-xl",
+    `${24 * iconSize}px`,
+  );
+
+  document.documentElement.style.setProperty(
+    "--border-radius-sm",
+    `${4 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--border-radius-md",
+    `${6 * spacing}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--border-radius-lg",
+    `${8 * spacing}px`,
+  );
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [settings, setSettings] = useState<Settings>(() => {
-    const saved = localStorage.getItem('appSettings');
+    const saved = localStorage.getItem("appSettings");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -141,107 +214,128 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     applyCSSVariables(defaultSettings);
     return defaultSettings;
   });
-
+  //
   // Track user interaction to enable audio playback
   useEffect(() => {
     const handleUserInteraction = () => {
       setHasUserInteracted(true);
       // Remove listeners after first interaction
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
     };
 
     // Add event listeners for user interaction
-    document.addEventListener('click', handleUserInteraction, { once: true });
-    document.addEventListener('keydown', handleUserInteraction, { once: true });
-    document.addEventListener('touchstart', handleUserInteraction, { once: true });
+    document.addEventListener("click", handleUserInteraction, { once: true });
+    document.addEventListener("keydown", handleUserInteraction, { once: true });
+    document.addEventListener("touchstart", handleUserInteraction, {
+      once: true,
+    });
 
     return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
     };
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('appSettings', JSON.stringify(settings));
+    localStorage.setItem("appSettings", JSON.stringify(settings));
     applyCSSVariables(settings);
   }, [settings]);
 
   const setFontSize = useCallback((fontSize: FontSize) => {
-    setSettings(prev => ({ ...prev, fontSize }));
+    setSettings((prev) => ({ ...prev, fontSize }));
   }, []);
 
   const setUIScale = useCallback((uiScale: UIScale) => {
-    setSettings(prev => ({ ...prev, uiScale }));
+    setSettings((prev) => ({ ...prev, uiScale }));
   }, []);
 
   const setLineHeight = useCallback((lineHeight: number) => {
-    setSettings(prev => ({ ...prev, lineHeight }));
+    setSettings((prev) => ({ ...prev, lineHeight }));
   }, []);
 
   const setSoundEnabled = useCallback((enabled: boolean) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       sounds: { ...prev.sounds, enabled },
     }));
   }, []);
 
   const setSoundVolume = useCallback((volume: number) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       sounds: { ...prev.sounds, volume },
     }));
   }, []);
 
   const setJobNotificationEnabled = useCallback((enabled: boolean) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       sounds: { ...prev.sounds, jobNotificationEnabled: enabled },
     }));
   }, []);
 
   const setPaymentNotificationEnabled = useCallback((enabled: boolean) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       sounds: { ...prev.sounds, paymentNotificationEnabled: enabled },
     }));
   }, []);
 
   const setMessageNotificationEnabled = useCallback((enabled: boolean) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       sounds: { ...prev.sounds, messageNotificationEnabled: enabled },
     }));
   }, []);
 
-  const playSound = useCallback((soundType: 'job' | 'payment' | 'message') => {
-    if (!settings.sounds.enabled) return;
-    if (!hasUserInteracted) return;
+  const playSound = useCallback(
+    (soundType: "job" | "payment" | "message") => {
+      if (!settings.sounds.enabled) return;
+      if (!hasUserInteracted) return;
 
-    if (soundType === 'job' && !settings.sounds.jobNotificationEnabled) return;
-    if (soundType === 'payment' && !settings.sounds.paymentNotificationEnabled) return;
-    if (soundType === 'message' && !settings.sounds.messageNotificationEnabled) return;
+      if (soundType === "job" && !settings.sounds.jobNotificationEnabled)
+        return;
+      if (
+        soundType === "payment" &&
+        !settings.sounds.paymentNotificationEnabled
+      )
+        return;
+      if (
+        soundType === "message" &&
+        !settings.sounds.messageNotificationEnabled
+      )
+        return;
 
-    try {
-      const audio = getPreloadedAudio(soundType);
-      audio.volume = settings.sounds.volume;
-      audio.currentTime = 0;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          if (err.name !== 'NotAllowedError') {
-            console.error('Error playing sound:', err);
-          }
-        });
+      try {
+        const audio = getPreloadedAudio(soundType);
+        audio.volume = settings.sounds.volume;
+        audio.currentTime = 0;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            if (err.name !== "NotAllowedError") {
+              console.error("Error playing sound:", err);
+            }
+          });
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name !== "NotAllowedError") {
+          console.error("Error playing sound:", err);
+        }
       }
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'NotAllowedError') {
-        console.error('Error playing sound:', err);
-      }
-    }
-  }, [settings.sounds.enabled, settings.sounds.volume, settings.sounds.jobNotificationEnabled, settings.sounds.paymentNotificationEnabled, settings.sounds.messageNotificationEnabled, hasUserInteracted]);
+    },
+    [
+      settings.sounds.enabled,
+      settings.sounds.volume,
+      settings.sounds.jobNotificationEnabled,
+      settings.sounds.paymentNotificationEnabled,
+      settings.sounds.messageNotificationEnabled,
+      hasUserInteracted,
+    ],
+  );
 
   const resetSettings = useCallback(() => {
     setSettings(defaultSettings);
@@ -286,7 +380,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
-    throw new Error('useSettings must be used within SettingsProvider');
+    throw new Error("useSettings must be used within SettingsProvider");
   }
   return context;
 }
@@ -295,15 +389,19 @@ export function useSettings() {
  * Standalone sound player for use outside React components (e.g. Zustand stores).
  * Reads settings from localStorage directly and respects sound toggles.
  */
-export function playNotificationSound(soundType: 'job' | 'payment' | 'message') {
+export function playNotificationSound(
+  soundType: "job" | "payment" | "message",
+) {
   try {
-    const saved = localStorage.getItem('appSettings');
-    const sounds = saved ? { ...defaultSettings.sounds, ...(JSON.parse(saved).sounds || {}) } : defaultSettings.sounds;
+    const saved = localStorage.getItem("appSettings");
+    const sounds = saved
+      ? { ...defaultSettings.sounds, ...(JSON.parse(saved).sounds || {}) }
+      : defaultSettings.sounds;
 
     if (!sounds.enabled) return;
-    if (soundType === 'job' && !sounds.jobNotificationEnabled) return;
-    if (soundType === 'payment' && !sounds.paymentNotificationEnabled) return;
-    if (soundType === 'message' && !sounds.messageNotificationEnabled) return;
+    if (soundType === "job" && !sounds.jobNotificationEnabled) return;
+    if (soundType === "payment" && !sounds.paymentNotificationEnabled) return;
+    if (soundType === "message" && !sounds.messageNotificationEnabled) return;
 
     const audio = getPreloadedAudio(soundType);
     audio.volume = sounds.volume;
@@ -313,4 +411,3 @@ export function playNotificationSound(soundType: 'job' | 'payment' | 'message') 
     // Ignore errors
   }
 }
-
