@@ -5,7 +5,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useBranchStore } from "../stores/branchStore";
 import { useTheme } from "../contexts/ThemeContext";
 import { useThemeClasses } from "../lib/theme";
-import { cn } from "../lib/utils";
+import { cn, formatCount } from "../lib/utils";
 import { useSettings } from "../contexts/SettingsContext";
 import { useToast } from "../contexts/ToastContext";
 import { apiService } from "../services/api";
@@ -438,7 +438,7 @@ export default function AppLayout() {
                               : "bg-amber-400 text-gray-900",
                           )}
                         >
-                          {item.badge}
+                          {formatCount(item.badge)}
                         </span>
                       )}
                     </div>
@@ -470,7 +470,7 @@ export default function AppLayout() {
                     {item.label}
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
-                        {item.badge}
+                        {formatCount(item.badge)}
                       </span>
                     )}
                   </div>
@@ -597,7 +597,7 @@ export default function AppLayout() {
                                       : "bg-amber-400 text-gray-900",
                                   )}
                                 >
-                                  {item.badge}
+                                  {formatCount(item.badge)}
                                 </span>
                               )}
                             </div>
@@ -629,7 +629,7 @@ export default function AppLayout() {
                             {item.label}
                             {item.badge !== undefined && item.badge > 0 && (
                               <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
-                                {item.badge}
+                                {formatCount(item.badge)}
                               </span>
                             )}
                           </div>

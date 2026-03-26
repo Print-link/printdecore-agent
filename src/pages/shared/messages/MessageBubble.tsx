@@ -1,7 +1,7 @@
 import { memo } from "react";
 import {
   Spinner, FileText, Download, Reply, TickSent, TickDelivered,
-  TickRead, AlertCircle, Clock, BarChart3, ShoppingBag,
+  TickRead, AlertCircle, Clock, BarChart3, ShoppingBag, Receipt,
 } from "../../../components/icons";
 import type { WhatsAppMessage, MessageStatus } from "../../../types/whatsapp";
 import { useThemeClasses } from "../../../lib/theme";
@@ -70,6 +70,38 @@ function parseCatalogBody(body: string): { header: string; items: { name: string
   return { header: match[1], items, footer };
 }
 
+function parseQuoteBody(body: string): { branch?: string; category: string; description?: string; total: string; validUntil?: string; paymentLink?: string } | null {
+  // Matches: 📋 *QUOTE*\n\n🏢 *Branch*\n\n📂 *Category:* ...\n💰 *Total: ...*\n\n💳 Pay here: ...
+  if (!body.startsWith("📋 *QUOTE*")) return null;
+  const lines = body.split("\n");
+  let branch: string | undefined;
+  let category = "";
+  let description: string | undefined;
+  let total = "";
+  let validUntil: string | undefined;
+  let paymentLink: string | undefined;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("🏢")) {
+      branch = trimmed.replace(/🏢\s*\*?|\*$/g, "").trim();
+    } else if (trimmed.startsWith("📂")) {
+      category = trimmed.replace(/📂\s*\*?Category:\*?\s*/i, "").trim();
+    } else if (trimmed.startsWith("📝")) {
+      description = trimmed.replace(/📝\s*\*?Details:\*?\s*/i, "").trim();
+    } else if (trimmed.startsWith("💰")) {
+      total = trimmed.replace(/💰\s*\*?Total:\s*|\*$/g, "").trim();
+    } else if (trimmed.startsWith("⏳")) {
+      validUntil = trimmed.replace("⏳", "").trim();
+    } else if (trimmed.startsWith("💳")) {
+      paymentLink = trimmed.replace(/💳\s*Pay here:\s*/i, "").trim();
+    }
+  }
+
+  if (!category && !total) return null;
+  return { branch, category, description, total, validUntil, paymentLink };
+}
+
 function PollOrCatalogBody({ message, isFromMe }: { message: WhatsAppMessage; isFromMe: boolean }) {
   const t = useThemeClasses();
 
@@ -135,6 +167,46 @@ function PollOrCatalogBody({ message, isFromMe }: { message: WhatsAppMessage; is
     }
   }
 
+  // Try quote
+  if (message.body.startsWith("📋 *QUOTE*")) {
+    const quote = parseQuoteBody(message.body);
+    if (quote) {
+      return (
+        <div className="w-full max-w-[260px]">
+          <div className="flex items-center gap-2 mb-2">
+            <Receipt size={14} className={isFromMe ? "text-gray-700" : "text-amber-500"} />
+            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Quote</span>
+          </div>
+          {quote.branch && <p className="text-xs font-semibold mb-1.5">{quote.branch}</p>}
+          <div className={cn(
+            "px-3 py-2 rounded-lg border mb-2",
+            isFromMe ? "bg-amber-300/30 border-amber-500/20" : t.isDark ? "bg-gray-600/40 border-gray-500/40" : "bg-gray-50 border-gray-200",
+          )}>
+            <p className="text-xs opacity-70">{quote.category}</p>
+            {quote.description && <p className="text-xs mt-0.5">{quote.description}</p>}
+            <p className="text-base font-bold mt-1">{quote.total}</p>
+          </div>
+          {quote.validUntil && <p className="text-[10px] opacity-50 mb-1">{quote.validUntil}</p>}
+          {quote.paymentLink && (
+            <a
+              href={quote.paymentLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "block text-center text-xs font-semibold py-2 rounded-lg transition-colors",
+                isFromMe
+                  ? "bg-gray-900/80 text-white hover:bg-gray-900"
+                  : "bg-amber-400 text-gray-900 hover:bg-amber-500",
+              )}
+            >
+              Pay Now
+            </a>
+          )}
+        </div>
+      );
+    }
+  }
+
   // Try catalog
   if (message.body.startsWith("📋 *")) {
     const catalog = parseCatalogBody(message.body);
@@ -179,7 +251,7 @@ function FormattedBody({ body }: { body: string }) {
   // Render WhatsApp-style formatting: *bold*, _italic_, ~strikethrough~
   const parts = body.split(/(\*[^*]+\*|_[^_]+_|~[^~]+~)/g);
   return (
-    <p className="text-sm whitespace-pre-wrap break-words">
+    <p className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">
       {parts.map((part, i) => {
         if (part.startsWith("*") && part.endsWith("*"))
           return <strong key={i}>{part.slice(1, -1)}</strong>;

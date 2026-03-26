@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Search, MessageCircle, Pin, Archive, ArchiveRestore, BellOff, Bell, PinSlash } from '../../components/icons';
 import { Card, Avatar, EmptyState } from '../../components/ui';
 import { useThemeClasses } from '../../lib/theme';
-import { cn } from '../../lib/utils';
+import { cn, formatCount } from '../../lib/utils';
 import ConversationView from './messages/ConversationView';
 import { ChatListSkeleton, SyncingBanner } from './messages/skeletons';
 
@@ -194,7 +194,7 @@ export default function MessagesPage() {
 													</p>
 													{chat.unreadCount > 0 && (
 														<span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 bg-amber-400 text-gray-900">
-															{chat.unreadCount}
+															{formatCount(chat.unreadCount)}
 														</span>
 													)}
 												</div>

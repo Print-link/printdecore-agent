@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Send, Reply, X } from "../../../components/icons";
 import { Button } from "../../../components/ui";
 import type { WhatsAppMessage } from "../../../types/whatsapp";
@@ -23,6 +23,14 @@ export default function MessageInput({
 }: MessageInputProps) {
   const t = useThemeClasses();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea as content grows
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [messageText]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -74,8 +82,7 @@ export default function MessageInput({
             onKeyDown={handleKeyPress}
             placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
             rows={1}
-            className={cn("flex-1 px-4 py-2 rounded-lg text-sm resize-none border focus:outline-none focus:ring-2 focus:ring-amber-400", t.input)}
-            style={{ maxHeight: "120px" }}
+            className={cn("flex-1 px-4 py-2 rounded-lg text-sm resize-none border focus:outline-none focus:ring-2 focus:ring-amber-400 overflow-y-auto", t.input)}
           />
           <Button
             onClick={onSend}
