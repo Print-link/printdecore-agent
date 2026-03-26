@@ -17,7 +17,7 @@ const SettingsPage = lazy(() => import("../pages/shared/SettingsPage"));
 
 export const openRoutes: RouteConfig[] = [
   { path: "profile", component: ProfilePage },
-  { path: "settings", component: SettingsPage },
+  { path: "settings/*", component: SettingsPage },
 ];
 
 export function renderRoutes(routes: RouteConfig[]) {

@@ -3,6 +3,18 @@ import jobSound from '../assets/sounds/public_job_beeps_reverb_large_area_high_p
 import paymentSound from '../assets/sounds/payment_job_bell_ring_clapper_movement_x5_89158.mp3';
 import messageSound from '../assets/sounds/message_received.wav';
 
+// Preload audio files once at module level so playback is instant
+const preloadedAudio: Record<string, HTMLAudioElement> = {};
+function getPreloadedAudio(soundType: 'job' | 'payment' | 'message'): HTMLAudioElement {
+  const soundFile = soundType === 'job' ? jobSound : soundType === 'payment' ? paymentSound : messageSound;
+  if (!preloadedAudio[soundType]) {
+    const audio = new Audio(soundFile);
+    audio.preload = 'auto';
+    preloadedAudio[soundType] = audio;
+  }
+  return preloadedAudio[soundType];
+}
+
 export type FontSize = 'small' | 'medium' | 'large';
 export type UIScale = 'compact' | 'comfortable' | 'spacious';
 
@@ -206,37 +218,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const playSound = useCallback((soundType: 'job' | 'payment' | 'message') => {
     if (!settings.sounds.enabled) return;
+    if (!hasUserInteracted) return;
 
-    // Only play sound if user has interacted with the page
-    // This prevents browser autoplay policy violations
-    if (!hasUserInteracted) {
-      return;
-    }
-
-    // Check per-type toggle
     if (soundType === 'job' && !settings.sounds.jobNotificationEnabled) return;
     if (soundType === 'payment' && !settings.sounds.paymentNotificationEnabled) return;
     if (soundType === 'message' && !settings.sounds.messageNotificationEnabled) return;
 
-    const soundFile = soundType === 'job' ? jobSound : soundType === 'payment' ? paymentSound : messageSound;
-
     try {
-      const audio = new Audio(soundFile);
+      const audio = getPreloadedAudio(soundType);
       audio.volume = settings.sounds.volume;
-      // Set preload to allow playing after user interaction
-      audio.preload = 'auto';
-      
+      audio.currentTime = 0;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(err => {
-          // Silently handle autoplay errors - they're expected before user interaction
           if (err.name !== 'NotAllowedError') {
             console.error('Error playing sound:', err);
           }
         });
       }
     } catch (err) {
-      // Silently handle errors - they're expected before user interaction
       if (err instanceof Error && err.name !== 'NotAllowedError') {
         console.error('Error playing sound:', err);
       }
@@ -305,9 +305,9 @@ export function playNotificationSound(soundType: 'job' | 'payment' | 'message') 
     if (soundType === 'payment' && !sounds.paymentNotificationEnabled) return;
     if (soundType === 'message' && !sounds.messageNotificationEnabled) return;
 
-    const soundFile = soundType === 'job' ? jobSound : soundType === 'payment' ? paymentSound : messageSound;
-    const audio = new Audio(soundFile);
+    const audio = getPreloadedAudio(soundType);
     audio.volume = sounds.volume;
+    audio.currentTime = 0;
     audio.play().catch(() => {});
   } catch {
     // Ignore errors

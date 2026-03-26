@@ -9,11 +9,7 @@ const UserManagementPage = lazy(
 const AccessControlPage = lazy(
   () => import("../pages/manager/AccessControlPage"),
 );
-const BroadcastsPage = lazy(() => import("../pages/manager/BroadcastsPage"));
-const QuickRepliesPage = lazy(
-  () => import("../pages/manager/QuickRepliesPage"),
-);
-const ContactsPage = lazy(() => import("../pages/manager/ContactsPage"));
+const MarketingPage = lazy(() => import("../pages/manager/MarketingPage"));
 const BranchCreatePage = lazy(
   () => import("../pages/manager/branches/BranchCreatePage"),
 );
@@ -59,18 +55,8 @@ export const managerRoutes: RouteConfig[] = [
     permissions: [PERMISSIONS.USERS_PERMISSIONS],
   },
   {
-    path: "broadcasts",
-    component: BroadcastsPage,
-    roles: ["manager"],
-  },
-  {
-    path: "quick-replies",
-    component: QuickRepliesPage,
-    roles: ["manager"],
-  },
-  {
-    path: "contacts",
-    component: ContactsPage,
+    path: "marketing/*",
+    component: MarketingPage,
     roles: ["manager"],
   },
 ];

@@ -205,7 +205,7 @@ Input.displayName = "Input";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
-  options: Array<{ value: string; label: string }>;
+  options?: Array<{ value: string; label: string }>;
   placeholder?: string;
 }
 
@@ -214,6 +214,7 @@ export function Select({
   options,
   placeholder,
   className,
+  children,
   ...rest
 }: SelectProps) {
   const t = useThemeClasses();
@@ -235,11 +236,13 @@ export function Select({
         {...rest}
       >
         {placeholder && <option value="">{placeholder}</option>}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
+        {options
+          ? options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))
+          : children}
       </select>
     </div>
   );

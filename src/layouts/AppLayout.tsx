@@ -28,9 +28,7 @@ import {
   MessageCircle,
   ChevronDown,
   FileText,
-  Receipt,
-  Zap,
-  Phone,
+  TrendingUp,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
 import { BranchSelector } from "../components/shared/BranchSelector";
@@ -221,19 +219,9 @@ export default function AppLayout() {
         icon: Users,
       });
       general.push({
-        path: "/app/broadcasts",
-        label: "Broadcasts",
-        icon: Receipt,
-      });
-      general.push({
-        path: "/app/quick-replies",
-        label: "Quick Replies",
-        icon: Zap,
-      });
-      general.push({
-        path: "/app/contacts",
-        label: "Contacts",
-        icon: Phone,
+        path: "/app/marketing",
+        label: "Marketing",
+        icon: TrendingUp,
       });
       general.push({
         path: "/app/messages",
@@ -415,7 +403,7 @@ export default function AppLayout() {
           {/* General nav items */}
           {generalItems.map((item) => {
             const Icon = item.icon;
-            const isActiveRoute = location.pathname === item.path;
+            const isActiveRoute = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
             return (
               <div key={item.path} className="relative group">
                 <button
@@ -569,7 +557,7 @@ export default function AppLayout() {
                 >
                   {branchItems.map((item) => {
                     const Icon = item.icon;
-                    const isActiveRoute = location.pathname === item.path;
+                    const isActiveRoute = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
                     return (
                       <div key={item.path} className="relative group">
                         <button
