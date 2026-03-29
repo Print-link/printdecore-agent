@@ -32,7 +32,7 @@ export default function ConversationHeader({
   return (
     <div
       className={cn(
-        "px-6 py-4 border-b flex items-center gap-4",
+        "px-3 py-3 md:px-6 md:py-4 border-b flex items-center gap-3 md:gap-4",
         t.isDark ? "bg-gray-800" : "bg-white",
         t.border,
       )}
@@ -52,14 +52,20 @@ export default function ConversationHeader({
             ) : null}
           </div>
           {!chat.isGroup && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               {hasPolls && (
-                <Button variant="secondary" size="sm" icon={BarChart3} onClick={onShowPoll}>Poll</Button>
+                <Button variant="secondary" size="sm" icon={BarChart3} onClick={onShowPoll}>
+                  <span className="hidden sm:inline">Poll</span>
+                </Button>
               )}
               {hasCatalog && (
-                <Button variant="secondary" size="sm" icon={ShoppingBag} onClick={onShowCatalog}>Catalog</Button>
+                <Button variant="secondary" size="sm" icon={ShoppingBag} onClick={onShowCatalog}>
+                  <span className="hidden sm:inline">Catalog</span>
+                </Button>
               )}
-              <Button variant="primary" size="sm" icon={Receipt} onClick={onShowQuote}>Quote</Button>
+              <Button variant="primary" size="sm" icon={Receipt} onClick={onShowQuote}>
+                <span className="hidden sm:inline">Quote</span>
+              </Button>
             </div>
           )}
         </>

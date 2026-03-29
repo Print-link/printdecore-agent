@@ -88,8 +88,13 @@ export default function MessagesPage() {
 
 	return (
 		<div className={cn('flex h-full overflow-hidden', t.surfaceInset)}>
-			{/* Chat List Sidebar */}
-			<div className={cn('w-80 border-r flex flex-col', t.isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200')}>
+			{/* Chat List — full width on mobile, fixed sidebar on desktop */}
+			{/* Hidden on mobile when a conversation is selected */}
+			<div className={cn(
+				'w-full md:w-80 border-r flex flex-col',
+				t.isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200',
+				selectedChatId ? 'hidden md:flex' : 'flex',
+			)}>
 				{/* Header */}
 				<div className={cn('p-4 border-b', t.border)}>
 					<h2 className={cn('text-lg font-semibold mb-3', t.text)}>
@@ -237,10 +242,16 @@ export default function MessagesPage() {
 				);
 			})()}
 
-			{/* Conversation View */}
-			<div className="flex-1 flex flex-col overflow-hidden">
+			{/* Conversation View — full width on mobile, flex-1 on desktop */}
+			<div className={cn(
+				'flex-1 flex flex-col overflow-hidden',
+				selectedChatId ? 'flex' : 'hidden md:flex',
+			)}>
 				{selectedChatId ? (
-					<ConversationView chatId={selectedChatId} />
+					<ConversationView
+						chatId={selectedChatId}
+						onBack={() => setSelectedChat(null)}
+					/>
 				) : (
 					<div className={cn('flex-1 flex items-center justify-center', t.surfaceInset)}>
 						<EmptyState

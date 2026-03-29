@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Modal, Button, Input, Select } from '../../../components/ui';
 import { Receipt } from '../../../components/icons';
 import { useThemeClasses } from '../../../lib/theme';
 import { cn } from '../../../lib/utils';
 import { whatsappQuoteApi, type CreateQuoteParams } from '../../../services/api/whatsappQuotes';
 import { useBranchStore } from '../../../stores/branchStore';
+import { apiClient } from '../../../services/api/client';
 
 interface SendQuoteModalProps {
 	open: boolean;
@@ -42,10 +44,22 @@ export default function SendQuoteModal({
 	const t = useThemeClasses();
 	const { selectedBranch } = useBranchStore();
 
+	// Check if manager is eligible for cash quotes
+	const { data: cashCheck } = useQuery({
+		queryKey: ['wallet', 'can-cash'],
+		queryFn: async () => {
+			const res = await apiClient.get('/wallet/can-cash');
+			return res.data.data as { allowed: boolean; reason?: string };
+		},
+		staleTime: 30000,
+	});
+	const cashAllowed = cashCheck?.allowed ?? false;
+
 	const [category, setCategory] = useState('');
 	const [customCategory, setCustomCategory] = useState('');
 	const [amount, setAmount] = useState('');
 	const [description, setDescription] = useState('');
+	const [paymentType, setPaymentType] = useState<'online' | 'cash'>('online');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +68,7 @@ export default function SendQuoteModal({
 		setCustomCategory('');
 		setAmount('');
 		setDescription('');
+		setPaymentType('online');
 		setError(null);
 	}, []);
 
@@ -89,6 +104,7 @@ export default function SendQuoteModal({
 				description: description.trim() || undefined,
 				amount: Number(amount),
 				branchId: selectedBranch?.id,
+				paymentType,
 			};
 
 			const response = await whatsappQuoteApi.createWhatsAppQuote(params);
@@ -176,6 +192,55 @@ export default function SendQuoteModal({
 						setError(null);
 					}}
 				/>
+
+				{/* Payment Type */}
+				<div>
+					<label className={cn('block text-sm font-medium mb-2', t.textSecondary)}>
+						Payment Method
+					</label>
+					<div className="flex gap-2">
+						<button
+							type="button"
+							onClick={() => setPaymentType('online')}
+							className={cn(
+								'flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors',
+								paymentType === 'online'
+									? 'bg-amber-400 text-gray-900 border-amber-400'
+									: t.isDark
+										? 'border-gray-600 text-gray-400 hover:border-gray-500'
+										: 'border-gray-200 text-gray-600 hover:border-gray-300',
+							)}
+						>
+							Online Payment
+						</button>
+						<button
+							type="button"
+							onClick={() => cashAllowed && setPaymentType('cash')}
+							disabled={!cashAllowed}
+							className={cn(
+								'flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors',
+								!cashAllowed && 'opacity-40 cursor-not-allowed',
+								paymentType === 'cash'
+									? 'bg-amber-400 text-gray-900 border-amber-400'
+									: t.isDark
+										? 'border-gray-600 text-gray-400 hover:border-gray-500'
+										: 'border-gray-200 text-gray-600 hover:border-gray-300',
+							)}
+						>
+							Cash / Walk-in
+						</button>
+					</div>
+					{!cashAllowed && cashCheck?.reason && (
+						<p className={cn('text-[11px] mt-1.5', t.isDark ? 'text-gray-500' : 'text-gray-400')}>
+							{cashCheck.reason}
+						</p>
+					)}
+					{paymentType === 'cash' && cashAllowed && (
+						<p className={cn('text-[11px] mt-1.5', t.isDark ? 'text-amber-400' : 'text-amber-600')}>
+							Commission will be deducted from your wallet when job is completed
+						</p>
+					)}
+				</div>
 
 				{/* Description (optional) */}
 				<div>

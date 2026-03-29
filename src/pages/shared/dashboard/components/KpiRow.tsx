@@ -6,21 +6,22 @@ import {
 	Layers,
 	BadgeDollarSign,
 	Receipt,
-} from '../../../../components/icons';
-import { KpiCard } from './KpiCard';
+} from "../../../../components/icons";
+import { KpiCard } from "./KpiCard";
+import { formatCurrency } from "../../../../lib/utils";
 import type {
 	ClerkDashboardStats,
 	ManagerOverviewStats,
 	ManagerBranchStats,
-} from '../../../../types';
+} from "../../../../types";
 
 interface ClerkKpiRowProps {
-	role: 'clerk';
+	role: "clerk";
 	stats: ClerkDashboardStats;
 }
 
 interface ManagerKpiRowProps {
-	role: 'manager';
+	role: "manager";
 	stats: ManagerOverviewStats | ManagerBranchStats;
 	isBranchView: boolean;
 }
@@ -28,7 +29,7 @@ interface ManagerKpiRowProps {
 type KpiRowProps = ClerkKpiRowProps | ManagerKpiRowProps;
 
 export function KpiRow(props: KpiRowProps) {
-	if (props.role === 'clerk') {
+	if (props.role === "clerk") {
 		return <ClerkKpis stats={props.stats} />;
 	}
 	return <ManagerKpis stats={props.stats} isBranchView={props.isBranchView} />;
@@ -41,29 +42,33 @@ function ClerkKpis({ stats }: { stats: ClerkDashboardStats }) {
 	const wq = stats.whatsappQuotes;
 
 	return (
-		<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+		<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
 			<KpiCard
-				icon={<AlertCircle size={14} />}
+				icon={<AlertCircle size={16} />}
+				accent="red"
 				title="Needs Attention"
 				value={needsAttention}
 				subtitle={`${stats.pending} pending, ${stats.quoted} quoted`}
 			/>
 			<KpiCard
-				icon={<CalendarDays size={14} />}
+				icon={<CalendarDays size={16} />}
+				accent="blue"
 				title="Today's Orders"
 				value={stats.todayOrders}
 				subtitle={`${stats.thisWeekOrders} this week`}
 			/>
 			{wq && wq.totalQuotes > 0 ? (
 				<KpiCard
-					icon={<Receipt size={14} />}
+					icon={<Receipt size={16} />}
+					accent="purple"
 					title="WhatsApp Quotes"
 					value={wq.totalQuotes}
 					subtitle={`${wq.paidQuotes} paid, ${wq.pendingQuotes} pending`}
 				/>
 			) : (
 				<KpiCard
-					icon={<TrendingUp size={14} />}
+					icon={<TrendingUp size={16} />}
+					accent="green"
 					title="Completion Rate"
 					value={`${completionRate}%`}
 					subtitle={`${stats.completed} of ${stats.total} total`}
@@ -85,34 +90,44 @@ function ManagerKpis({
 		stats.paidOrders +
 		stats.inProgressOrders;
 	const needsAttention = stats.pendingOrders + stats.quotedOrders;
+	const avgOrderValue =
+		stats.totalOrders > 0 ? stats.totalRevenue / stats.totalOrders : 0;
 	const wq = stats.whatsappQuotes;
 
 	return (
 		<div className="space-y-3">
 			<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 				<KpiCard
-					icon={<Banknote size={14} />}
+					icon={<Banknote size={16} />}
+					accent="green"
 					title="Today's Revenue"
-					value={`₵${stats.todayRevenue.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-					subtitle={`${stats.todayOrders} orders today`}
+					value={formatCurrency(stats.todayRevenue, { compact: true })}
+					subtitle={`${stats.todayOrders} order${stats.todayOrders !== 1 ? "s" : ""} today`}
 				/>
 				<KpiCard
-					icon={<TrendingUp size={14} />}
+					icon={<TrendingUp size={16} />}
+					accent="blue"
 					title="Monthly Revenue"
-					value={`₵${stats.thisMonthRevenue.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-					subtitle={`${stats.thisMonthOrders} orders this month`}
+					value={formatCurrency(stats.thisMonthRevenue, { compact: true })}
+					subtitle={`${stats.thisMonthOrders} order${stats.thisMonthOrders !== 1 ? "s" : ""} this month`}
 				/>
 				<KpiCard
-					icon={<Layers size={14} />}
+					icon={<Layers size={16} />}
+					accent={needsAttention > 0 ? "amber" : "gray"}
 					title="Active Jobs"
 					value={activeJobs}
-					subtitle={`${needsAttention} need attention`}
+					subtitle={
+						needsAttention > 0
+							? `${needsAttention} need${needsAttention === 1 ? "s" : ""} attention`
+							: "All on track"
+					}
 				/>
 				<KpiCard
-					icon={<BadgeDollarSign size={14} />}
+					icon={<BadgeDollarSign size={16} />}
+					accent="purple"
 					title="Avg Order Value"
-					value={`₵${stats.totalOrders > 0 ? (stats.totalRevenue / stats.totalOrders).toFixed(2) : '0.00'}`}
-					subtitle={`across ${stats.totalOrders} orders`}
+					value={formatCurrency(avgOrderValue)}
+					subtitle={`across ${stats.totalOrders} order${stats.totalOrders !== 1 ? "s" : ""}`}
 				/>
 			</div>
 
@@ -120,25 +135,29 @@ function ManagerKpis({
 			{wq && wq.totalQuotes > 0 && (
 				<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 					<KpiCard
-						icon={<Receipt size={14} />}
+						icon={<Receipt size={16} />}
+						accent="purple"
 						title="WhatsApp Quotes"
 						value={wq.totalQuotes}
 						subtitle={`${wq.todayQuotes} today, ${wq.thisMonthQuotes} this month`}
 					/>
 					<KpiCard
-						icon={<Banknote size={14} />}
+						icon={<Banknote size={16} />}
+						accent="green"
 						title="Quote Revenue"
-						value={`₵${wq.quoteRevenue.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-						subtitle={`₵${wq.thisMonthQuoteRevenue.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} this month`}
+						value={formatCurrency(wq.quoteRevenue, { compact: true })}
+						subtitle={`${formatCurrency(wq.thisMonthQuoteRevenue, { compact: true })} this month`}
 					/>
 					<KpiCard
-						icon={<TrendingUp size={14} />}
-						title="Quote Conversion"
+						icon={<TrendingUp size={16} />}
+						accent="blue"
+						title="Conversion Rate"
 						value={`${wq.conversionRate}%`}
-						subtitle={`${wq.paidQuotes} of ${wq.totalQuotes} quotes paid`}
+						subtitle={`${wq.paidQuotes} of ${wq.totalQuotes} paid`}
 					/>
 					<KpiCard
-						icon={<AlertCircle size={14} />}
+						icon={<AlertCircle size={16} />}
+						accent={wq.pendingQuotes > 0 ? "amber" : "gray"}
 						title="Quotes Pending"
 						value={wq.pendingQuotes}
 						subtitle={`${wq.declinedQuotes} declined, ${wq.expiredQuotes} expired`}

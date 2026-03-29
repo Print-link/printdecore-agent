@@ -40,6 +40,7 @@ export default function BranchEditPage() {
 		updateFormData,
 		updateLocationData,
 		updateOperatingHours,
+		toggleDayClosed,
 		validateAll,
 		setFormData,
 		setLocationData,
@@ -137,7 +138,9 @@ export default function BranchEditPage() {
 
 		const formattedOperatingHours: any = {};
 		Object.entries(operatingHours).forEach(([day, hours]: [string, any]) => {
-			if (hours.open && hours.close) {
+			if (hours.isClosed) {
+				formattedOperatingHours[day] = { open: hours.open || '00:00', close: hours.close || '00:00', isClosed: true };
+			} else if (hours.open && hours.close) {
 				formattedOperatingHours[day] = { open: hours.open, close: hours.close };
 			}
 		});
@@ -297,6 +300,7 @@ export default function BranchEditPage() {
 						operatingHours={operatingHours}
 						errors={errors}
 						onOperatingHoursChange={updateOperatingHours}
+						onToggleDayClosed={toggleDayClosed}
 					/>
 				</section>
 			</div>

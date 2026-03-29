@@ -21,7 +21,7 @@ export interface LocationFormData {
 }
 
 export interface OperatingHours {
-  [key: string]: { open: string; close: string };
+  [key: string]: { open: string; close: string; isClosed?: boolean };
 }
 
 const DEFAULT_OPERATING_HOURS: OperatingHours = {
@@ -75,6 +75,16 @@ export function useBranchForm() {
     }));
   };
 
+  const toggleDayClosed = (day: string) => {
+    setOperatingHours((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        isClosed: !prev[day].isClosed,
+      },
+    }));
+  };
+
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -100,7 +110,7 @@ export function useBranchForm() {
       }
     } else if (step === 3) {
       Object.entries(operatingHours).forEach(([day, hours]) => {
-        if (!hours.open || !hours.close) {
+        if (!hours.isClosed && (!hours.open || !hours.close)) {
           newErrors[`hours_${day}`] = `${day} operating hours are required`;
         }
       });
@@ -122,6 +132,7 @@ export function useBranchForm() {
     updateFormData,
     updateLocationData,
     updateOperatingHours,
+    toggleDayClosed,
     setFormData,
     setLocationData,
     setOperatingHours,

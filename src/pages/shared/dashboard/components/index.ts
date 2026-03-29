@@ -1,4 +1,5 @@
 export { DashboardHeader } from './DashboardHeader';
+export { DashboardHero } from './DashboardHero';
 export { KpiCard } from './KpiCard';
 export { KpiRow } from './KpiRow';
 export { OrderPipeline } from './OrderPipeline';
@@ -9,3 +10,4 @@ export { OrdersByDateList } from './OrdersByDateList';
 export { OrdersPanel } from './OrdersPanel';
 export { Bar } from './Bar';
 export { LegendItem } from './LegendItem';
+export { RevenueBarChart, OrderStatusPie, WeeklyTrendLine, CategoryRevenueBar } from './DashboardCharts';

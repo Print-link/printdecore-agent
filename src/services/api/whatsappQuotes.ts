@@ -10,6 +10,7 @@ export interface CreateQuoteParams {
   amount: number;
   currency?: string;
   branchId?: string;
+  paymentType?: "online" | "cash";
 }
 
 export interface WhatsAppQuote {

@@ -48,6 +48,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { currentStep, isActive, startWalkthrough, setStep } =
     useWalkthroughStore();
@@ -361,12 +362,24 @@ export default function AppLayout() {
 
   return (
     <div className={cn("flex h-screen overflow-hidden", t.surfaceInset)}>
-      {/* Sidebar */}
+      {/* Mobile overlay backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — hidden on mobile, shown as overlay when menu open */}
       <aside
         className={cn(
-          isSidebarCollapsed ? "w-16" : "w-64",
+          isSidebarCollapsed ? "md:w-16" : "md:w-64",
           "transition-all duration-200 flex flex-col border-r",
           t.isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200",
+          // Mobile: fixed overlay drawer
+          "fixed inset-y-0 left-0 z-50 w-64",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+          "md:translate-x-0 md:static md:z-auto",
         )}
       >
         {/* Sidebar Header */}
@@ -412,7 +425,7 @@ export default function AppLayout() {
                       ? "walkthrough-branches-nav"
                       : undefined
                   }
-                  onClick={() => navigate(item.path)}
+                  onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                   className={cn(
                     "w-full flex items-center rounded-lg transition-all relative",
                     isSidebarCollapsed
@@ -561,7 +574,7 @@ export default function AppLayout() {
                     return (
                       <div key={item.path} className="relative group">
                         <button
-                          onClick={() => navigate(item.path)}
+                          onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                           className={cn(
                             "w-full flex items-center rounded-lg transition-all relative",
                             isSidebarCollapsed
@@ -654,12 +667,23 @@ export default function AppLayout() {
         {/* Header */}
         <header
           className={cn(
-            "h-16 flex items-center justify-between px-6 border-b",
+            "h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b",
             t.isDark
               ? "bg-gray-800 border-gray-700"
               : "bg-white border-gray-200",
           )}
         >
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={cn(
+              "p-2 rounded-md md:hidden mr-2",
+              t.isDark ? "hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100 text-gray-600",
+            )}
+          >
+            <Menu size={20} />
+          </button>
+
           {selectedBranch && (
             <div className="flex items-center gap-2">
               <span className={cn("font-semibold", t.text)}>
@@ -712,11 +736,9 @@ export default function AppLayout() {
                   name={user?.name || user?.firstName || user?.email || "User"}
                   size="sm"
                 />
-                {!isSidebarCollapsed && (
-                  <span className="text-sm">
-                    {user?.name || user?.firstName || "User"}
-                  </span>
-                )}
+                <span className="text-sm hidden sm:inline">
+                  {user?.name || user?.firstName || "User"}
+                </span>
               </button>
 
               {isUserMenuOpen && (
@@ -756,7 +778,7 @@ export default function AppLayout() {
         {hasNoPaymentMethod && (
           <div
             className={cn(
-              "flex items-center gap-3 px-6 py-2.5 border-b text-sm cursor-pointer transition-colors",
+              "flex items-center gap-3 px-4 md:px-6 py-2.5 border-b text-sm cursor-pointer transition-colors",
               t.isDark
                 ? "bg-red-900/20 border-red-800/40 text-red-300 hover:bg-red-900/30"
                 : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100",
@@ -777,7 +799,7 @@ export default function AppLayout() {
         )}
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>

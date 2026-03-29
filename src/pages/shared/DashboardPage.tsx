@@ -9,11 +9,12 @@ import { Card, Button, EmptyState } from "../../components/ui";
 import { DashboardSkeleton } from "../../components/ui/skeletons";
 import {
   DashboardHeader,
+  DashboardHero,
   KpiRow,
-  RevenueOverview,
   CategoryTable,
   ActivityCalendar,
   OrdersPanel,
+  CategoryRevenueBar,
 } from "./dashboard/components";
 
 export default function DashboardPage() {
@@ -22,7 +23,6 @@ export default function DashboardPage() {
   const { isManager, isClerk, hasPermission } = usePermissions();
   const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
 
-  // All hooks called unconditionally (React rules)
   const clerkDashboardResult = useClerkDashboard();
   const managerOverviewResult = useManagerOverviewDashboard();
   const managerBranchResult = useManagerBranchDashboard(
@@ -36,48 +36,26 @@ export default function DashboardPage() {
     isManager && selectedBranch ? managerBranchResult : null;
   const dashboard = clerkDashboard || managerOverview || managerBranch;
 
-  // ─── Error / loading states ─────────────────────────────────────────
-
   if (!hasPermission(PERMISSIONS.DASHBOARD_VIEW)) {
     return (
-      <Card>
-        <EmptyState
-          title="Access denied"
-          description="You need dashboard permissions."
-        />
-      </Card>
+      <Card><EmptyState title="Access denied" description="You need dashboard permissions." /></Card>
     );
   }
 
   if (isClerk && !user?.branch_id) {
     return (
-      <Card>
-        <EmptyState
-          title="No Branch Assigned"
-          description="You are not assigned to a branch. Please contact your manager."
-        />
-      </Card>
+      <Card><EmptyState title="No Branch Assigned" description="You are not assigned to a branch." /></Card>
     );
   }
 
-  if (!dashboard) {
-    return <DashboardSkeleton />;
-  }
+  if (!dashboard) return <DashboardSkeleton />;
 
   const {
-    selectedMonth,
-    setSelectedMonth,
-    selectedDate,
-    setSelectedDate,
-    stats,
-    weeklyActivityMap,
-    ordersByDate,
-    calendarDates,
-    calendarMonthHeader,
-    calendarGridStart,
-    isLoading,
-    hasError,
-    refetchAll,
+    selectedMonth, setSelectedMonth,
+    selectedDate, setSelectedDate,
+    stats, weeklyActivityMap, ordersByDate,
+    calendarDates, calendarMonthHeader, calendarGridStart,
+    isLoading, hasError, refetchAll,
   } = dashboard;
 
   if (hasError && !isLoading && !stats) {
@@ -85,71 +63,68 @@ export default function DashboardPage() {
       <Card>
         <EmptyState
           title="Error Loading Dashboard"
-          description="Failed to load dashboard data. Please try again."
-          action={
-            <Button variant="primary" onClick={() => refetchAll()}>
-              Retry
-            </Button>
-          }
+          description="Failed to load dashboard data."
+          action={<Button variant="primary" onClick={() => refetchAll()}>Retry</Button>}
         />
       </Card>
     );
   }
 
-  // ─── Helpers ────────────────────────────────────────────────────────
-
   const toMonth = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-  // ─── Render ─────────────────────────────────────────────────────────
+  const managerStats = (managerOverview || managerBranch)?.stats as any;
+  const categoryAnalytics =
+    (managerOverview || managerBranch)?.categoryAnalytics ||
+    clerkDashboard?.categoryAnalytics ||
+    [];
 
   return (
-    <div className="flex flex-col gap-3 h-full relative">
-      <div
-        className={`flex flex-col gap-3 transition-all ${isOrdersPanelOpen ? "lg:mr-[310px]" : ""}`}
-      >
-        <DashboardHeader
-          selectedDate={selectedMonth}
-          onDateChange={setSelectedMonth}
-          onTodayClick={() => setSelectedMonth(toMonth(new Date()))}
-        />
+    <div className="flex flex-col gap-4 h-full relative">
+      <div className={`flex flex-col gap-4 transition-all ${isOrdersPanelOpen ? "lg:mr-[340px]" : ""}`}>
 
-        {isClerk && clerkDashboard?.stats && (
-          <KpiRow role="clerk" stats={clerkDashboard.stats} />
-        )}
-        {isManager && (managerOverview || managerBranch) && (
-          <KpiRow
-            role="manager"
-            stats={(managerOverview || managerBranch)!.stats as any}
+        {/* Hero Banner — managers only */}
+        {isManager && managerStats && (
+          <DashboardHero
+            stats={managerStats}
             isBranchView={!!selectedBranch}
+            activityMap={weeklyActivityMap}
+            calendarDates={calendarDates}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            onTodayClick={() => setSelectedMonth(toMonth(new Date()))}
           />
         )}
 
-        {/* <OrderPipeline {...pipelineData} /> */}
-
-        {isManager && (managerOverview || managerBranch) && (
-          <RevenueOverview
-            stats={(managerOverview || managerBranch)!.stats as any}
-            isBranchView={!!selectedBranch}
-          />
+        {/* Clerk: simple header + KPI row (no hero) */}
+        {isClerk && (
+          <>
+            <DashboardHeader
+              selectedDate={selectedMonth}
+              onDateChange={setSelectedMonth}
+              onTodayClick={() => setSelectedMonth(toMonth(new Date()))}
+            />
+            {clerkDashboard?.stats && (
+              <KpiRow role="clerk" stats={clerkDashboard.stats} />
+            )}
+          </>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {isClerk && clerkDashboard && (
+        {/* Two-column: Category performance + Calendar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left: Category table + optional revenue chart */}
+          <div className="space-y-4">
             <CategoryTable
-              categories={clerkDashboard.categoryAnalytics}
-              showRevenue={false}
+              categories={categoryAnalytics}
+              showRevenue={isManager}
               isLoading={isLoading}
             />
-          )}
-          {isManager && (managerOverview || managerBranch) && (
-            <CategoryTable
-              categories={(managerOverview || managerBranch)!.categoryAnalytics}
-              showRevenue={true}
-              isLoading={isLoading}
-            />
-          )}
+            {isManager && categoryAnalytics.length > 0 && (
+              <CategoryRevenueBar categories={categoryAnalytics} />
+            )}
+          </div>
 
+          {/* Right: Activity calendar */}
           <ActivityCalendar
             calendarDates={calendarDates}
             calendarMonthHeader={calendarMonthHeader}

@@ -41,7 +41,7 @@ export const sharedRoutes: RouteConfig[] = [
     permissions: [PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS],
   },
   {
-    path: "branch-info",
+    path: "branch-info/*",
     component: BranchInfoPage,
     permissions: [PERMISSIONS.BRANCH_VIEW],
   },

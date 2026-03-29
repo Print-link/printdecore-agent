@@ -51,6 +51,7 @@ export default function BranchCreatePage() {
 		updateFormData,
 		updateLocationData,
 		updateOperatingHours,
+		toggleDayClosed,
 		validateStep,
 	} = useBranchForm();
 
@@ -162,16 +163,12 @@ export default function BranchCreatePage() {
 		}
 
 		// Convert operating hours to the correct format (object with day keys)
-		const formattedOperatingHours: Record<
-			string,
-			{ open: string; close: string }
-		> = {};
+		const formattedOperatingHours: Record<string, any> = {};
 		Object.entries(operatingHours).forEach(([day, hours]) => {
-			if (hours.open && hours.close) {
-				formattedOperatingHours[day] = {
-					open: hours.open,
-					close: hours.close,
-				};
+			if (hours.isClosed) {
+				formattedOperatingHours[day] = { open: hours.open || '00:00', close: hours.close || '00:00', isClosed: true };
+			} else if (hours.open && hours.close) {
+				formattedOperatingHours[day] = { open: hours.open, close: hours.close };
 			}
 		});
 
@@ -217,6 +214,7 @@ export default function BranchCreatePage() {
 						operatingHours={operatingHours}
 						errors={errors}
 						onOperatingHoursChange={updateOperatingHours}
+						onToggleDayClosed={toggleDayClosed}
 					/>
 				);
 			case 4:

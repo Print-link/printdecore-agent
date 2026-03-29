@@ -1,6 +1,6 @@
 import { Card } from '../../../../components/ui';
 import { useThemeClasses } from '../../../../lib/theme';
-import { cn } from '../../../../lib/utils';
+import { cn, formatCurrency } from '../../../../lib/utils';
 import type { CategoryAnalytics, ClerkCategoryAnalytics } from '../../../../types';
 
 interface CategoryTableProps {
@@ -161,7 +161,7 @@ export function CategoryTable({ categories, showRevenue, isLoading }: CategoryTa
 											)}
 										>
 											{revenue !== undefined
-												? `₵${revenue.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+												? formatCurrency(revenue, { compact: true })
 												: '-'}
 										</td>
 									)}

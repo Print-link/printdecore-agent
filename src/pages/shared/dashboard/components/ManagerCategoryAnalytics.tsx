@@ -1,7 +1,7 @@
 import { PieChart } from '../../../../components/icons';
 import { Card } from '../../../../components/ui';
 import { useThemeClasses } from '../../../../lib/theme';
-import { cn } from '../../../../lib/utils';
+import { cn, formatCurrency } from '../../../../lib/utils';
 import type { CategoryAnalytics } from '../../../../types';
 
 interface ManagerCategoryAnalyticsProps {
@@ -81,11 +81,7 @@ export function ManagerCategoryAnalytics({
 									</div>
 									{cat.totalRevenue !== undefined && (
 										<div className="text-sm sm:text-base font-semibold text-green-500">
-											₵
-											{cat.totalRevenue.toLocaleString("en-US", {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2,
-											})}
+											{formatCurrency(cat.totalRevenue, { compact: true })}
 										</div>
 									)}
 								</div>
@@ -142,11 +138,7 @@ export function ManagerCategoryAnalytics({
 											Paid Revenue
 										</div>
 										<div className="text-xs sm:text-sm font-semibold text-green-500">
-											₵
-											{cat.paidRevenue.toLocaleString("en-US", {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2,
-											})}
+											{formatCurrency(cat.paidRevenue, { compact: true })}
 										</div>
 									</div>
 								)}

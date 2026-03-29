@@ -20,11 +20,13 @@ import SendCatalogModal from "./SendCatalogModal";
 
 interface ConversationViewProps {
   chatId: string;
+  /** Called when user taps back on mobile — returns to chat list */
+  onBack?: () => void;
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────
 
-export default function ConversationView({ chatId }: ConversationViewProps) {
+export default function ConversationView({ chatId, onBack }: ConversationViewProps) {
   const t = useThemeClasses();
   const {
     chats, messages, isLoadingMessages, typingChats,
@@ -147,7 +149,7 @@ export default function ConversationView({ chatId }: ConversationViewProps) {
         hasLabels={hasLabels}
         hasPolls={hasPolls}
         hasCatalog={hasCatalog}
-        onBack={() => setSelectedChat(null)}
+        onBack={() => { setSelectedChat(null); onBack?.(); }}
         onShowQuote={() => setShowQuoteModal(true)}
         onShowPoll={() => setShowPollModal(true)}
         onShowCatalog={() => setShowCatalogModal(true)}

@@ -30,7 +30,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 	const [selectedTime, setSelectedTime] = useState<number | null>(null);
 
 	const canMarkAsReceived = order.status === 'PAID' || order.status === 'PENDING';
-	const canMarkAsCompleted = order.status === 'RECEIVED' || order.status === 'IN_PROGRESS';
+	const canMarkAsCompleted = order.status === 'RECEIVED' || order.status === 'IN_PROGRESS' || order.status === 'QUOTED';
 
 	const handleMarkAsReceivedClick = () => {
 		setShowTimeDropdown(true);
