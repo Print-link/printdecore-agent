@@ -24,7 +24,9 @@ import {
   AgentServiceForm,
   PricingConfigForm,
   ServiceTemplateForm,
+  ArtworksView,
 } from "./services/components";
+import { Palette } from "../../components/icons";
 
 // ─── URL-driven view state ───────────────────────────────────────────
 
@@ -97,6 +99,7 @@ export default function ServicesPage() {
   const nav = useServiceNav();
 
   const canManageServices = hasPermission(PERMISSIONS.SERVICES_MANAGE);
+  const [activeTab, setActiveTab] = useState<"services" | "artworks">("services");
 
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ServiceSubCategory[]>([]);
@@ -510,7 +513,7 @@ export default function ServicesPage() {
                 </p>
               </div>
             </div>
-            {nav.view === "agent-services" && canManageServices && (
+            {activeTab === "services" && nav.view === "agent-services" && canManageServices && (
               <Button
                 onClick={() => {
                   setEditingService(null);
@@ -523,7 +526,41 @@ export default function ServicesPage() {
             )}
           </div>
 
-          {/* ── Breadcrumb ── */}
+          {/* ── Tabs: Services | Art Works ── */}
+          <div
+            className={cn(
+              "flex gap-1 p-1 rounded-xl mb-3",
+              t.isDark ? "bg-gray-800/60" : "bg-gray-100",
+            )}
+          >
+            <button
+              onClick={() => setActiveTab("services")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all",
+                activeTab === "services"
+                  ? cn("shadow-sm", t.isDark ? "bg-gray-700 text-white" : "bg-white text-gray-900")
+                  : cn(t.isDark ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"),
+              )}
+            >
+              <Wrench size={16} />
+              Services
+            </button>
+            <button
+              onClick={() => setActiveTab("artworks")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all",
+                activeTab === "artworks"
+                  ? cn("shadow-sm", t.isDark ? "bg-gray-700 text-white" : "bg-white text-gray-900")
+                  : cn(t.isDark ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"),
+              )}
+            >
+              <Palette size={16} />
+              Art Works
+            </button>
+          </div>
+
+          {/* ── Breadcrumb (services tab only) ── */}
+          {activeTab === "services" && (
           <div
             className={cn(
               "flex items-center gap-1 flex-wrap px-3 py-2 rounded-lg",
@@ -558,8 +595,17 @@ export default function ServicesPage() {
               </div>
             ))}
           </div>
+          )}
         </div>
 
+        {/* ── Art Works Tab ── */}
+        {activeTab === "artworks" && branchId && (
+          <ArtworksView branchId={branchId} canManage={canManageServices} />
+        )}
+
+        {/* ── Services Tab ── */}
+        {activeTab === "services" && (
+        <>
         {/* ── Error ── */}
         {error && (
           <div
@@ -626,6 +672,9 @@ export default function ServicesPage() {
               />
             )}
           </>
+        )}
+
+        </>
         )}
 
         {/* ── Modals ── */}

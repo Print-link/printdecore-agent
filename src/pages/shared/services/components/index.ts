@@ -5,4 +5,5 @@ export { AgentServicesView } from './AgentServicesView';
 export { AgentServiceForm } from './AgentServiceForm';
 export { ServiceTemplateForm } from './ServiceTemplateForm';
 export { PricingConfigForm } from "./pricing-config";
+export { ArtworksView } from "./ArtworksView";
 

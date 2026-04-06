@@ -12,6 +12,7 @@ export { reportApi } from "./reports";
 export { whatsappQuoteApi } from "./whatsappQuotes";
 export { whatsappFeaturesApi } from "./whatsappFeatures";
 export { discountApi } from "./discounts";
+export { artworkApi } from "./artworks";
 
 // Backward-compatible combined export
 // Existing code imports: import { apiService } from '../services/api'
@@ -28,6 +29,7 @@ import { reportApi } from "./reports";
 import { whatsappQuoteApi } from "./whatsappQuotes";
 import { whatsappFeaturesApi } from "./whatsappFeatures";
 import { discountApi } from "./discounts";
+import { artworkApi } from "./artworks";
 
 export const apiService = {
 	...authApi,
@@ -43,4 +45,5 @@ export const apiService = {
 	...whatsappQuoteApi,
 	...whatsappFeaturesApi,
 	...discountApi,
+	...artworkApi,
 };
