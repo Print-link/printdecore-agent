@@ -66,8 +66,6 @@ const TIER_CONFIG: Record<
   },
 };
 
-// ─── Metric Bar ─────────────────────────────────────────────────────────
-
 function MetricBar({
   label,
   value,
