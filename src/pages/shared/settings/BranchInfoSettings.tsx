@@ -68,7 +68,7 @@ export default function BranchInfoSettings() {
         name: branch.name,
         phoneNumber: branch.phoneNumber || "",
         branchEmailAddress: branch.branchEmailAddress || "",
-        status: branch.status,
+        status: branch.status || "active",
         isMainBranch: branch.isMainBranch,
         branchCoverImage: branch.branchCoverImage || null,
       });
@@ -128,6 +128,7 @@ export default function BranchInfoSettings() {
       if (user?.id) {
         queryClient.invalidateQueries({ queryKey: ["branches", user.id] });
         queryClient.invalidateQueries({ queryKey: ["branch", branch?.id] });
+        queryClient.invalidateQueries({ queryKey: ["branchInfo", branch?.id] });
       }
       selectBranch(updatedBranch);
       success("Branch settings updated", "Settings Saved", 4000);
