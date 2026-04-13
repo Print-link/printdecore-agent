@@ -22,8 +22,6 @@ interface BranchPerformance {
   repeatCustomerRate: number;
 }
 
-// ─── Tier Visual Config ─────────────────────────────────────────────────
-
 const TIER_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; bgDark: string }
@@ -110,8 +108,6 @@ function MetricBar({
     </div>
   );
 }
-
-// ─── Branch Card ────────────────────────────────────────────────────────
 
 function BranchPerformanceCard({ perf }: { perf: BranchPerformance }) {
   const t = useThemeClasses();
@@ -200,8 +196,6 @@ function BranchPerformanceCard({ perf }: { perf: BranchPerformance }) {
     </Card>
   );
 }
-
-// ─── Main Page ──────────────────────────────────────────────────────────
 
 export default function PerformancePage() {
   const t = useThemeClasses();

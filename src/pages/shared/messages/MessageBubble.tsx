@@ -7,6 +7,7 @@ import type { WhatsAppMessage, MessageStatus } from "../../../types/whatsapp";
 import { useThemeClasses } from "../../../lib/theme";
 import { cn } from "../../../lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
+import InlineFilePreview from "./InlineFilePreview";
 
 // ─── Status Tick ────────────────────────────────────────────────────────
 
@@ -287,17 +288,6 @@ function MessageBubbleInner({
 }: MessageBubbleProps) {
   const t = useThemeClasses();
 
-  const DownloadButton = ({ url, filename }: { url: string; filename: string }) => (
-    <button
-      onClick={() => onSaveFile(url, filename, message.id)}
-      disabled={downloadingFile}
-      className="inline-flex items-center gap-1 text-xs text-amber-400 hover:underline mt-1 bg-transparent border-none cursor-pointer p-0"
-    >
-      {downloadingFile ? <Spinner size="xs" /> : <Download size={12} />}
-      {downloadingFile ? "Saving..." : "Download"}
-    </button>
-  );
-
   return (
     <div
       id={`msg-${message.id}`}
@@ -353,39 +343,14 @@ function MessageBubbleInner({
           {message.hasMedia && (
             <div className="mb-2">
               {message.mediaUrl ? (
-                <>
-                  {message.mediaType === "video" && (
-                    <div>
-                      <video src={message.mediaUrl} controls className="max-w-full rounded-lg" style={{ maxHeight: "300px" }} />
-                      <DownloadButton url={message.mediaUrl} filename={message.mediaFilename || "video"} />
-                    </div>
-                  )}
-                  {message.mediaType === "audio" && (
-                    <div>
-                      <audio src={message.mediaUrl} controls className="w-full" />
-                      <DownloadButton url={message.mediaUrl} filename={message.mediaFilename || "audio"} />
-                    </div>
-                  )}
-                  {(message.mediaType === "document" || message.mediaType === "sticker") && (
-                    <div className={cn("p-3 rounded-lg border", t.isDark ? "bg-gray-600 border-gray-500" : "bg-gray-100 border-gray-300")}>
-                      <div className="flex items-center gap-3">
-                        <FileText size={28} className="flex-shrink-0 text-amber-500" />
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm font-medium truncate", t.text)}>{message.mediaFilename || message.body || "Document"}</p>
-                          <DownloadButton url={message.mediaUrl} filename={message.mediaFilename || "document"} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {(!message.mediaType || message.mediaType === "image") && (
-                    <div>
-                      <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer">
-                        <img src={message.mediaUrl} alt="Media" className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity" style={{ maxHeight: "400px", objectFit: "contain" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                      </a>
-                      <DownloadButton url={message.mediaUrl} filename={message.mediaFilename || "image"} />
-                    </div>
-                  )}
-                </>
+                <InlineFilePreview
+                  url={message.mediaUrl}
+                  filename={message.mediaFilename || undefined}
+                  mediaType={message.mediaType || undefined}
+                  isFromMe={message.isFromMe}
+                  onSave={() => onSaveFile(message.mediaUrl!, message.mediaFilename || "file", message.id)}
+                  downloading={downloadingFile}
+                />
               ) : (
                 <div className={cn("p-3 rounded-lg border", t.isDark ? "bg-gray-600 border-gray-500" : "bg-gray-100 border-gray-300")}>
                   <div className="flex items-center gap-3">
