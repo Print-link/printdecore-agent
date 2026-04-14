@@ -1,25 +1,17 @@
-/**
- * Overview Hero Banner
- *
- * Distinct from the branch DashboardHero (teal gradient).
- * Uses a warm dark amber/charcoal gradient for the multi-branch overview.
- *
- * Shows:
- *   - Greeting + "All Branches" subtitle
- *   - Total revenue across all branches
- *   - Today's revenue badge
- *   - Branch count + active count
- *   - 4 KPI stats: Total Orders, Today's Revenue, Branches, WhatsApp Quotes
- */
-
-import { BarChart } from "@mui/x-charts/BarChart";
 import { useAuthStore } from "../../stores/authStore";
-import { formatCurrency } from "../../lib/utils";
-import type { ManagerOverviewStats, BranchPerformanceStats } from "../../types";
+import { cn, formatCurrency, formatCount } from "../../lib/utils";
+import { useThemeClasses } from "../../lib/theme";
+import {
+  ShoppingBag,
+  BarChart3,
+  TrendingUp,
+  Store,
+} from "../../components/icons";
+import type { ManagerOverviewStats } from "../../types";
+import type { IconProps } from "../../components/icons";
 
 interface OverviewHeroProps {
   stats: ManagerOverviewStats;
-  branches: BranchPerformanceStats[];
 }
 
 function getGreeting(): string {
@@ -29,142 +21,106 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-export default function OverviewHero({ stats, branches }: OverviewHeroProps) {
+interface KpiItemProps {
+  label: string;
+  value: string;
+  sub: string;
+  icon: (props: IconProps) => React.ReactNode;
+  iconColor: string;
+  iconBg: string;
+}
+
+function KpiItem({ label, value, sub, icon: Icon, iconColor, iconBg }: KpiItemProps) {
+  const t = useThemeClasses();
+  return (
+    <div className={cn("flex items-center gap-3 p-4 rounded-xl border", t.surface)}>
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon size={20} style={{ color: iconColor }} />
+      </div>
+      <div className="min-w-0">
+        <p className={cn("text-[10px] uppercase tracking-wider font-medium", t.textTertiary)}>
+          {label}
+        </p>
+        <p className={cn("text-lg font-bold tabular-nums leading-tight", t.text)}>
+          {value}
+        </p>
+        <p className={cn("text-[10px]", t.textTertiary)}>{sub}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function OverviewHero({ stats }: OverviewHeroProps) {
   const { user } = useAuthStore();
+  const t = useThemeClasses();
   const firstName = user?.firstName || user?.name?.split(" ")[0] || "Manager";
 
-  const topBranches = [...branches]
-    .sort((a, b) => b.totalRevenue - a.totalRevenue)
-    .slice(0, 5);
-
-  const wq = stats.whatsappQuotes;
-
-  const kpis = [
-    {
-      label: "Total Orders",
-      value: String(stats.totalOrders),
-      sub: `${stats.todayOrders} today`,
-    },
-    {
-      label: "Today's Revenue",
-      value: formatCurrency(stats.todayRevenue, { compact: true }),
-      sub: `${stats.todayOrders} order${stats.todayOrders !== 1 ? "s" : ""}`,
-    },
-    {
-      label: "Branches",
-      value: String((stats as any).branchCount || branches.length),
-      sub: `${(stats as any).activeBranchCount || branches.length} active`,
-    },
-    {
-      label: "WhatsApp Quotes",
-      value: wq ? String(wq.totalQuotes) : "0",
-      sub:
-        wq && wq.totalQuotes > 0
-          ? `${wq.paidQuotes} paid · ${formatCurrency(wq.quoteRevenue, { compact: true })}`
-          : "No quotes yet",
-    },
-  ];
+  const avgOrderValue =
+    stats.totalOrders > 0 ? stats.totalRevenue / stats.totalOrders : 0;
+  const completionRate =
+    stats.totalOrders > 0
+      ? ((stats.completedOrders / stats.totalOrders) * 100).toFixed(0)
+      : "0";
 
   return (
-    <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-[#2a1f0e] to-[#1a1408] text-white">
-      {/* Top section */}
-      <div className="relative px-5 pt-5 pb-0 md:px-8 md:pt-6">
-        {/* Header */}
-        <div className="mb-1">
-          <h1 className="text-lg md:text-xl font-bold">
+    <div className="space-y-4">
+      {/* Greeting + summary */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={cn("text-xl font-bold", t.text)}>
             {getGreeting()}, {firstName}
           </h1>
-          <p className="text-xs text-white/40 mt-0.5">All branches overview</p>
+          <p className={cn("text-xs mt-0.5", t.textTertiary)}>
+            Here's how your business is performing across all branches
+          </p>
         </div>
-
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mt-3 md:mt-4">
-          {/* Revenue */}
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">
-              Total Revenue
-            </p>
-            <p className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              {formatCurrency(stats.totalRevenue, {
-                compact: stats.totalRevenue >= 100000,
-              })}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              {stats.todayRevenue > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
-                  +{formatCurrency(stats.todayRevenue, { compact: true })} today
-                </span>
-              )}
-              <span className="text-[10px] text-white/40">
-                {formatCurrency(stats.thisMonthRevenue, { compact: true })} this
-                month
-              </span>
-            </div>
-          </div>
-
-          {/* Mini branch revenue bar chart */}
-          {topBranches.length > 1 && (
-            <div
-              className="w-full md:w-[280px] shrink-0"
-              style={{ height: 120 }}
-            >
-              <BarChart
-                height={120}
-                xAxis={[
-                  {
-                    data: topBranches.map((b) =>
-                      b.branchName.length > 8
-                        ? b.branchName.slice(0, 8) + "…"
-                        : b.branchName,
-                    ),
-                    scaleType: "band",
-                    tickLabelStyle: {
-                      fontSize: 8,
-                      fill: "rgba(255,255,255,0.35)",
-                    },
-                  },
-                ]}
-                yAxis={[
-                  {
-                    tickLabelStyle: { fontSize: 0 },
-                    disableLine: true,
-                    disableTicks: true,
-                  },
-                ]}
-                series={[
-                  {
-                    data: topBranches.map((b) => b.totalRevenue),
-                    color: "#fbbf24",
-                  },
-                ]}
-                grid={{ horizontal: false }}
-                hideLegend
-                margin={{ left: 0, right: 0, top: 5, bottom: 25 }}
-                borderRadius={4}
-                sx={{
-                  "& .MuiChartsAxis-line": { stroke: "transparent" },
-                  "& .MuiChartsAxis-tick": { stroke: "transparent" },
-                  "& .MuiBarElement-root": { opacity: 0.7 },
-                }}
-              />
-            </div>
-          )}
+        <div className="text-right hidden sm:block">
+          <p className={cn("text-2xl font-extrabold tabular-nums", t.text)}>
+            {formatCurrency(stats.totalRevenue, {
+              compact: stats.totalRevenue >= 100000,
+            })}
+          </p>
+          <p className={cn("text-[10px]", t.textTertiary)}>Total Revenue</p>
         </div>
       </div>
 
-      {/* KPI stats bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 border-t border-white/10 mt-3">
-        {kpis.map((kpi, i) => (
-          <div
-            key={kpi.label}
-            className={`px-5 py-3 md:px-8 md:py-4 ${i < kpis.length - 1 ? "border-r border-white/10" : ""} ${i < 2 ? "border-b md:border-b-0 border-white/10" : ""}`}
-          >
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
-              {kpi.label}
-            </p>
-            <p className="text-xl md:text-2xl font-bold">{kpi.value}</p>
-            <p className="text-[10px] text-white/40 mt-0.5">{kpi.sub}</p>
-          </div>
-        ))}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiItem
+          label="This Month"
+          value={formatCurrency(stats.thisMonthRevenue, { compact: true })}
+          sub={`${stats.thisMonthOrders} orders`}
+          icon={TrendingUp}
+          iconColor="#fbbf24"
+          iconBg={t.isDark ? "rgba(251,191,36,0.12)" : "rgba(251,191,36,0.1)"}
+        />
+        <KpiItem
+          label="Total Orders"
+          value={formatCount(stats.totalOrders)}
+          sub={`${stats.todayOrders} today`}
+          icon={ShoppingBag}
+          iconColor="#3b82f6"
+          iconBg={t.isDark ? "rgba(59,130,246,0.12)" : "rgba(59,130,246,0.1)"}
+        />
+        <KpiItem
+          label="Avg. Order Value"
+          value={formatCurrency(avgOrderValue, { compact: true })}
+          sub={`${completionRate}% completion rate`}
+          icon={BarChart3}
+          iconColor="#10b981"
+          iconBg={t.isDark ? "rgba(16,185,129,0.12)" : "rgba(16,185,129,0.1)"}
+        />
+        <KpiItem
+          label="Branches"
+          value={String(stats.branchCount)}
+          sub={`${stats.activeBranchCount} active`}
+          icon={Store}
+          iconColor="#8b5cf6"
+          iconBg={t.isDark ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.1)"}
+        />
       </div>
     </div>
   );

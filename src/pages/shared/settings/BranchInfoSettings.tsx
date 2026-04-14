@@ -40,6 +40,8 @@ export default function BranchInfoSettings() {
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
 
+  console.log("BranchInfoSettings render", { branch });
+
   const {
     formData,
     locationData,

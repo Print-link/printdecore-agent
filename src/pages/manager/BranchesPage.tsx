@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+// import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
@@ -9,44 +9,25 @@ import { BranchesHeader, BranchesList } from "./branches/components";
 import { BranchTransitionOverlay } from "../../components/shared/BranchTransitionOverlay";
 import { BranchesListSkeleton } from "../../components/ui/skeletons";
 import type { Branch } from "../../types";
+import {
+  useDeletBranch,
+  useGetBranches,
+} from "../../hooks/queries/useBranches";
+import AccessDeniedFallback from "../../components/ui/access-denied-fallback";
+import { AnimatedPopup } from "../../components/ui/prompt";
 
 export default function BranchesPage() {
   const { theme } = useTheme();
   const { user } = useAuthStore();
   const { selectBranch, setLoading, setError } = useBranchStore();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const [transitionBranch, setTransitionBranch] = useState<Branch | null>(null);
   const [showTransition, setShowTransition] = useState(false);
-
-  const {
-    data: branches = [],
-    isLoading: isLoadingBranches,
-    error: branchesError,
-  } = useQuery({
-    queryKey: ["branches", user?.id],
-    queryFn: () => apiService.getAllBranches(user!.id),
-    enabled: user?.role === "manager" && !!user?.id, // Only fetch if user is manager
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-  });
-
-  if (user?.role !== "manager" || !user?.id) {
-    return (
-      <div
-        className={`p-6 rounded-lg ${
-          theme === "dark"
-            ? "bg-gray-800 border border-gray-700"
-            : "bg-white border border-gray-200"
-        }`}
-      >
-        <p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-          Access denied. Manager role required.
-        </p>
-      </div>
-    );
-  }
+  const { branches, branchesError, isLoading } = useGetBranches();
+  const deletBranch = useDeletBranch();
 
   const handleBranchClick = async (branch: Branch) => {
     try {
@@ -88,31 +69,28 @@ export default function BranchesPage() {
     navigate(`/app/branches/edit/${branch.id}`);
   };
 
-  const handleDeleteBranch = async (branch: Branch) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete "${branch.name}"? This action cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+  const handleDeleteBranch = useCallback((branch: Branch) => {
+    setBranchToDelete(branch);
+  }, []);
 
-    try {
-      setLoading(true);
-      setError(null);
+  const confirmDeleteBranch = useCallback(() => {
+    if (!branchToDelete) return;
+    setError(null);
+    deletBranch.mutate(branchToDelete.id, {
+      onError: (error) => {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to delete branch";
+        setError(errorMessage);
+      },
+    });
+    setBranchToDelete(null);
+  }, [branchToDelete, deletBranch, setError]);
 
-      await apiService.deleteBranch(branch.id);
-      queryClient.invalidateQueries({ queryKey: ["branches", user.id] });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to delete branch";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (user?.role !== "manager" || !user?.id) {
+    return <AccessDeniedFallback />;
+  }
 
-  if (isLoadingBranches && branches.length === 0) {
+  if (isLoading || (deletBranch.isPending && branches.length === 0)) {
     return (
       <div className="p-3 h-full overflow-auto">
         <BranchesListSkeleton />
@@ -154,6 +132,16 @@ export default function BranchesPage() {
           onDeleteBranch={handleDeleteBranch}
         />
       </div>
+      <AnimatedPopup
+        visible={!!branchToDelete}
+        onDismiss={() => setBranchToDelete(null)}
+        variant="warning"
+        title="Delete Branch"
+        description={`Are you sure you want to delete "${branchToDelete?.name}"? This action cannot be undone.`}
+        onConfirm={confirmDeleteBranch}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
     </>
   );
 }

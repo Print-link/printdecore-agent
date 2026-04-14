@@ -9,6 +9,7 @@ import type {
 	WeeklyActivityItem,
 	BranchPerformanceStats,
 	BranchReview,
+	MonthlyRevenueTrend,
 } from "../../types";
 
 async function getClerkDashboardStats(
@@ -111,6 +112,17 @@ async function getManagerOverviewReviews(limit?: number): Promise<BranchReview[]
 	return response.data.data;
 }
 
+async function getManagerOverviewMonthlyRevenue(
+	months?: number
+): Promise<MonthlyRevenueTrend[]> {
+	const params = months ? { months } : {};
+	const response = await apiClient.get(
+		"/manager/dashboard/overview/monthly-revenue",
+		{ params }
+	);
+	return response.data.data;
+}
+
 async function getManagerBranchStats(
 	branchId: string,
 	filters?: {
@@ -163,6 +175,7 @@ export const dashboardApi = {
 	getManagerOverviewCategoryAnalytics,
 	getManagerOverviewWeeklyActivity,
 	getManagerOverviewReviews,
+	getManagerOverviewMonthlyRevenue,
 	getManagerBranchStats,
 	getManagerBranchCategoryAnalytics,
 	getManagerBranchWeeklyActivity,

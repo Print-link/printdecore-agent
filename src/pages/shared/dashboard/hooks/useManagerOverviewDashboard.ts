@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../../../../services/api';
-import type { WeeklyActivityItem } from "../../../../types";
+import type { WeeklyActivityItem, MonthlyRevenueTrend } from "../../../../types";
 
 interface DashboardFilters {
   startDate?: string;
@@ -46,6 +46,17 @@ export function useManagerOverviewDashboard() {
     staleTime: 60000,
   });
 
+  // Fetch monthly revenue trend
+  const {
+    data: monthlyRevenue,
+    isLoading: monthlyLoading,
+    refetch: refetchMonthly,
+  } = useQuery<MonthlyRevenueTrend[]>({
+    queryKey: ['managerOverview', 'monthlyRevenue'],
+    queryFn: () => apiService.getManagerOverviewMonthlyRevenue(12),
+    staleTime: 60000,
+  });
+
   // Fetch weekly activity
   const {
     data: weeklyActivity,
@@ -59,7 +70,7 @@ export function useManagerOverviewDashboard() {
     staleTime: 60000,
   });
 
-  const isLoading = statsLoading || categoryLoading || weeklyLoading;
+  const isLoading = statsLoading || categoryLoading || weeklyLoading || monthlyLoading;
   const hasError = statsError || categoryError || weeklyError;
 
   // Process weekly activity for calendar
@@ -127,6 +138,7 @@ export function useManagerOverviewDashboard() {
       activeBranchCount: 0,
     },
     categoryAnalytics: categoryAnalytics || [],
+    monthlyRevenue: monthlyRevenue || [],
     weeklyActivity: weeklyActivity || [],
     weeklyActivityMap,
     ordersByDate: [], // Overview doesn't have orders by date (no specific branch)
@@ -142,10 +154,12 @@ export function useManagerOverviewDashboard() {
     refetchCategory,
     refetchWeekly,
     refetchOrdersByDate: () => {}, // No-op for overview
+    refetchMonthly,
     refetchAll: () => {
       refetchStats();
       refetchCategory();
       refetchWeekly();
+      refetchMonthly();
     },
   };
 }

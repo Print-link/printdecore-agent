@@ -1,29 +1,31 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
 import { usePermissions, PERMISSIONS } from "../../hooks/usePermissions";
 import { apiService } from "../../services/api";
-import {
-  Star,
-  ArrowRight,
-  Clock,
-  Check,
-  ShoppingBag,
-} from "../../components/icons";
+import { Star, ArrowRight } from "../../components/icons";
 import type {
   BranchPerformanceStats,
   ManagerOverviewStats,
-  ManagerBranchStats,
+  MonthlyRevenueTrend,
+  CategoryAnalytics,
+  WeeklyActivityItem,
 } from "../../types";
 import { Card, EmptyState } from "../../components/ui";
 import { OverviewSkeleton } from "../../components/ui/skeletons";
 import { useThemeClasses } from "../../lib/theme";
 import { cn, formatCurrency } from "../../lib/utils";
 import OverviewHero from "./OverviewHero";
+import {
+  MonthlyRevenueHistogram,
+  BranchRevenuePie,
+  OrderStatusDonut,
+  CategoryRevenueChart,
+  DailyActivityTrend,
+} from "./overview/OverviewCharts";
 
-const COLORS = [
+const RANK_COLORS = [
   "#fbbf24",
   "#3b82f6",
   "#10b981",
@@ -33,28 +35,21 @@ const COLORS = [
 ];
 
 export default function OverviewPage() {
-  const { user } = useAuthStore();
   const { selectBranch } = useBranchStore();
   const navigate = useNavigate();
   const t = useThemeClasses();
-  const { isManager, isClerk, hasPermission } = usePermissions();
+  const { isManager, hasPermission } = usePermissions();
 
-  const clerkBranchId = isClerk ? user?.branch_id : undefined;
+  // ── Data fetching ──────────────────────────────────────────────────
 
-  const { data: stats, isLoading: isLoadingStats } = useQuery<
-    ManagerOverviewStats | ManagerBranchStats
-  >({
-    queryKey: isManager
-      ? ["managerOverview", "stats"]
-      : ["managerBranch", "stats", clerkBranchId],
-    queryFn: () =>
-      isManager
-        ? apiService.getManagerOverviewStats()
-        : apiService.getManagerBranchStats(clerkBranchId!),
-    enabled: isManager || !!clerkBranchId,
-    staleTime: 30000,
-    refetchInterval: 60000,
-  });
+  const { data: stats, isLoading: isLoadingStats } =
+    useQuery<ManagerOverviewStats>({
+      queryKey: ["managerOverview", "stats"],
+      queryFn: () => apiService.getManagerOverviewStats(),
+      enabled: isManager,
+      staleTime: 30000,
+      refetchInterval: 60000,
+    });
 
   const { data: branchBreakdown = [] } = useQuery<BranchPerformanceStats[]>({
     queryKey: ["managerOverview", "branches"],
@@ -63,12 +58,41 @@ export default function OverviewPage() {
     staleTime: 30000,
   });
 
+  const { data: monthlyRevenue = [] } = useQuery<MonthlyRevenueTrend[]>({
+    queryKey: ["managerOverview", "monthlyRevenue"],
+    queryFn: () => apiService.getManagerOverviewMonthlyRevenue(12),
+    enabled: isManager,
+    staleTime: 60000,
+  });
+
+  const { data: categoryAnalytics = [] } = useQuery<CategoryAnalytics[]>({
+    queryKey: ["managerOverview", "categoryAnalytics"],
+    queryFn: () => apiService.getManagerOverviewCategoryAnalytics(30),
+    enabled: isManager,
+    staleTime: 60000,
+  });
+
+  const { data: weeklyActivity = [] } = useQuery<WeeklyActivityItem[]>({
+    queryKey: ["managerOverview", "weeklyActivity"],
+    queryFn: () => {
+      const now = new Date();
+      return apiService.getManagerOverviewWeeklyActivity(
+        String(now.getMonth() + 1),
+        String(now.getFullYear()),
+      );
+    },
+    enabled: isManager,
+    staleTime: 60000,
+  });
+
   const { data: reviews = [] } = useQuery({
     queryKey: ["managerOverview", "reviews"],
     queryFn: () => apiService.getManagerOverviewReviews(5),
     enabled: isManager,
     staleTime: 60000,
   });
+
+  // ── Derived data ───────────────────────────────────────────────────
 
   const sortedBranches = useMemo(
     () => [...branchBreakdown].sort((a, b) => b.totalRevenue - a.totalRevenue),
@@ -84,6 +108,8 @@ export default function OverviewPage() {
     selectBranch({ id: branch.branchId, name: branch.branchName } as any);
     navigate("/app/dashboard");
   };
+
+  // ── Guards ─────────────────────────────────────────────────────────
 
   if (
     !hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)
@@ -102,16 +128,26 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-5">
-      {/* Hero Banner */}
-      {isManager && stats && (
-        <OverviewHero
-          stats={stats as ManagerOverviewStats}
-          branches={branchBreakdown}
-        />
-      )}
+      {/* KPI Hero */}
+      {stats && <OverviewHero stats={stats} />}
 
-      {/* Branch Performance Table */}
-      {isManager && sortedBranches.length > 0 && (
+      {/* Row 1: Revenue Histogram (full width) */}
+      <MonthlyRevenueHistogram data={monthlyRevenue} />
+
+      {/* Row 2: Order Status Pie + Branch Revenue Pie */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {stats && <OrderStatusDonut stats={stats} />}
+        <BranchRevenuePie branches={branchBreakdown} />
+      </div>
+
+      {/* Row 3: Category Bar + Daily Activity Line */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <CategoryRevenueChart categories={categoryAnalytics} />
+        <DailyActivityTrend activity={weeklyActivity} />
+      </div>
+
+      {/* Row 4: Branch Performance Table */}
+      {sortedBranches.length > 0 && (
         <div
           className={cn(
             "rounded-xl border overflow-hidden",
@@ -121,12 +157,13 @@ export default function OverviewPage() {
           )}
         >
           <div className="px-5 py-4 md:px-6">
-            <h3 className={cn("text-sm font-bold", t.text)}>
+            <h3 className={cn("text-sm font-semibold", t.text)}>
               Branch Performance
             </h3>
             <p className={cn("text-xs mt-0.5", t.textTertiary)}>
               {branchBreakdown.length} branch
-              {branchBreakdown.length !== 1 ? "es" : ""} — click to view details
+              {branchBreakdown.length !== 1 ? "es" : ""} — click to view
+              details
             </p>
           </div>
 
@@ -160,30 +197,23 @@ export default function OverviewPage() {
                   </th>
                   <th
                     className={cn(
-                      "text-center py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider hidden lg:table-cell",
-                      t.textTertiary,
-                    )}
-                  >
-                    Status
-                  </th>
-                  <th
-                    className={cn(
                       "text-center py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider hidden sm:table-cell",
                       t.textTertiary,
                     )}
                   >
                     Rating
                   </th>
-                  <th className={cn("py-2.5 px-4")} />
+                  <th className="py-2.5 px-4" />
                 </tr>
               </thead>
               <tbody>
                 {sortedBranches.map((branch, i) => {
                   const share =
                     totalAllRevenue > 0
-                      ? ((branch.totalRevenue / totalAllRevenue) * 100).toFixed(
-                          1,
-                        )
+                      ? (
+                          (branch.totalRevenue / totalAllRevenue) *
+                          100
+                        ).toFixed(1)
                       : "0";
                   return (
                     <tr
@@ -197,14 +227,13 @@ export default function OverviewPage() {
                           : "hover:bg-amber-50/50",
                       )}
                     >
-                      {/* Branch */}
                       <td className="py-3 px-5 md:px-6">
                         <div className="flex items-center gap-3">
                           <div
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
                             style={{
-                              backgroundColor: `${COLORS[i % COLORS.length]}20`,
-                              color: COLORS[i % COLORS.length],
+                              backgroundColor: `${RANK_COLORS[i % RANK_COLORS.length]}20`,
+                              color: RANK_COLORS[i % RANK_COLORS.length],
                             }}
                           >
                             {i + 1}
@@ -224,8 +253,6 @@ export default function OverviewPage() {
                           </div>
                         </div>
                       </td>
-
-                      {/* Revenue */}
                       <td className="py-3 px-4 text-right">
                         <p className={cn("font-bold text-xs", t.text)}>
                           {formatCurrency(branch.totalRevenue, {
@@ -242,18 +269,13 @@ export default function OverviewPage() {
                             className="h-full rounded-full"
                             style={{
                               width: `${totalAllRevenue > 0 ? (branch.totalRevenue / totalAllRevenue) * 100 : 0}%`,
-                              backgroundColor: COLORS[i % COLORS.length],
+                              backgroundColor:
+                                RANK_COLORS[i % RANK_COLORS.length],
                             }}
                           />
                         </div>
                       </td>
-
-                      {/* Orders */}
-                      <td
-                        className={cn(
-                          "py-3 px-4 text-right hidden md:table-cell",
-                        )}
-                      >
+                      <td className="py-3 px-4 text-right hidden md:table-cell">
                         <p className={cn("font-semibold text-xs", t.text)}>
                           {branch.totalOrders}
                         </p>
@@ -261,34 +283,6 @@ export default function OverviewPage() {
                           {branch.todayOrders} today
                         </p>
                       </td>
-
-                      {/* Status badges */}
-                      <td className="py-3 px-4 hidden lg:table-cell">
-                        <div className="flex items-center justify-center gap-1 flex-wrap">
-                          {branch.pendingOrders > 0 && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                              <Clock size={9} /> {branch.pendingOrders}
-                            </span>
-                          )}
-                          {branch.inProgressOrders > 0 && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                              <ShoppingBag size={9} /> {branch.inProgressOrders}
-                            </span>
-                          )}
-                          {branch.completedOrders > 0 && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                              <Check size={9} /> {branch.completedOrders}
-                            </span>
-                          )}
-                          {branch.totalOrders === 0 && (
-                            <span className={cn("text-[10px]", t.textTertiary)}>
-                              —
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Rating */}
                       <td className="py-3 px-4 text-center hidden sm:table-cell">
                         {branch.averageRating > 0 ? (
                           <div className="flex items-center justify-center gap-1">
@@ -305,8 +299,6 @@ export default function OverviewPage() {
                           </span>
                         )}
                       </td>
-
-                      {/* Arrow */}
                       <td className="py-3 px-4">
                         <ArrowRight size={14} className={t.textTertiary} />
                       </td>
@@ -319,8 +311,8 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* Recent Reviews */}
-      {isManager && reviews.length > 0 && (
+      {/* Row 5: Recent Reviews */}
+      {reviews.length > 0 && (
         <div
           className={cn(
             "rounded-xl border p-5 md:p-6",
@@ -329,7 +321,7 @@ export default function OverviewPage() {
               : "bg-white border-gray-200",
           )}
         >
-          <h3 className={cn("text-sm font-bold mb-3", t.text)}>
+          <h3 className={cn("text-sm font-semibold mb-3", t.text)}>
             Recent Reviews
           </h3>
           <div className="space-y-3">

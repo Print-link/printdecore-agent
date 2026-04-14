@@ -122,6 +122,13 @@ export interface BranchPerformanceStats {
   reviewCount: number;
 }
 
+export interface MonthlyRevenueTrend {
+  month: string;
+  label: string;
+  revenue: number;
+  orders: number;
+}
+
 export interface ClerkCategoryAnalytics {
   categoryId: string;
   categoryName: string;
