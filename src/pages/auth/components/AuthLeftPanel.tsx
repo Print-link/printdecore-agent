@@ -45,7 +45,7 @@ export default function AuthLeftPanel({ isRegister }: AuthLeftPanelProps) {
           </h1>
           <p className="text-gray-300 text-lg mb-8">
             {isRegister
-              ? "Join the leading marketplace for print vendors in Africa. Setup takes less than 5 minutes."
+              ? "Become a Printdecore production partner in Africa. Setup takes less than 5 minutes."
               : "Manage your orders, track revenue, and grow your printing business from your dashboard."}
           </p>
 

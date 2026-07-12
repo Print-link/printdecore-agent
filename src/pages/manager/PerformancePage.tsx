@@ -217,7 +217,7 @@ export default function PerformancePage() {
     <div className="space-y-6 max-w-5xl">
       <PageHeader
         title="Branch Performance"
-        description="How your branches are performing on the marketplace. Tiers update every weekend."
+        description="Your branches' quality and capacity standing with Printdecore operations. Tiers update every weekend."
       />
 
       {/* Tier legend */}

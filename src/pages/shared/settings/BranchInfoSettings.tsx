@@ -19,18 +19,17 @@ import {
   Info,
   MapPin,
   Clock,
-  CreditCard,
 } from "../../../components/icons";
-import PaymentSettingsSection from "./PaymentSettingsSection";
 import SidebarTabLayout, {
   type SidebarTab,
 } from "../../../components/layouts/SidebarTabLayout";
 
+// Settlement/payout self-service is retired — Printdecore collects customer
+// payment centrally now, so there's no per-branch Paystack subaccount to manage.
 const tabs: SidebarTab[] = [
   { id: "basic", label: "Basic Info", icon: Info },
   { id: "location", label: "Location", icon: MapPin },
   { id: "hours", label: "Hours", icon: Clock },
-  { id: "payment", label: "Settlement", icon: CreditCard },
 ];
 
 export default function BranchInfoSettings() {
@@ -287,32 +286,6 @@ export default function BranchInfoSettings() {
             </Section>
           )}
 
-          {activeTab === "payment" && (
-            <Section>
-              <PageHeader
-                title="Payment & Settlement"
-                description="Configure how you receive payments from customers"
-              />
-              <div className="max-w-2xl mt-6">
-                <div
-                  className={`p-4 rounded-xl mb-6 ${t.isDark ? "bg-amber-900/20 border border-amber-800/30" : "bg-amber-50 border border-amber-200"}`}
-                >
-                  <p
-                    className={`text-sm ${t.isDark ? "text-amber-300" : "text-amber-800"}`}
-                  >
-                    Payments are powered by{" "}
-                    <span className="font-semibold">Paystack</span>. Settlements
-                    are processed and deposited into your bank account on the
-                    next business day after each transaction.
-                  </p>
-                </div>
-                <PaymentSettingsSection
-                  branchId={branch.id}
-                  branchName={branch.name}
-                />
-              </div>
-            </Section>
-          )}
         </>
       )}
     </SidebarTabLayout>

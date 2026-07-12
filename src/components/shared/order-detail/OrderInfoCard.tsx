@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, Package } from '../../icons';
+import { CheckCircle, Clock, Package, Printer, Search, Truck } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
-import type { ClerkOrder } from '../../../types';
+import type { ClerkOrder, OrderStatus } from '../../../types';
 import { Card, Button, StatusBadge, Select } from '../../ui';
 
 interface OrderInfoCardProps {
@@ -9,7 +9,27 @@ interface OrderInfoCardProps {
 	isUpdating: boolean;
 	onMarkAsComplete: () => void;
 	onMarkAsReceived?: (estimatedTime: Date) => void;
+	onAdvanceStatus?: (nextStatus: OrderStatus) => void;
 }
+
+/**
+ * The production/delivery stage each status advances to next, and what to call
+ * the button that does it. RECEIVED and COMPLETED are handled separately above
+ * (they need extra input / a confirm step), so they aren't in this map.
+ */
+const NEXT_STAGE: Partial<Record<OrderStatus, { next: OrderStatus; label: string; icon: typeof Printer }>> = {
+	RECEIVED: { next: 'PRINTING', label: 'Start Printing', icon: Printer },
+	PRINTING: { next: 'QUALITY_CHECK', label: 'Send to Quality Check', icon: Search },
+	IN_PROGRESS: { next: 'QUALITY_CHECK', label: 'Send to Quality Check', icon: Search },
+	QUALITY_CHECK: { next: 'READY_FOR_PICKUP', label: 'Mark Ready for Pickup', icon: Package },
+	READY_FOR_PICKUP: { next: 'OUT_FOR_DELIVERY', label: 'Mark Out for Delivery', icon: Truck },
+	OUT_FOR_DELIVERY: { next: 'DELIVERED', label: 'Mark Delivered', icon: CheckCircle },
+};
+
+const COMPLETABLE_STATUSES: OrderStatus[] = [
+	'QUOTED', 'RECEIVED', 'IN_PROGRESS', 'PRINTING', 'QUALITY_CHECK',
+	'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED',
+];
 
 // Time options for estimated completion
 const TIME_OPTIONS = [
@@ -24,13 +44,14 @@ const TIME_OPTIONS = [
 	{ label: 'Tomorrow', minutes: 1440 },
 ];
 
-export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsReceived }: OrderInfoCardProps) {
+export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsReceived, onAdvanceStatus }: OrderInfoCardProps) {
 	const t = useThemeClasses();
 	const [showTimeDropdown, setShowTimeDropdown] = useState(false);
 	const [selectedTime, setSelectedTime] = useState<number | null>(null);
 
 	const canMarkAsReceived = order.status === 'PAID' || order.status === 'PENDING';
-	const canMarkAsCompleted = order.status === 'RECEIVED' || order.status === 'IN_PROGRESS' || order.status === 'QUOTED';
+	const canMarkAsCompleted = COMPLETABLE_STATUSES.includes(order.status);
+	const nextStage = NEXT_STAGE[order.status];
 
 	const handleMarkAsReceivedClick = () => {
 		setShowTimeDropdown(true);
@@ -170,7 +191,19 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 					</Button>
 				)}
 
-				{/* Mark as Completed Button (for RECEIVED/IN_PROGRESS orders) */}
+				{/* Advance to next production/delivery stage */}
+				{nextStage && !showTimeDropdown && onAdvanceStatus && (
+					<Button
+						onClick={() => onAdvanceStatus(nextStage.next)}
+						disabled={isUpdating}
+						icon={nextStage.icon}
+						className="bg-blue-500 hover:bg-blue-600 text-white"
+					>
+						{isUpdating ? 'Updating...' : nextStage.label}
+					</Button>
+				)}
+
+				{/* Mark as Completed Button (available from any late-stage order) */}
 				{canMarkAsCompleted && !showTimeDropdown && (
 					<Button
 						onClick={onMarkAsComplete}

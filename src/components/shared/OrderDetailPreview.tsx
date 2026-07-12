@@ -15,7 +15,7 @@ import {
 } from "./order-detail";
 import { Spinner } from "../icons";
 import { formatOrderDate, downloadFile } from "./utils/orderUtils";
-import type { ClerkOrder } from "../../types";
+import type { ClerkOrder, OrderStatus } from "../../types";
 
 interface OrderDetailPreviewProps {
 	order: ClerkOrder;
@@ -138,6 +138,34 @@ export default function OrderDetailPreview({
 		},
 	});
 
+	// Mutation for advancing through production/delivery stages
+	const advanceStatusMutation = useMutation({
+		mutationFn: (status: OrderStatus) => {
+			return apiService.updateBranchOrder(order.id, { status });
+		},
+		onSuccess: (_data, status) => {
+			queryClient.invalidateQueries({
+				queryKey: ["orderDetail", order.id, branchId],
+			});
+			queryClient.invalidateQueries({ queryKey: ["branchOrders", branchId] });
+			success(
+				`Order ${order.orderNumber} is now ${status.replace(/_/g, " ").toLowerCase()}`,
+				"Order Updated",
+				4000
+			);
+			if (onOrderUpdate) onOrderUpdate();
+		},
+		onError: (error: unknown) => {
+			const errorMessage =
+				error instanceof Error ? error.message : "Failed to update order status";
+			showError(errorMessage, "Update Failed", 5000);
+		},
+	});
+
+	const handleAdvanceStatus = (nextStatus: OrderStatus) => {
+		advanceStatusMutation.mutate(nextStatus);
+	};
+
 	const handleMarkAsCompleted = () => {
 		if (order.status === "COMPLETED") {
 			return;
@@ -193,9 +221,14 @@ export default function OrderDetailPreview({
 					<>
 						<OrderInfoCard
 							order={orderDetail || order}
-							isUpdating={updateOrderMutation.isPending || markAsReceivedMutation.isPending}
+							isUpdating={
+								updateOrderMutation.isPending ||
+								markAsReceivedMutation.isPending ||
+								advanceStatusMutation.isPending
+							}
 							onMarkAsComplete={handleMarkAsCompleted}
 							onMarkAsReceived={handleMarkAsReceived}
+							onAdvanceStatus={handleAdvanceStatus}
 						/>
 
 						<ClientInfoCard client={order.client} />

@@ -91,6 +91,7 @@ export const Loader2 = createIcon('solar:refresh-circle-bold-duotone', 'Loader2'
 export const ShoppingBag = createIcon('solar:bag-4-bold-duotone', 'ShoppingBag', 'solar:bag-4-linear');
 export const Store = createIcon('solar:shop-bold-duotone', 'Store', 'solar:shop-linear');
 export const Package = createIcon('solar:box-bold-duotone', 'Package', 'solar:box-linear');
+export const Truck = createIcon('solar:delivery-bold-duotone', 'Truck', 'solar:delivery-linear');
 export const DollarSign = createIcon('solar:dollar-bold-duotone', 'DollarSign', 'solar:dollar-linear');
 export const Tag = createIcon('solar:tag-bold-duotone', 'Tag', 'solar:tag-linear');
 

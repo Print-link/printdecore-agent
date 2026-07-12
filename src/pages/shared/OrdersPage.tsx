@@ -129,8 +129,15 @@ export default function OrdersPage() {
 						<option value="PENDING">Pending</option>
 						<option value="QUOTED">Quoted</option>
 						<option value="PAID">Paid</option>
+						<option value="RECEIVED">Received</option>
+						<option value="PRINTING">Printing</option>
 						<option value="IN_PROGRESS">In Progress</option>
+						<option value="QUALITY_CHECK">Quality Check</option>
+						<option value="READY_FOR_PICKUP">Ready for Pickup</option>
+						<option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+						<option value="DELIVERED">Delivered</option>
 						<option value="COMPLETED">Completed</option>
+						<option value="CANCELLED">Cancelled</option>
 					</select>
 				</div>
 			</div>

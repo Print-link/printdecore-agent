@@ -1,21 +1,19 @@
 import SidebarTabLayout, {
 	type SidebarTab,
 } from "../../components/layouts/SidebarTabLayout";
-import { Printer, Palette, Volume2, MessageCircle, Banknote, CreditCard } from "../../components/icons";
+import { Printer, Palette, Volume2, MessageCircle } from "../../components/icons";
 import PrinterSettings from "./settings/PrinterSettings";
 import UISettings from "./settings/UISettings";
 import SoundSettings from "./settings/SoundSettings";
 import WhatsAppSettings from "./settings/WhatsAppSettings";
-import WalletSettings from "./settings/WalletSettings";
-import BillingSettings from "./settings/BillingSettings";
 
+// Self-service billing/commission/wallet payout is retired here — Printdecore
+// now collects customer payment centrally and settles with vendors directly.
 const tabs: SidebarTab[] = [
 	{ id: "printers", label: "Printer Status", icon: Printer },
 	{ id: "ui", label: "UI Preferences", icon: Palette },
 	{ id: "sounds", label: "Sounds", icon: Volume2 },
 	{ id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
-	{ id: "wallet", label: "Wallet", icon: Banknote },
-	{ id: "billing", label: "Billing", icon: CreditCard },
 ];
 
 export default function SettingsPage() {
@@ -32,8 +30,6 @@ export default function SettingsPage() {
 					{activeTab === "ui" && <UISettings />}
 					{activeTab === "sounds" && <SoundSettings />}
 					{activeTab === "whatsapp" && <WhatsAppSettings />}
-					{activeTab === "wallet" && <WalletSettings />}
-					{activeTab === "billing" && <BillingSettings />}
 				</>
 			)}
 		</SidebarTabLayout>

@@ -1,4 +1,16 @@
-export type OrderStatus = 'PENDING' | 'QUOTED' | 'PAID' | 'RECEIVED' | 'IN_PROGRESS' | 'COMPLETED';
+export type OrderStatus =
+  | 'PENDING'
+  | 'QUOTED'
+  | 'PAID'
+  | 'RECEIVED'
+  | 'IN_PROGRESS'
+  | 'PRINTING'
+  | 'QUALITY_CHECK'
+  | 'READY_FOR_PICKUP'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 export interface ClerkOrderClient {
   id: string;

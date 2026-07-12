@@ -40,15 +40,16 @@ export function AgentServicesView({
 				<div>
 					<div className="flex items-center gap-2 mb-1">
 						<h2 className={cn('text-lg font-semibold m-0', t.text)}>
-							Agent Services (Branch-Specific Pricing)
+							Your Rate to Printdecore
 						</h2>
 						<Badge color="green" className="text-[11px] uppercase">
 							Editable
 						</Badge>
 					</div>
 					<p className={cn('text-xs m-0', t.textSecondary)}>
-						Configure pricing for your branch. These are the services you can
-						create, update, and delete.
+						Set what you charge Printdecore to produce each service. This is
+						your rate, not the customer's price — Printdecore sets what
+						customers pay.
 					</p>
 				</div>
 			</div>
@@ -84,7 +85,7 @@ export function AgentServicesView({
 								</h3>
 								<div className="flex flex-wrap gap-3 items-center mb-2">
 									<span className={cn('text-sm', t.textSecondary)}>
-										Price/Unit:{" "}
+										Your Rate/Unit:{" "}
 										<strong className={t.text}>
 											{(() => {
 												if (
