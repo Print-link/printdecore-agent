@@ -72,7 +72,10 @@ export function CategoriesView({ categories, onCategorySelect, onCreateCategory 
             </button>
           )}
         </div>
-        <p className={`text-xs m-0 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Select a category to browse services</p>
+        <p className={`text-xs m-0 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+          Select a category to browse services.
+          {!onCreateCategory && ' Categories are set by Printdecore — ask the team if one is missing.'}
+        </p>
       </div>
 
       {/* Cards Grid */}

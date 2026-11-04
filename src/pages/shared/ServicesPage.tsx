@@ -334,26 +334,6 @@ export default function ServicesPage() {
     }
   };
 
-  const handleCreateCategory = async (data: {
-    name: string;
-    description?: string;
-    image?: File;
-  }) => {
-    if (!branchId) return;
-    try {
-      await apiService.createServiceCategory({ ...data, branchId });
-      success("Category created", "Success", 3000);
-      await loadCategories();
-    } catch (err) {
-      showError(
-        err instanceof Error ? err.message : "Failed to create category",
-        "Error",
-        5000,
-      );
-      throw err;
-    }
-  };
-
   const handleCreateSubCategory = async (data: {
     name: string;
     pricingType: string;
@@ -630,9 +610,9 @@ export default function ServicesPage() {
               <CategoriesView
                 categories={categories}
                 onCategorySelect={handleCategorySelect}
-                onCreateCategory={
-                  canManageServices ? handleCreateCategory : undefined
-                }
+                // Categories are platform-wide and set by Printdecore; a branch
+                // can still add its own subcategories and products inside them
+                onCreateCategory={undefined}
               />
             )}
 
