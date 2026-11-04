@@ -153,7 +153,38 @@ async function updateLocation(
 	return response.data.data;
 }
 
+export interface MarketplaceReadinessItem {
+	key: "self_managed" | "active" | "location" | "hours" | "services" | "payouts";
+	label: string;
+	done: boolean;
+	owner: "ops" | "vendor";
+	hint: string;
+}
+
+/** How this branch works with Printdecore, and whether customers can order from it. */
+export interface BranchMarketplaceStatus {
+	fulfilmentMode: "managed" | "self_managed";
+	marketplaceListed: boolean;
+	acceptingOrders: boolean;
+	checklist: MarketplaceReadinessItem[];
+	ready: boolean;
+	live: boolean;
+}
+
+async function getMarketplaceStatus(branchId: string): Promise<BranchMarketplaceStatus> {
+	const response = await apiClient.get(`/branches/${branchId}/marketplace`);
+	return response.data.data;
+}
+
+/** The pause switch: false hides the shop from customers until switched back. */
+async function setAcceptingOrders(branchId: string, acceptingOrders: boolean): Promise<BranchMarketplaceStatus> {
+	const response = await apiClient.patch(`/branches/${branchId}/accepting-orders`, { acceptingOrders });
+	return response.data.data;
+}
+
 export const branchApi = {
+	getMarketplaceStatus,
+	setAcceptingOrders,
 	getAllBranches,
 	getBranchById,
 	createBranch,

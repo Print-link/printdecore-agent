@@ -6,3 +6,4 @@ export { OrderItemCard } from './OrderItemCard';
 export { FileThumbnail } from './FileThumbnail';
 export { CompleteOrderModal } from './CompleteOrderModal';
 
+export { DeclineOrderModal } from './DeclineOrderModal';

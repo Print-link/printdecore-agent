@@ -9,6 +9,7 @@ import { cn, formatCount } from "../lib/utils";
 import { useSettings } from "../contexts/SettingsContext";
 import { useToast } from "../contexts/ToastContext";
 import { apiService } from "../services/api";
+import { branchApi } from "../services/api/branches";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -65,7 +66,19 @@ export default function AppLayout() {
     enabled: !!selectedBranch?.id && isManager,
     staleTime: 60000,
   });
-  const hasNoPaymentMethod = isManager && hasBranchSelected && settlementData && !settlementData.configured;
+  // Payouts only matter for shops that sell to customers directly (self-managed)
+  const { data: marketplaceStatus } = useQuery({
+    queryKey: ["branchMarketplace", selectedBranch?.id],
+    queryFn: () => branchApi.getMarketplaceStatus(selectedBranch!.id),
+    enabled: !!selectedBranch?.id && isManager,
+    staleTime: 60000,
+  });
+  const hasNoPaymentMethod =
+    isManager &&
+    hasBranchSelected &&
+    marketplaceStatus?.fulfilmentMode === "self_managed" &&
+    settlementData &&
+    !settlementData.configured;
 
   // Start walkthrough on login for managers
   useEffect(() => {
@@ -111,19 +124,12 @@ export default function AppLayout() {
     refetchInterval: 15000,
   });
 
-  // Calculate PENDING and PAID jobs count
-  const pendingAndPaidCount = useMemo(() => {
-    return orders.filter(
-      (order) => order.status === "PENDING" || order.status === "PAID",
-    ).length;
-  }, [orders]);
-
-  // Get PENDING and PAID orders
+  // Orders waiting on this shop: paid and not yet accepted. Unpaid (PENDING)
+  // orders are still with Printdecore or the customer, so they don't ring.
   const pendingAndPaidOrders = useMemo(() => {
-    return orders.filter(
-      (order) => order.status === "PENDING" || order.status === "PAID",
-    );
+    return orders.filter((order) => order.status === "PAID");
   }, [orders]);
+  const pendingAndPaidCount = pendingAndPaidOrders.length;
 
   // Play sound notification when PENDING/PAID orders exist
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -783,14 +789,14 @@ export default function AppLayout() {
                 ? "bg-red-900/20 border-red-800/40 text-red-300 hover:bg-red-900/30"
                 : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100",
             )}
-            onClick={() => navigate("/app/branch-info")}
+            onClick={() => navigate("/app/branch-info/marketplace")}
           >
             <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 animate-pulse" />
             <span className="font-medium">
               Payment method not configured
             </span>
             <span className={cn("hidden sm:inline", t.isDark ? "text-red-400" : "text-red-600")}>
-              — Set up a bank account or mobile money to receive customer payments.
+              — Customers pay you directly. Add a bank account or mobile money to start selling on Printdecore.
             </span>
             <span className={cn("ml-auto text-xs font-semibold", t.isDark ? "text-red-400" : "text-red-600")}>
               Configure →

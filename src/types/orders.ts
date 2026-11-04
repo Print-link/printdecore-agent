@@ -1,6 +1,8 @@
 export type OrderStatus =
   | 'PENDING'
   | 'QUOTED'
+  | 'CONFIRMING_AVAILABILITY'
+  | 'AWAITING_PAYMENT'
   | 'PAID'
   | 'RECEIVED'
   | 'IN_PROGRESS'
@@ -85,6 +87,12 @@ export interface ClerkOrder {
 	itemCount: number;
 	estimatedCompletionTime?: string | Date;
 	comment?: string;
+	/** marketplace: the customer chose your shop — you accept or decline it. managed: Printdecore sent it to you. */
+	channel?: 'managed' | 'marketplace';
+	fulfilmentType?: 'delivery' | 'pickup';
+	deliveryAddress?: string;
+	recipientPhone?: string;
+	declineReason?: string;
 	createdAt: string | Date;
 	updatedAt: string | Date;
 }

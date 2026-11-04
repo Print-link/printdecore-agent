@@ -12,6 +12,7 @@ import {
 	ClientInfoCard,
 	OrderItemsList,
 	CompleteOrderModal,
+	DeclineOrderModal,
 } from "./order-detail";
 import { Spinner } from "../icons";
 import { formatOrderDate, downloadFile } from "./utils/orderUtils";
@@ -45,6 +46,7 @@ export default function OrderDetailPreview({
 		fileIndex: number;
 	} | null>(null);
 	const [showCompleteModal, setShowCompleteModal] = useState(false);
+	const [showDeclineModal, setShowDeclineModal] = useState(false);
 
 	// Determine branchId: use prop if provided, otherwise determine based on role
 	// For managers use selectedBranch, for clerks use user.branch_id
@@ -57,14 +59,6 @@ export default function OrderDetailPreview({
 		queryFn: async () => {
 			// Pass branchId for managers to ensure proper data fetching
 			const data = await apiService.getBranchOrderDetail(order.id, branchId);
-			// Debug: Log the order detail to see the structure
-			console.log("Order Detail Response:", data);
-			if (data?.items) {
-				data.items.forEach((item, index: number) => {
-					console.log(`Item ${index} options:`, item.options);
-					console.log(`Item ${index} files:`, item.options?.files);
-				});
-			}
 			return data;
 		},
 		enabled: !!order.id,
@@ -162,6 +156,21 @@ export default function OrderDetailPreview({
 		},
 	});
 
+	// Marketplace only: turn the order down; the backend refunds the customer
+	const declineMutation = useMutation({
+		mutationFn: (reason: string) => apiService.declineOrder(order.id, reason),
+		onSuccess: (result) => {
+			queryClient.invalidateQueries({ queryKey: ["orderDetail", order.id, branchId] });
+			queryClient.invalidateQueries({ queryKey: ["branchOrders", branchId] });
+			setShowDeclineModal(false);
+			success(result.message, "Order declined", 5000);
+			if (onOrderUpdate) onOrderUpdate();
+		},
+		onError: (error: unknown) => {
+			showError(error instanceof Error ? error.message : "Couldn't decline this order", "Decline failed", 5000);
+		},
+	});
+
 	const handleAdvanceStatus = (nextStatus: OrderStatus) => {
 		advanceStatusMutation.mutate(nextStatus);
 	};
@@ -222,6 +231,7 @@ export default function OrderDetailPreview({
 						<OrderInfoCard
 							order={orderDetail || order}
 							isUpdating={
+								declineMutation.isPending ||
 								updateOrderMutation.isPending ||
 								markAsReceivedMutation.isPending ||
 								advanceStatusMutation.isPending
@@ -229,6 +239,7 @@ export default function OrderDetailPreview({
 							onMarkAsComplete={handleMarkAsCompleted}
 							onMarkAsReceived={handleMarkAsReceived}
 							onAdvanceStatus={handleAdvanceStatus}
+							onDecline={() => setShowDeclineModal(true)}
 						/>
 
 						<ClientInfoCard client={order.client} />
@@ -254,6 +265,13 @@ export default function OrderDetailPreview({
 				onFileChange={(itemIndex, fileIndex) =>
 					setSelectedFileIndex({ itemIndex, fileIndex })
 				}
+			/>
+
+			<DeclineOrderModal
+				open={showDeclineModal}
+				isPending={declineMutation.isPending}
+				onClose={() => setShowDeclineModal(false)}
+				onConfirm={(reason) => declineMutation.mutate(reason)}
 			/>
 
 			{/* Complete Order Modal */}

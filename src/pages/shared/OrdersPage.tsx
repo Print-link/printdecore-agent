@@ -181,6 +181,11 @@ export default function OrdersPage() {
 											<span className={cn('text-xs font-semibold', t.text)}>
 												{order.orderNumber}
 											</span>
+											{order.channel === "marketplace" && (
+												<span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+													Your customer
+												</span>
+											)}
 											<StatusBadge status={order.status} className="text-[10px] px-1.5 py-0.5" />
 										</div>
 										<p className={cn('text-xs mb-1', t.textSecondary)}>

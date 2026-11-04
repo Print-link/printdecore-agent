@@ -29,6 +29,9 @@ async function getBranchOrders(branchId: string): Promise<ClerkOrder[]> {
 			status: string;
 			totalPrice: number;
 			itemCount: number;
+			channel?: 'managed' | 'marketplace';
+			fulfilmentType?: 'delivery' | 'pickup';
+			estimatedCompletionTime?: Date | string;
 			createdAt: Date | string;
 			updatedAt: Date | string;
 			client: {
@@ -47,6 +50,9 @@ async function getBranchOrders(branchId: string): Promise<ClerkOrder[]> {
 			totalPrice: order.totalPrice,
 			client: order.client,
 			itemCount: order.itemCount || 0,
+			channel: order.channel || 'managed',
+			fulfilmentType: order.fulfilmentType,
+			estimatedCompletionTime: order.estimatedCompletionTime,
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
 		})
@@ -116,7 +122,18 @@ async function getClerkOrdersByDate(
 	return response.data.data;
 }
 
+
+/**
+ * Turn down a marketplace order you can't take. The customer is refunded in
+ * full and told your reason. Only before you've started work on it.
+ */
+async function declineOrder(orderId: string, reason: string): Promise<{ message: string }> {
+	const response = await apiClient.post(`/orders/${orderId}/decline`, { reason });
+	return { message: response.data.message };
+}
+
 export const orderApi = {
+	declineOrder,
 	getBranchOrders,
 	getBranchOrderDetail,
 	updateBranchOrder,

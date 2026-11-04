@@ -19,17 +19,20 @@ import {
   Info,
   MapPin,
   Clock,
+  Store,
 } from "../../../components/icons";
+import MarketplaceSettings from "./MarketplaceSettings";
 import SidebarTabLayout, {
   type SidebarTab,
 } from "../../../components/layouts/SidebarTabLayout";
 
-// Settlement/payout self-service is retired — Printdecore collects customer
-// payment centrally now, so there's no per-branch Paystack subaccount to manage.
+// Payouts live under Marketplace: only self-managed shops are paid directly
+// (Paystack split); Printdecore collects for managed shops.
 const tabs: SidebarTab[] = [
   { id: "basic", label: "Basic Info", icon: Info },
   { id: "location", label: "Location", icon: MapPin },
   { id: "hours", label: "Hours", icon: Clock },
+  { id: "marketplace", label: "Marketplace", icon: Store },
 ];
 
 export default function BranchInfoSettings() {
@@ -39,7 +42,6 @@ export default function BranchInfoSettings() {
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
 
-  console.log("BranchInfoSettings render", { branch });
 
   const {
     formData,
@@ -286,6 +288,13 @@ export default function BranchInfoSettings() {
             </Section>
           )}
 
+          {activeTab === "marketplace" && (
+            <MarketplaceSettings
+              branchId={branch.id}
+              branchName={branch.name}
+              canManagePayouts={user?.role === "manager"}
+            />
+          )}
         </>
       )}
     </SidebarTabLayout>
