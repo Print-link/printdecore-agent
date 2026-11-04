@@ -28,7 +28,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // A 401 from the login endpoints means bad credentials, not an expired
+    // session — let the login page show the error instead of reloading.
+    const isLoginRequest = error.config?.url?.startsWith("/auth/login");
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem("auth-token");
       window.location.href = "/login";
     }

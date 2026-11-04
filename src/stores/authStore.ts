@@ -78,11 +78,20 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 						isLoading: false,
 					});
 				} catch (error: unknown) {
+					// Prefer the server's message (e.g. "Invalid credentials") over
+					// axios' generic "Request failed with status code 401"
+					const serverMessage = (
+						error as { response?: { data?: { message?: string } } }
+					)?.response?.data?.message;
+					const isNetworkError =
+						(error as { code?: string })?.code === "ERR_NETWORK";
 					const errorMessage =
-						error instanceof Error
-							? error.message
-							: (error as { response?: { data?: { message?: string } } })
-									?.response?.data?.message || "Login failed";
+						serverMessage ||
+						(isNetworkError
+							? "Unable to reach the server. Check your connection and try again."
+							: error instanceof Error
+								? error.message
+								: "Login failed");
 					set({
 						error: errorMessage,
 						isLoading: false,

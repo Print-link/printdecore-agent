@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
@@ -17,7 +17,7 @@ type RegisterStep = "form" | "otp";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, error: loginError, clearError } = useAuthStore();
   const { theme } = useTheme();
   const { success, error: showError } = useToast();
 
@@ -40,6 +40,26 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  // Don't show an error left over from a previous visit
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+
+  const handleEmailChange = (v: string) => {
+    setEmail(v);
+    if (loginError) clearError();
+  };
+
+  const handlePasswordChange = (v: string) => {
+    setPassword(v);
+    if (loginError) clearError();
+  };
+
+  const handleRoleChange = (v: UserRole) => {
+    setUserRole(v);
+    if (loginError) clearError();
+  };
+
   const startResendCooldown = () => {
     setResendCooldown(60);
     const interval = setInterval(() => {
@@ -56,7 +76,9 @@ export default function LoginPage() {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await login({ email, password, role: userRole });
+      const trimmedEmail = email.trim();
+      setEmail(trimmedEmail);
+      await login({ email: trimmedEmail, password, role: userRole });
 
       const { user } = useAuthStore.getState();
       success(
@@ -71,11 +93,8 @@ export default function LoginPage() {
       }
 
       navigate("/");
-    } catch (err) {
-      const storeError = useAuthStore.getState().error;
-      const errorMessage =
-        storeError || (err instanceof Error ? err.message : "Login failed");
-      showError(errorMessage, "Login Failed", 5000);
+    } catch {
+      // The store sets `error`, which LoginForm shows inline
     }
   };
 
@@ -199,15 +218,16 @@ export default function LoginPage() {
             {mode === "login" && (
               <LoginForm
                 email={email}
-                setEmail={setEmail}
+                setEmail={handleEmailChange}
                 password={password}
-                setPassword={setPassword}
+                setPassword={handlePasswordChange}
                 showPassword={showPassword}
                 setShowPassword={setShowPassword}
                 userRole={userRole}
-                setUserRole={setUserRole}
+                setUserRole={handleRoleChange}
                 isSubmitting={isSubmitting}
                 isLoading={isLoading}
+                error={loginError}
                 onSubmit={handleLogin}
                 inputClass={inputClass}
                 labelClass={labelClass}
@@ -286,6 +306,7 @@ export default function LoginPage() {
                     setMode("login");
                     setRegisterStep("form");
                     setOtpCode("");
+                    clearError();
                   }}
                   className="text-amber-500 font-semibold hover:underline"
                 >
