@@ -1,7 +1,6 @@
 import { lazy } from "react";
 import type { RouteConfig } from ".";
 import { PERMISSIONS } from "../hooks/usePermissions";
-const OverviewPage = lazy(() => import("../pages/manager/OverviewPage"));
 const BranchesPage = lazy(() => import("../pages/manager/BranchesPage"));
 const UserManagementPage = lazy(
   () => import("../pages/manager/UserManagementPage"),
@@ -18,12 +17,6 @@ const BranchEditPage = lazy(
 );
 
 export const managerRoutes: RouteConfig[] = [
-  {
-    path: "overview",
-    component: OverviewPage,
-    roles: ["manager"],
-    permissions: [PERMISSIONS.DASHBOARD_ANALYTICS],
-  },
   {
     path: "branches",
     component: BranchesPage,
