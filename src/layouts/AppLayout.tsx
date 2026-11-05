@@ -73,7 +73,15 @@ export default function AppLayout() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { currentStep, isActive, startWalkthrough, setStep } =
     useWalkthroughStore();
-  const { chats, isConnected, ensureStatusChecked } = useWhatsAppStore();
+  const {
+    chats,
+    isConnected,
+    isConnecting: whatsAppConnecting,
+    statusKnown: whatsAppStatusKnown,
+    wasLinked: whatsAppWasLinked,
+    ensureStatusChecked,
+    connect: connectWhatsApp,
+  } = useWhatsAppStore();
 
   const { isManager, isClerk, hasPermission } = usePermissions();
   const hasBranchSelected = Boolean(selectedBranch);
@@ -496,6 +504,39 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
+
+        {/* WhatsApp dropped: customer messages stop until it's back */}
+        {whatsAppStatusKnown &&
+          whatsAppWasLinked &&
+          !isConnected &&
+          !whatsAppConnecting &&
+          !location.pathname.startsWith("/app/settings/whatsapp") && (
+            <div
+              role="status"
+              className={cn(
+                "flex items-center gap-3 px-4 md:px-6 py-2.5 border-b text-sm",
+                t.isDark
+                  ? "bg-amber-900/20 border-amber-800/40 text-amber-200"
+                  : "bg-amber-50 border-amber-200 text-amber-900",
+              )}
+            >
+              <MessageCircle size={16} className="flex-shrink-0 text-amber-500" />
+              <span className="font-medium">WhatsApp is disconnected</span>
+              <span className={cn("hidden sm:inline", t.isDark ? "text-amber-300/80" : "text-amber-800")}>
+                — customer messages won't come in until you reconnect.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/app/settings/whatsapp");
+                  connectWhatsApp().catch(() => {});
+                }}
+                className="ml-auto px-3 py-1 rounded-md text-xs font-semibold bg-amber-400 text-gray-900 hover:bg-amber-300"
+              >
+                Reconnect
+              </button>
+            </div>
+          )}
 
         {/* Payment method warning banner */}
         {hasNoPaymentMethod && (

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/authStore";
 import { useBranchStore } from "../stores/branchStore";
-import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions } from "./usePermissions";
 import { apiService } from "../services/api";
 import type { Branch } from "../types";
@@ -34,12 +33,11 @@ export function useMyBranches() {
 }
 
 /**
- * Moves the app to one branch, or to all of them (null). WhatsApp is linked to
- * one branch, so it disconnects first and the manager scans again.
+ * Moves the app to one branch, or to all of them (null). WhatsApp belongs to
+ * the account, not the branch, so it stays connected.
  */
 export function useSwitchBranch() {
   const { selectedBranch, selectBranch, clearBranch, setError } = useBranchStore();
-  const { disconnect, isConnected } = useWhatsAppStore();
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
 
   const switchTo = useCallback(
@@ -48,7 +46,6 @@ export function useSwitchBranch() {
       setSwitchingTo(branch?.id ?? "all");
       setError(null);
       try {
-        if (isConnected) await disconnect();
         if (branch) selectBranch(await apiService.getBranchById(branch.id));
         else clearBranch();
       } catch (error) {
@@ -57,7 +54,7 @@ export function useSwitchBranch() {
         setSwitchingTo(null);
       }
     },
-    [selectedBranch?.id, isConnected, disconnect, selectBranch, clearBranch, setError],
+    [selectedBranch?.id, selectBranch, clearBranch, setError],
   );
 
   return { switchTo, switchingTo };

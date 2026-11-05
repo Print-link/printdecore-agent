@@ -7,6 +7,10 @@ interface WhatsAppState {
 	// Connection state
 	isConnected: boolean;
 	isConnecting: boolean;
+	/** The first status check has come back (avoids flashing "disconnected") */
+	statusKnown: boolean;
+	/** This browser has linked WhatsApp before and the user hasn't unlinked it */
+	wasLinked: boolean;
 	qrCode: string | null;
 	error: string | null;
 
@@ -45,14 +49,34 @@ interface WhatsAppState {
 	ensureStatusChecked: () => void;
 }
 
+const LINKED_KEY = 'wa-linked';
+const readLinked = () => {
+	try {
+		return localStorage.getItem(LINKED_KEY) === '1';
+	} catch {
+		return false;
+	}
+};
+const setLinked = (linked: boolean) => {
+	try {
+		if (linked) localStorage.setItem(LINKED_KEY, '1');
+		else localStorage.removeItem(LINKED_KEY);
+	} catch {
+		// storage unavailable; the warning just won't show
+	}
+};
+
 export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 	// Setup event listeners
 	whatsappService.on('qr', (qr) => {
 		set({ qrCode: qr, error: null });
 	});
 
+	whatsappService.on('status_checked', () => set({ statusKnown: true }));
+
 	whatsappService.on('ready', () => {
-		set({ isConnected: true, isConnecting: false, qrCode: null, error: null });
+		setLinked(true);
+		set({ isConnected: true, isConnecting: false, qrCode: null, error: null, wasLinked: true, statusKnown: true });
 		get().loadChats();
 	});
 
@@ -64,8 +88,10 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		set({ isConnected: false, isConnecting: false, error: msg || 'Authentication failed' });
 	});
 
-	whatsappService.on('disconnected', () => {
-		set({ isConnected: false, isConnecting: false, qrCode: null });
+	whatsappService.on('disconnected', (reason?: string) => {
+		// Say why when the backend gave up (e.g. the QR expired)
+		const expired = typeof reason === 'string' && reason.includes('QR code expired');
+		set({ isConnected: false, isConnecting: false, qrCode: null, ...(expired && { error: reason }) });
 	});
 
 	whatsappService.on('connecting', () => {
@@ -196,6 +222,8 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		// Initial state — restore connection flag from service (which reads sessionStorage)
 		isConnected: whatsappService.getConnectionStatus().isConnected,
 		isConnecting: false,
+		statusKnown: false,
+		wasLinked: readLinked(),
 		qrCode: null,
 		error: null,
 		isSyncingChats: false,
@@ -245,7 +273,9 @@ export const useWhatsAppStore = create<WhatsAppState>((set, get) => {
 		disconnect: async () => {
 			try {
 				await whatsappService.disconnect();
+				setLinked(false);
 				set({
+					wasLinked: false,
 					isConnected: false,
 					isConnecting: false,
 					qrCode: null,

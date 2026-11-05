@@ -88,6 +88,7 @@ class WhatsAppService extends EventEmitter {
     this.initialStatusCheckPromise = this.checkInitialStatus().finally(() => {
       this.initialStatusChecked = true;
       this.initialStatusCheckPromise = null;
+      this.emit("status_checked");
     });
   }
 
@@ -102,11 +103,10 @@ class WhatsAppService extends EventEmitter {
         }
         this.setupEventSource();
         this.loadChats(); // One-time load, then SSE handles updates
-      } else if (response.qrCode) {
-        // Backend is waiting for QR scan — clear any stale connected state
+      } else if (response.qrCode || response.connecting) {
+        // Backend is pairing or reconnecting a linked device — follow it
         this.persistConnectionState(false);
-        this.lastQrCode = response.qrCode;
-        this.emit("qr", response.qrCode);
+        this.resumePairing(response.qrCode);
       } else {
         // Backend says not connected and no QR — correct stale sessionStorage
         if (this.isConnected) {
@@ -292,10 +292,7 @@ class WhatsAppService extends EventEmitter {
   private handleSSEEvent(data: any) {
     switch (data.type) {
       case "qr":
-        if (data.qrCode) {
-          this.lastQrCode = data.qrCode;
-          this.emit("qr", data.qrCode);
-        }
+        if (data.qrCode) this.resumePairing(data.qrCode);
         break;
 
       case "ready":
@@ -450,6 +447,9 @@ class WhatsAppService extends EventEmitter {
 
       case "disconnected":
         this.persistConnectionState(false);
+        this.isConnecting = false;
+        this.lastQrCode = null;
+        this.stopStatusPolling();
         this.emit("disconnected", data.reason || "Connection lost");
         break;
 
@@ -463,6 +463,22 @@ class WhatsAppService extends EventEmitter {
   }
 
   // ─── Connection State ───────────────────────────────────────────────
+
+  /** Follow a connection the backend is making, even if this tab didn't start it */
+  private resumePairing(qrCode?: string) {
+    if (!this.isConnecting) {
+      this.isConnecting = true;
+      this.emit("connecting");
+      if (!this.eventSource || this.eventSource.readyState === EventSource.CLOSED) {
+        this.setupEventSource();
+      }
+      this.startStatusPolling();
+    }
+    if (qrCode && qrCode !== this.lastQrCode) {
+      this.lastQrCode = qrCode;
+      this.emit("qr", qrCode);
+    }
+  }
 
   private handleConnected() {
     this.persistConnectionState(true);
