@@ -5,6 +5,7 @@ import { PERMISSIONS } from "../hooks/usePermissions";
 const DashboardPage = lazy(() => import("../pages/shared/DashboardPage"));
 const OrdersPage = lazy(() => import("../pages/shared/OrdersPage"));
 const ServicesPage = lazy(() => import("../pages/shared/ServicesPage"));
+const ShopPricingPage = lazy(() => import("../pages/shared/ShopPricingPage"));
 const MessagesPage = lazy(() => import("../pages/shared/MessagesPage"));
 const BranchInfoPage = lazy(() => import("../pages/shared/BranchInfoPage"));
 const ReportsPage = lazy(() => import("../pages/shared/ReportsPage"));
@@ -28,6 +29,11 @@ export const sharedRoutes: RouteConfig[] = [
   {
     path: "services",
     component: ServicesPage,
+    permissions: [PERMISSIONS.SERVICES_VIEW],
+  },
+  {
+    path: "pricing",
+    component: ShopPricingPage,
     permissions: [PERMISSIONS.SERVICES_VIEW],
   },
   {

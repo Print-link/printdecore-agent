@@ -16,6 +16,7 @@ import {
   BarChart3,
   Store,
   Wrench,
+  Tag,
   Users,
   UserCircle,
   Settings,
@@ -256,6 +257,11 @@ export default function AppLayout() {
           icon: Wrench,
         });
         branch.push({
+          path: "/app/pricing",
+          label: "Pricing",
+          icon: Tag,
+        });
+        branch.push({
           path: "/app/access-control",
           label: "Access Control",
           icon: Shield,
@@ -302,6 +308,11 @@ export default function AppLayout() {
           path: "/app/services",
           label: "Services",
           icon: Wrench,
+        });
+        general.push({
+          path: "/app/pricing",
+          label: "Pricing",
+          icon: Tag,
         });
       }
       if (
