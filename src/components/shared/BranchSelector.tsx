@@ -120,7 +120,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
       await new Promise((resolve) => setTimeout(resolve, 400));
 
       // Navigate to dashboard
-      navigate('/clerk/dashboard');
+      navigate('/app/home');
 
       // Hide overlay after navigation
       setTimeout(() => {
@@ -161,7 +161,7 @@ export function BranchSelector({ isSidebarCollapsed }: BranchSelectorProps) {
       clearBranch();
 
       // Navigate to overview page (where managers see when no branch is selected)
-      navigate('/clerk/overview');
+      navigate('/app/home');
 
       // Reset state
       setTimeout(() => {

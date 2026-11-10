@@ -287,6 +287,8 @@ export function Badge({ children, color = "gray", className }: BadgeProps) {
 const STATUS_COLORS: Record<string, BadgeColor> = {
   PENDING: "amber",
   QUOTED: "blue",
+  AWAITING_PAYMENT: "amber",
+  CONFIRMING_AVAILABILITY: "amber",
   PAID: "purple",
   RECEIVED: "blue",
   IN_PROGRESS: "blue",

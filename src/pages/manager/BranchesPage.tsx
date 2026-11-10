@@ -42,7 +42,7 @@ export default function BranchesPage() {
       selectBranch(branchDetails);
 
       await new Promise((resolve) => setTimeout(resolve, 500));
-      navigate("/app/dashboard");
+      navigate("/app/home");
 
       setTimeout(() => {
         setShowTransition(false);

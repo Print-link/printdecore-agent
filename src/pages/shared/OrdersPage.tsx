@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
@@ -10,7 +11,26 @@ import { OrdersListSkeleton } from '../../components/ui/skeletons';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import OrderDetailPreview from "../../components/shared/OrderDetailPreview";
-import type { ClerkOrder, OrderStatus } from "../../types";
+import type { ClerkOrder } from "../../types";
+import type { PipelineStage } from "../../services/api/vendorHome";
+import { STAGE_STATUSES, STAGE_LABELS, isOpenStatus } from "../../lib/orderStages";
+
+/**
+ * The filter lives in the link (?filter=), so Home can open the list already
+ * narrowed: a status, "stage:<stage>", "due:today" or "due:overdue".
+ */
+function matchesFilter(order: ClerkOrder, filter: string) {
+	if (filter === "all") return true;
+	if (filter.startsWith("stage:")) return STAGE_STATUSES[filter.slice(6) as PipelineStage]?.includes(order.status) ?? false;
+	if (filter.startsWith("due:")) {
+		if (!order.estimatedCompletionTime || !isOpenStatus(order.status)) return false;
+		const due = new Date(order.estimatedCompletionTime);
+		const now = new Date();
+		if (filter === "due:overdue") return due < now;
+		return due.toDateString() === now.toDateString();
+	}
+	return order.status === filter;
+}
 
 export default function OrdersPage() {
 	const { user } = useAuthStore();
@@ -18,7 +38,14 @@ export default function OrdersPage() {
 	const t = useThemeClasses();
 	const { isClerk, hasPermission } = usePermissions();
 	const [searchQuery, setSearchQuery] = useState("");
-	const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+	const [params, setParams] = useSearchParams();
+	const statusFilter = params.get("filter") || "all";
+	const setStatusFilter = (value: string) =>
+		setParams((p) => {
+			if (value === "all") p.delete("filter");
+			else p.set("filter", value);
+			return p;
+		}, { replace: true });
 	const [selectedOrder, setSelectedOrder] = useState<ClerkOrder | null>(null);
 
 	// Determine which branch_id to use
@@ -48,6 +75,20 @@ export default function OrdersPage() {
 		refetchInterval: 15000, // Refetch every 15 seconds
 	});
 
+	// ?order=<id> opens that order (links from Home)
+	const openId = params.get("order");
+	useEffect(() => {
+		if (!openId) return;
+		const found = orders.find((o) => o.id === openId);
+		if (found) {
+			setSelectedOrder(found);
+			setParams((p) => {
+				p.delete("order");
+				return p;
+			}, { replace: true });
+		}
+	}, [openId, orders, setParams]);
+
 	const filteredOrders = useMemo(() => {
 		let filtered = [...orders];
 
@@ -62,9 +103,7 @@ export default function OrdersPage() {
 			);
 		}
 
-		if (statusFilter !== "all") {
-			filtered = filtered.filter((order) => order.status === statusFilter);
-		}
+		filtered = filtered.filter((order) => matchesFilter(order, statusFilter));
 
 		return filtered;
 	}, [orders, searchQuery, statusFilter]);
@@ -117,15 +156,21 @@ export default function OrdersPage() {
 					</div>
 					<select
 						value={statusFilter}
-						onChange={(e) =>
-							setStatusFilter(e.target.value as OrderStatus | "all")
-						}
+						onChange={(e) => setStatusFilter(e.target.value)}
 						className={cn(
 							'px-3 sm:px-4 py-2 rounded-md border text-sm focus:outline-none focus:ring-2 focus:ring-amber-400',
 							t.input
 						)}
 					>
-						<option value="all">All Statuses</option>
+						<option value="all">All orders</option>
+						<optgroup label="Open orders">
+							{(Object.keys(STAGE_LABELS) as PipelineStage[]).map((stage) => (
+								<option key={stage} value={`stage:${stage}`}>{STAGE_LABELS[stage]}</option>
+							))}
+							<option value="due:today">Due today</option>
+							<option value="due:overdue">Overdue</option>
+						</optgroup>
+						<optgroup label="Status">
 						<option value="PENDING">Pending</option>
 						<option value="QUOTED">Quoted</option>
 						<option value="PAID">Paid</option>
@@ -138,6 +183,7 @@ export default function OrdersPage() {
 						<option value="DELIVERED">Delivered</option>
 						<option value="COMPLETED">Completed</option>
 						<option value="CANCELLED">Cancelled</option>
+						</optgroup>
 					</select>
 				</div>
 			</div>
@@ -181,6 +227,11 @@ export default function OrdersPage() {
 											<span className={cn('text-xs font-semibold', t.text)}>
 												{order.orderNumber}
 											</span>
+											{order.channel === "marketplace" && (
+												<span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+													Your customer
+												</span>
+											)}
 											<StatusBadge status={order.status} className="text-[10px] px-1.5 py-0.5" />
 										</div>
 										<p className={cn('text-xs mb-1', t.textSecondary)}>

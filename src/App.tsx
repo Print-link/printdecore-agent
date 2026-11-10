@@ -11,7 +11,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { useAuthStore } from "./stores/authStore";
-import { usePermissions, PERMISSIONS } from "./hooks/usePermissions";
 import { OfflineBanner } from "./shared/components/OfflineBanner";
 import { ToastContainer } from "./components/shared/toast/ToastContainer";
 import LoginPage from "./pages/auth/LoginPage";
@@ -60,31 +59,9 @@ function LoadingScreen() {
   );
 }
 
+/** Managers and clerks both start on Home */
 function RootRedirect() {
-  const user = useAuthStore((state) => state.user);
-  const { isClerk, hasPermission } = usePermissions();
-
-  if (user?.role === "manager") {
-    return <Navigate to="/app/overview" replace />;
-  }
-
-  if (isClerk) {
-    const routes: Array<{ path: string; permission: string }> = [
-      { path: "/app/dashboard", permission: PERMISSIONS.DASHBOARD_VIEW },
-      { path: "/app/orders", permission: PERMISSIONS.ORDERS_VIEW },
-      { path: "/app/messages", permission: PERMISSIONS.MESSAGES_VIEW },
-      { path: "/app/services", permission: PERMISSIONS.SERVICES_VIEW },
-      { path: "/app/reports", permission: PERMISSIONS.REPORTS_VIEW },
-    ];
-    for (const route of routes) {
-      if (hasPermission(route.permission as any)) {
-        return <Navigate to={route.path} replace />;
-      }
-    }
-    return <Navigate to="/app/profile" replace />;
-  }
-
-  return <Navigate to="/app/dashboard" replace />;
+  return <Navigate to="/app/home" replace />;
 }
 
 // ─── App ────────────────────────────────────────────────────────────────

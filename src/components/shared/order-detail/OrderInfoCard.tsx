@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, Package, Printer, Search, Truck } from '../../icons';
+import { CheckCircle, Clock, MapPin, Package, Printer, Search, Store, Truck, XCircle } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
 import type { ClerkOrder, OrderStatus } from '../../../types';
 import { Card, Button, StatusBadge, Select } from '../../ui';
@@ -10,26 +10,41 @@ interface OrderInfoCardProps {
 	onMarkAsComplete: () => void;
 	onMarkAsReceived?: (estimatedTime: Date) => void;
 	onAdvanceStatus?: (nextStatus: OrderStatus) => void;
+	/** Marketplace orders only — opens the decline-and-refund dialog. */
+	onDecline?: () => void;
 }
 
+type Stage = { next: OrderStatus; label: string; icon: typeof Printer };
+
 /**
- * The production/delivery stage each status advances to next, and what to call
- * the button that does it. RECEIVED and COMPLETED are handled separately above
- * (they need extra input / a confirm step), so they aren't in this map.
+ * The one next step for an order, matching what the server allows. Accepting
+ * (PAID → RECEIVED, needs a ready-by time) and completing (needs a confirm)
+ * are handled separately, so they aren't here. After quality check the step
+ * depends on whether the customer is collecting or getting it delivered.
  */
-const NEXT_STAGE: Partial<Record<OrderStatus, { next: OrderStatus; label: string; icon: typeof Printer }>> = {
-	RECEIVED: { next: 'PRINTING', label: 'Start Printing', icon: Printer },
-	PRINTING: { next: 'QUALITY_CHECK', label: 'Send to Quality Check', icon: Search },
-	IN_PROGRESS: { next: 'QUALITY_CHECK', label: 'Send to Quality Check', icon: Search },
-	QUALITY_CHECK: { next: 'READY_FOR_PICKUP', label: 'Mark Ready for Pickup', icon: Package },
-	READY_FOR_PICKUP: { next: 'OUT_FOR_DELIVERY', label: 'Mark Out for Delivery', icon: Truck },
-	OUT_FOR_DELIVERY: { next: 'DELIVERED', label: 'Mark Delivered', icon: CheckCircle },
+const nextStage = (order: ClerkOrder): Stage | undefined => {
+	const pickup = order.fulfilmentType === 'pickup';
+	switch (order.status) {
+		case 'RECEIVED':
+			return { next: 'PRINTING', label: 'Start printing', icon: Printer };
+		case 'PRINTING':
+		case 'IN_PROGRESS':
+			return { next: 'QUALITY_CHECK', label: 'Send to quality check', icon: Search };
+		case 'QUALITY_CHECK':
+			return pickup
+				? { next: 'READY_FOR_PICKUP', label: 'Ready for pickup', icon: Package }
+				: { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery', icon: Truck };
+		case 'READY_FOR_PICKUP':
+			return pickup ? undefined : { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery', icon: Truck };
+		case 'OUT_FOR_DELIVERY':
+			return { next: 'DELIVERED', label: 'Mark delivered', icon: CheckCircle };
+		default:
+			return undefined;
+	}
 };
 
-const COMPLETABLE_STATUSES: OrderStatus[] = [
-	'QUOTED', 'RECEIVED', 'IN_PROGRESS', 'PRINTING', 'QUALITY_CHECK',
-	'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED',
-];
+/** Done-and-handed-over states the server lets you close an order from. */
+const COMPLETABLE_STATUSES: OrderStatus[] = ['READY_FOR_PICKUP', 'DELIVERED'];
 
 // Time options for estimated completion
 const TIME_OPTIONS = [
@@ -44,14 +59,17 @@ const TIME_OPTIONS = [
 	{ label: 'Tomorrow', minutes: 1440 },
 ];
 
-export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsReceived, onAdvanceStatus }: OrderInfoCardProps) {
+export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsReceived, onAdvanceStatus, onDecline }: OrderInfoCardProps) {
 	const t = useThemeClasses();
 	const [showTimeDropdown, setShowTimeDropdown] = useState(false);
 	const [selectedTime, setSelectedTime] = useState<number | null>(null);
 
-	const canMarkAsReceived = order.status === 'PAID' || order.status === 'PENDING';
+	const marketplace = order.channel === 'marketplace';
+	// Only paid orders can be started — unpaid managed orders are still with Printdecore
+	const canMarkAsReceived = order.status === 'PAID';
+	const canDecline = marketplace && !!onDecline && (order.status === 'PAID' || order.status === 'RECEIVED');
 	const canMarkAsCompleted = COMPLETABLE_STATUSES.includes(order.status);
-	const nextStage = NEXT_STAGE[order.status];
+	const stage = nextStage(order);
 
 	const handleMarkAsReceivedClick = () => {
 		setShowTimeDropdown(true);
@@ -97,8 +115,51 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 						{order.orderNumber}
 					</p>
 				</div>
-				<StatusBadge status={order.status} className="px-3 py-1 text-xs font-semibold" />
+				<div className="flex items-center gap-1.5">
+					<span
+						className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+							marketplace
+								? t.isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-100 text-amber-800'
+								: t.isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+						}`}
+					>
+						{marketplace ? <><Store size={12} /> Your customer</> : 'Via Printdecore'}
+					</span>
+					<StatusBadge status={order.status} className="px-3 py-1 text-xs font-semibold" />
+				</div>
 			</div>
+
+			{/* A marketplace order waiting on you — the one decision to make */}
+			{marketplace && order.status === 'PAID' && !showTimeDropdown && (
+				<div
+					className={`mb-3 p-3 rounded-lg border ${
+						t.isDark ? 'bg-amber-900/20 border-amber-800/40' : 'bg-amber-50 border-amber-200'
+					}`}
+				>
+					<p className={`text-sm font-semibold ${t.text}`}>New order — paid and waiting for you</p>
+					<p className={`text-xs mt-0.5 ${t.textSecondary}`}>
+						Accept it with a ready-by time, or decline and the customer is refunded.
+					</p>
+				</div>
+			)}
+
+			{order.fulfilmentType && (
+				<div className={`mb-3 flex items-start gap-2 text-sm ${t.text}`}>
+					{order.fulfilmentType === 'pickup' ? <Store size={16} /> : <MapPin size={16} />}
+					<span>
+						{order.fulfilmentType === 'pickup'
+							? 'Customer will pick up'
+							: `Deliver to ${order.deliveryAddress || 'customer'}`}
+						{order.recipientPhone ? ` · ${order.recipientPhone}` : ''}
+					</span>
+				</div>
+			)}
+
+			{order.status === 'CANCELLED' && order.declineReason && (
+				<div className={`mb-3 p-2 rounded-md text-sm ${t.isDark ? 'bg-red-900/20 text-red-300' : 'bg-red-50 text-red-700'}`}>
+					You declined this order: “{order.declineReason}”. The customer was refunded.
+				</div>
+			)}
 
 			{/* Show estimated completion time if order is received */}
 			{order.status === 'RECEIVED' && formattedEstimatedTime && (
@@ -144,7 +205,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 				{showTimeDropdown && (
 					<Card padding="sm" className="flex flex-col gap-2 p-3">
 						<p className={`text-sm font-medium ${t.isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-							Estimated Completion Time:
+							Ready in about:
 						</p>
 						<Select
 							value={selectedTime?.toString() || ''}
@@ -179,27 +240,34 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 					</Card>
 				)}
 
-				{/* Mark as Received Button (for PAID/PENDING orders) */}
+				{/* Accept / confirm received (needs a ready-by time) — plus decline for marketplace orders */}
 				{canMarkAsReceived && !showTimeDropdown && (
-					<Button
-						onClick={handleMarkAsReceivedClick}
-						disabled={isUpdating}
-						icon={Package}
-						className="bg-blue-500 hover:bg-blue-600 text-white"
-					>
-						{isUpdating ? 'Updating...' : 'Mark as Received'}
-					</Button>
+					<div className="flex gap-2">
+						{canDecline && (
+							<Button variant="secondary" onClick={onDecline} disabled={isUpdating} icon={XCircle}>
+								Decline
+							</Button>
+						)}
+						<Button
+							onClick={handleMarkAsReceivedClick}
+							disabled={isUpdating}
+							icon={Package}
+							className="bg-blue-500 hover:bg-blue-600 text-white"
+						>
+							{isUpdating ? 'Updating...' : marketplace ? 'Accept order' : 'Confirm received'}
+						</Button>
+					</div>
 				)}
 
 				{/* Advance to next production/delivery stage */}
-				{nextStage && !showTimeDropdown && onAdvanceStatus && (
+				{stage && !showTimeDropdown && onAdvanceStatus && (
 					<Button
-						onClick={() => onAdvanceStatus(nextStage.next)}
+						onClick={() => onAdvanceStatus(stage.next)}
 						disabled={isUpdating}
-						icon={nextStage.icon}
+						icon={stage.icon}
 						className="bg-blue-500 hover:bg-blue-600 text-white"
 					>
-						{isUpdating ? 'Updating...' : nextStage.label}
+						{isUpdating ? 'Updating...' : stage.label}
 					</Button>
 				)}
 

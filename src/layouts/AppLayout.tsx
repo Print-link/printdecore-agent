@@ -9,12 +9,14 @@ import { cn, formatCount } from "../lib/utils";
 import { useSettings } from "../contexts/SettingsContext";
 import { useToast } from "../contexts/ToastContext";
 import { apiService } from "../services/api";
+import { branchApi } from "../services/api/branches";
 import {
-  LayoutDashboard,
+  Home,
   ShoppingBag,
-  BarChart3,
   Store,
+  Building,
   Wrench,
+  Tag,
   Users,
   UserCircle,
   Settings,
@@ -24,23 +26,42 @@ import {
   Moon,
   Sun,
   LogOut,
-  XCircle,
   MessageCircle,
-  ChevronDown,
   FileText,
   TrendingUp,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
-import { BranchSelector } from "../components/shared/BranchSelector";
+import { ScopeSwitcher } from "../components/shared/ScopeSwitcher";
+import { RequireBranch } from "../components/shared/RequireBranch";
+import { useAutoScope, isBranchOnlyPath } from "../hooks/useBranchScope";
 import { settlementsApi } from "../services/api/settlements";
 import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
 
+interface NavItem {
+  path: string;
+  label: string;
+  icon: typeof Home;
+  /** Other paths that light this item up */
+  also?: string[];
+  badge?: number;
+  hasAlert?: boolean;
+  id?: string;
+}
+
+interface NavSection {
+  title?: string;
+  items: Array<NavItem | false>;
+}
+
+const isOn = (pathname: string, item: Pick<NavItem, "path" | "also">) =>
+  [item.path, ...(item.also ?? [])].some((p) => pathname === p || pathname.startsWith(p + "/"));
+
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
-  const { selectedBranch, clearBranch } = useBranchStore();
+  const { selectedBranch } = useBranchStore();
   const { theme, toggleTheme } = useTheme();
   const t = useThemeClasses();
   const { settings, playSound } = useSettings();
@@ -52,11 +73,19 @@ export default function AppLayout() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { currentStep, isActive, startWalkthrough, setStep } =
     useWalkthroughStore();
-  const { chats, isConnected, ensureStatusChecked } = useWhatsAppStore();
+  const {
+    chats,
+    isConnected,
+    isConnecting: whatsAppConnecting,
+    statusKnown: whatsAppStatusKnown,
+    wasLinked: whatsAppWasLinked,
+    ensureStatusChecked,
+    connect: connectWhatsApp,
+  } = useWhatsAppStore();
 
   const { isManager, isClerk, hasPermission } = usePermissions();
   const hasBranchSelected = Boolean(selectedBranch);
-  const [isBranchSectionOpen, setIsBranchSectionOpen] = useState(true);
+  useAutoScope();
 
   // Check if branch has payment method configured
   const { data: settlementData } = useQuery({
@@ -65,7 +94,19 @@ export default function AppLayout() {
     enabled: !!selectedBranch?.id && isManager,
     staleTime: 60000,
   });
-  const hasNoPaymentMethod = isManager && hasBranchSelected && settlementData && !settlementData.configured;
+  // Payouts only matter for shops that sell to customers directly (self-managed)
+  const { data: marketplaceStatus } = useQuery({
+    queryKey: ["branchMarketplace", selectedBranch?.id],
+    queryFn: () => branchApi.getMarketplaceStatus(selectedBranch!.id),
+    enabled: !!selectedBranch?.id && isManager,
+    staleTime: 60000,
+  });
+  const hasNoPaymentMethod =
+    isManager &&
+    hasBranchSelected &&
+    marketplaceStatus?.fulfilmentMode === "self_managed" &&
+    settlementData &&
+    !settlementData.configured;
 
   // Start walkthrough on login for managers
   useEffect(() => {
@@ -111,19 +152,12 @@ export default function AppLayout() {
     refetchInterval: 15000,
   });
 
-  // Calculate PENDING and PAID jobs count
-  const pendingAndPaidCount = useMemo(() => {
-    return orders.filter(
-      (order) => order.status === "PENDING" || order.status === "PAID",
-    ).length;
-  }, [orders]);
-
-  // Get PENDING and PAID orders
+  // Orders waiting on this shop: paid and not yet accepted. Unpaid (PENDING)
+  // orders are still with Printdecore or the customer, so they don't ring.
   const pendingAndPaidOrders = useMemo(() => {
-    return orders.filter(
-      (order) => order.status === "PENDING" || order.status === "PAID",
-    );
+    return orders.filter((order) => order.status === "PAID");
   }, [orders]);
+  const pendingAndPaidCount = pendingAndPaidOrders.length;
 
   // Play sound notification when PENDING/PAID orders exist
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -186,167 +220,72 @@ export default function AppLayout() {
     playSound,
   ]);
 
-  const { generalItems, branchItems } = useMemo(() => {
-    const general: Array<{
-      path: string;
-      label: string;
-      icon: typeof LayoutDashboard;
-      badge?: number;
-      hasAlert?: boolean;
-    }> = [];
-    const branch: Array<{
-      path: string;
-      label: string;
-      icon: typeof LayoutDashboard;
-      badge?: number;
-      hasAlert?: boolean;
-    }> = [];
-
+  const sections = useMemo(() => {
     const unreadMessagesCount = isConnected
       ? chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
       : 0;
+    const ordersBadge = pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined;
+    const messagesBadge = unreadMessagesCount > 0 ? unreadMessagesCount : undefined;
+    const can = (...p: Parameters<typeof hasPermission>) => isManager || hasPermission(...p);
 
-    if (isManager) {
-      // ─── Manager: General Navigation (always visible) ─────────────
-      general.push({
-        path: "/app/overview",
-        label: "Overview",
-        icon: BarChart3,
-      });
-      general.push({ path: "/app/branches", label: "Branches", icon: Store });
-      general.push({
-        path: "/app/user-management",
-        label: "User Management",
-        icon: Users,
-      });
-      general.push({
-        path: "/app/marketing",
-        label: "Marketing",
-        icon: TrendingUp,
-      });
-      general.push({
-        path: "/app/messages",
-        label: "Messages",
-        icon: MessageCircle,
-        badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
-      });
-
-      // ─── Manager: Branch-specific Navigation (when branch selected) ─
-      if (hasBranchSelected) {
-        branch.push({
-          path: "/app/dashboard",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-        });
-        branch.push({
-          path: "/app/jobs",
-          label: "Jobs",
-          icon: ShoppingBag,
-          badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
-        });
-        branch.push({
-          path: "/app/services",
-          label: "Services",
-          icon: Wrench,
-        });
-        branch.push({
-          path: "/app/access-control",
-          label: "Access Control",
-          icon: Shield,
-        });
-        branch.push({
-          path: "/app/reports",
-          label: "Reports",
-          icon: FileText,
-        });
-        branch.push({
-          path: "/app/branch-info",
-          label: "Branch Info",
-          icon: Store,
-          hasAlert: !!hasNoPaymentMethod,
-        });
-      }
-    } else if (isClerk) {
-      // ─── Clerk Navigation (permission-gated, no branch section) ───
-      if (hasPermission(PERMISSIONS.DASHBOARD_VIEW)) {
-        general.push({
-          path: "/app/dashboard",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-        });
-      }
-      if (hasPermission(PERMISSIONS.ORDERS_VIEW)) {
-        general.push({
-          path: "/app/orders",
-          label: "Orders",
-          icon: ShoppingBag,
-          badge: pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined,
-        });
-      }
-      if (hasPermission(PERMISSIONS.MESSAGES_VIEW)) {
-        general.push({
-          path: "/app/messages",
-          label: "Messages",
-          icon: MessageCircle,
-          badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
-        });
-      }
-      if (hasPermission(PERMISSIONS.SERVICES_VIEW)) {
-        general.push({
-          path: "/app/services",
-          label: "Services",
-          icon: Wrench,
-        });
-      }
-      if (
-        hasPermission(PERMISSIONS.REPORTS_VIEW, PERMISSIONS.DASHBOARD_ANALYTICS)
-      ) {
-        general.push({
-          path: "/app/overview",
-          label: "Analytics",
-          icon: BarChart3,
-        });
-      }
-      if (hasPermission(PERMISSIONS.REPORTS_VIEW)) {
-        general.push({
-          path: "/app/reports",
-          label: "Reports",
-          icon: FileText,
-        });
-      }
-      if (hasPermission(PERMISSIONS.BRANCH_VIEW)) {
-        general.push({
-          path: "/app/branch-info",
-          label: "Branch",
-          icon: Store,
-        });
-      }
-      if (hasPermission(PERMISSIONS.ACTIVITY_VIEW)) {
-        general.push({
-          path: "/app/access-control",
-          label: "Activity Log",
-          icon: Shield,
-        });
-      }
-    }
-
-    // Always available to all roles
-    general.push({
-      path: "/app/profile",
-      label: "Profile",
-      icon: UserCircle,
-    });
-    general.push({
-      path: "/app/settings",
-      label: "Settings",
-      icon: Settings,
-    });
-
-    return { generalItems: general, branchItems: branch };
+    // One menu for every branch; pages that need a single branch ask for one
+    const all: NavSection[] = [
+      {
+        items: [
+          { path: "/app/home", label: "Home", icon: Home, id: "walkthrough-dashboard-welcome" },
+          can(PERMISSIONS.ORDERS_VIEW) && {
+            path: "/app/orders",
+            also: ["/app/jobs"],
+            label: "Orders",
+            icon: ShoppingBag,
+            badge: ordersBadge,
+          },
+          can(PERMISSIONS.MESSAGES_VIEW) && {
+            path: "/app/messages",
+            label: "Messages",
+            icon: MessageCircle,
+            badge: messagesBadge,
+          },
+        ],
+      },
+      {
+        title: "Sell",
+        items: [
+          can(PERMISSIONS.SERVICES_VIEW) && { path: "/app/pricing", label: "Products and prices", icon: Tag },
+          can(PERMISSIONS.SERVICES_VIEW) && { path: "/app/services", label: "Older services", icon: Wrench },
+          isManager && { path: "/app/marketing", label: "Marketing", icon: TrendingUp },
+          can(PERMISSIONS.REPORTS_VIEW) && { path: "/app/reports", label: "Reports", icon: FileText },
+        ],
+      },
+      {
+        title: "Manage",
+        items: [
+          isManager && { path: "/app/user-management", label: "Team", icon: Users },
+          (isManager || hasPermission(PERMISSIONS.ACTIVITY_VIEW)) && {
+            path: "/app/access-control",
+            label: isManager ? "Roles and activity" : "Activity log",
+            icon: Shield,
+          },
+          isManager && {
+            path: "/app/branches",
+            label: "Branches",
+            icon: Store,
+            id: "walkthrough-branches-nav",
+          },
+          can(PERMISSIONS.BRANCH_VIEW) && {
+            path: "/app/branch-info",
+            label: "Shop settings",
+            icon: Building,
+            hasAlert: !!hasNoPaymentMethod,
+          },
+        ],
+      },
+    ];
+    return all
+      .map((sec) => ({ ...sec, items: sec.items.filter(Boolean) as NavItem[] }))
+      .filter((sec) => sec.items.length > 0);
   }, [
     isManager,
-    isClerk,
-    hasBranchSelected,
     hasPermission,
     pendingAndPaidCount,
     isConnected,
@@ -406,260 +345,62 @@ export default function AppLayout() {
           </button>
         </div>
 
+        <ScopeSwitcher
+          collapsed={isSidebarCollapsed}
+          onExpand={() => setIsSidebarCollapsed(false)}
+        />
+
         {/* Navigation */}
         <nav
           className={cn(
             "flex-1 overflow-y-auto",
-            isSidebarCollapsed ? "p-2 space-y-1" : "p-4 space-y-1",
+            isSidebarCollapsed ? "p-2" : "p-3",
           )}
         >
-          {/* General nav items */}
-          {generalItems.map((item) => {
-            const Icon = item.icon;
-            const isActiveRoute = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
-            return (
-              <div key={item.path} className="relative group">
-                <button
-                  id={
-                    item.label === "Branches"
-                      ? "walkthrough-branches-nav"
-                      : undefined
-                  }
-                  onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
-                  className={cn(
-                    "w-full flex items-center rounded-lg transition-all relative",
-                    isSidebarCollapsed
-                      ? "justify-center p-2.5"
-                      : "gap-3 px-3 py-2.5",
-                    isActiveRoute
-                      ? "bg-amber-400 text-gray-900 font-semibold shadow-sm"
-                      : t.isDark
-                        ? "text-gray-400 hover:bg-gray-700/60 hover:text-gray-200"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
-                  )}
-                >
-                  <Icon size={20} active={isActiveRoute} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex items-center justify-between flex-1 min-w-0">
-                      <span className="text-sm truncate">{item.label}</span>
-                      {item.badge !== undefined && item.badge > 0 && (
-                        <span
-                          className={cn(
-                            "ml-2 px-2 py-0.5 rounded-full text-xs font-semibold min-w-[20px] text-center",
-                            isActiveRoute
-                              ? "bg-gray-900 text-amber-400"
-                              : "bg-amber-400 text-gray-900",
-                          )}
-                        >
-                          {formatCount(item.badge)}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {isSidebarCollapsed &&
-                    item.badge !== undefined &&
-                    item.badge > 0 && (
-                      <span
-                        className={cn(
-                          "absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold",
-                          isActiveRoute
-                            ? "bg-gray-900 text-amber-400"
-                            : "bg-amber-400 text-gray-900",
-                        )}
-                      >
-                        {item.badge > 9 ? "9+" : item.badge}
-                      </span>
-                    )}
-                </button>
-                {isSidebarCollapsed && (
-                  <div
+          {sections.map((section, i) => (
+            <div key={section.title ?? i} className={cn(i > 0 && "mt-4")}>
+              {section.title &&
+                (isSidebarCollapsed ? (
+                  <div className={cn("mx-2 mb-2 border-t", t.border)} />
+                ) : (
+                  <p
                     className={cn(
-                      "absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none",
-                      t.isDark
-                        ? "bg-gray-700 text-gray-100 shadow-lg shadow-black/20"
-                        : "bg-gray-900 text-white shadow-lg",
+                      "px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider",
+                      t.textTertiary,
                     )}
                   >
-                    {item.label}
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
-                        {formatCount(item.badge)}
-                      </span>
-                    )}
-                  </div>
-                )}
+                    {section.title}
+                  </p>
+                ))}
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <NavButton
+                    key={item.path}
+                    item={item}
+                    collapsed={isSidebarCollapsed}
+                    active={isOn(location.pathname, item)}
+                    onClick={() => {
+                      navigate(item.path);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  />
+                ))}
               </div>
-            );
-          })}
-
-          {/* Branch-specific section (managers only, when branch selected) */}
-          {branchItems.length > 0 && selectedBranch && (
-            <>
-              {/* Divider */}
-              <div className={cn("my-2", isSidebarCollapsed ? "mx-1" : "mx-1")}>
-                <div
-                  className={cn(
-                    "border-t",
-                    t.isDark ? "border-gray-700" : "border-gray-200",
-                  )}
-                />
-              </div>
-
-              {/* Branch section header */}
-              {!isSidebarCollapsed ? (
-                <button
-                  onClick={() => setIsBranchSectionOpen(!isBranchSectionOpen)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
-                    t.isDark
-                      ? "hover:bg-gray-700/40 text-gray-300"
-                      : "hover:bg-gray-50 text-gray-600",
-                  )}
-                >
-                  <Store size={16} active />
-                  <span className="text-xs font-semibold uppercase tracking-wider truncate flex-1 text-left">
-                    {selectedBranch.name}
-                  </span>
-                  <span
-                    className={cn(
-                      "transition-transform duration-200",
-                      isBranchSectionOpen ? "rotate-0" : "-rotate-90",
-                    )}
-                  >
-                    <ChevronDown size={14} />
-                  </span>
-                </button>
-              ) : (
-                <div className="relative group">
-                  <div className={cn("flex justify-center py-1.5")}>
-                    <div
-                      className={cn(
-                        "w-6 h-0.5 rounded-full",
-                        t.isDark ? "bg-gray-600" : "bg-gray-300",
-                      )}
-                    />
-                  </div>
-                  <div
-                    className={cn(
-                      "absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none",
-                      t.isDark
-                        ? "bg-gray-700 text-gray-100 shadow-lg shadow-black/20"
-                        : "bg-gray-900 text-white shadow-lg",
-                    )}
-                  >
-                    {selectedBranch.name}
-                  </div>
-                </div>
-              )}
-
-              {/* Branch nav items (collapsible) */}
-              <div
-                className={cn(
-                  "overflow-hidden transition-all duration-200",
-                  isBranchSectionOpen
-                    ? "max-h-96 opacity-100"
-                    : "max-h-0 opacity-0",
-                )}
-              >
-                <div
-                  className={cn(
-                    isSidebarCollapsed
-                      ? "space-y-1"
-                      : "space-y-1 ml-1 pl-2 border-l-2 border-amber-400/40",
-                  )}
-                >
-                  {branchItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActiveRoute = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
-                    return (
-                      <div key={item.path} className="relative group">
-                        <button
-                          onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
-                          className={cn(
-                            "w-full flex items-center rounded-lg transition-all relative",
-                            isSidebarCollapsed
-                              ? "justify-center p-2.5"
-                              : "gap-3 px-3 py-2.5",
-                            isActiveRoute
-                              ? "bg-amber-400 text-gray-900 font-semibold shadow-sm"
-                              : t.isDark
-                                ? "text-gray-400 hover:bg-gray-700/60 hover:text-gray-200"
-                                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
-                          )}
-                        >
-                          <div className="relative">
-                            <Icon size={20} active={isActiveRoute} />
-                            {item.hasAlert && (
-                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" />
-                            )}
-                          </div>
-                          {!isSidebarCollapsed && (
-                            <div className="flex items-center justify-between flex-1 min-w-0">
-                              <span className="text-sm truncate">
-                                {item.label}
-                              </span>
-                              {item.hasAlert && (
-                                <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />
-                              )}
-                              {item.badge !== undefined && item.badge > 0 && (
-                                <span
-                                  className={cn(
-                                    "ml-2 px-2 py-0.5 rounded-full text-xs font-semibold min-w-[20px] text-center",
-                                    isActiveRoute
-                                      ? "bg-gray-900 text-amber-400"
-                                      : "bg-amber-400 text-gray-900",
-                                  )}
-                                >
-                                  {formatCount(item.badge)}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {isSidebarCollapsed &&
-                            item.badge !== undefined &&
-                            item.badge > 0 && (
-                              <span
-                                className={cn(
-                                  "absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold",
-                                  isActiveRoute
-                                    ? "bg-gray-900 text-amber-400"
-                                    : "bg-amber-400 text-gray-900",
-                                )}
-                              >
-                                {item.badge > 9 ? "9+" : item.badge}
-                              </span>
-                            )}
-                        </button>
-                        {isSidebarCollapsed && (
-                          <div
-                            className={cn(
-                              "absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none",
-                              t.isDark
-                                ? "bg-gray-700 text-gray-100 shadow-lg shadow-black/20"
-                                : "bg-gray-900 text-white shadow-lg",
-                            )}
-                          >
-                            {item.label}
-                            {item.badge !== undefined && item.badge > 0 && (
-                              <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
-                                {formatCount(item.badge)}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
+            </div>
+          ))}
         </nav>
 
-        {/* Branch Selector (for managers) */}
-        {isManager && (
-          <BranchSelector isSidebarCollapsed={isSidebarCollapsed} />
-        )}
+        <div className={cn("border-t", t.border, isSidebarCollapsed ? "p-2" : "p-3")}>
+          <NavButton
+            item={{ path: "/app/settings", label: "Settings", icon: Settings }}
+            collapsed={isSidebarCollapsed}
+            active={isOn(location.pathname, { path: "/app/settings" })}
+            onClick={() => {
+              navigate("/app/settings");
+              setIsMobileMenuOpen(false);
+            }}
+          />
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -683,29 +424,6 @@ export default function AppLayout() {
           >
             <Menu size={20} />
           </button>
-
-          {selectedBranch && (
-            <div className="flex items-center gap-2">
-              <span className={cn("font-semibold", t.text)}>
-                {selectedBranch.name}
-              </span>
-              <button
-                onClick={() => {
-                  clearBranch();
-                  navigate("/app/overview");
-                }}
-                className={cn(
-                  "p-1.5 rounded-md transition-colors",
-                  t.isDark
-                    ? "hover:bg-red-900/20 text-red-400 hover:text-red-300"
-                    : "hover:bg-red-50 text-red-600 hover:text-red-700",
-                )}
-                title="Deselect branch"
-              >
-                <XCircle size={16} />
-              </button>
-            </div>
-          )}
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Theme Toggle */}
@@ -747,6 +465,7 @@ export default function AppLayout() {
                     "absolute right-0 mt-2 z-[9999999] w-48 rounded-md shadow-lg",
                     t.surface,
                   )}
+                  onClick={() => setIsUserMenuOpen(false)}
                 >
                   <div className={cn("p-3 border-b", t.border)}>
                     <p className={cn("text-sm font-semibold", t.text)}>
@@ -756,6 +475,18 @@ export default function AppLayout() {
                       {user?.email}
                     </p>
                   </div>
+                  <button
+                    onClick={() => navigate("/app/profile")}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-2 text-sm",
+                      t.isDark
+                        ? "hover:bg-gray-700 text-gray-300"
+                        : "hover:bg-gray-100 text-gray-700",
+                    )}
+                  >
+                    <UserCircle size={16} />
+                    Profile
+                  </button>
                   <button
                     onClick={handleLogout}
                     className={cn(
@@ -774,6 +505,39 @@ export default function AppLayout() {
           </div>
         </header>
 
+        {/* WhatsApp dropped: customer messages stop until it's back */}
+        {whatsAppStatusKnown &&
+          whatsAppWasLinked &&
+          !isConnected &&
+          !whatsAppConnecting &&
+          !location.pathname.startsWith("/app/settings/whatsapp") && (
+            <div
+              role="status"
+              className={cn(
+                "flex items-center gap-3 px-4 md:px-6 py-2.5 border-b text-sm",
+                t.isDark
+                  ? "bg-amber-900/20 border-amber-800/40 text-amber-200"
+                  : "bg-amber-50 border-amber-200 text-amber-900",
+              )}
+            >
+              <MessageCircle size={16} className="flex-shrink-0 text-amber-500" />
+              <span className="font-medium">WhatsApp is disconnected</span>
+              <span className={cn("hidden sm:inline", t.isDark ? "text-amber-300/80" : "text-amber-800")}>
+                — customer messages won't come in until you reconnect.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/app/settings/whatsapp");
+                  connectWhatsApp().catch(() => {});
+                }}
+                className="ml-auto px-3 py-1 rounded-md text-xs font-semibold bg-amber-400 text-gray-900 hover:bg-amber-300"
+              >
+                Reconnect
+              </button>
+            </div>
+          )}
+
         {/* Payment method warning banner */}
         {hasNoPaymentMethod && (
           <div
@@ -783,14 +547,14 @@ export default function AppLayout() {
                 ? "bg-red-900/20 border-red-800/40 text-red-300 hover:bg-red-900/30"
                 : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100",
             )}
-            onClick={() => navigate("/app/branch-info")}
+            onClick={() => navigate("/app/branch-info/marketplace")}
           >
             <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 animate-pulse" />
             <span className="font-medium">
               Payment method not configured
             </span>
             <span className={cn("hidden sm:inline", t.isDark ? "text-red-400" : "text-red-600")}>
-              — Set up a bank account or mobile money to receive customer payments.
+              — Customers pay you directly. Add a bank account or mobile money to start selling on Printdecore.
             </span>
             <span className={cn("ml-auto text-xs font-semibold", t.isDark ? "text-red-400" : "text-red-600")}>
               Configure →
@@ -800,7 +564,11 @@ export default function AppLayout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
+          {isManager && !selectedBranch && isBranchOnlyPath(location.pathname) ? (
+            <RequireBranch />
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
 
@@ -836,6 +604,84 @@ export default function AppLayout() {
             position="top"
           />
         </>
+      )}
+    </div>
+  );
+}
+
+function NavButton({
+  item,
+  collapsed,
+  active,
+  onClick,
+}: {
+  item: NavItem;
+  collapsed: boolean;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const t = useThemeClasses();
+  const Icon = item.icon;
+  const badge = item.badge !== undefined && item.badge > 0 ? item.badge : undefined;
+  return (
+    <div className="relative group">
+      <button
+        id={item.id}
+        onClick={onClick}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "w-full flex items-center rounded-lg transition-colors relative",
+          collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2",
+          active
+            ? t.isDark
+              ? "bg-gray-700 text-white font-semibold"
+              : "bg-gray-100 text-gray-900 font-semibold"
+            : t.isDark
+              ? "text-gray-400 hover:bg-gray-700/50 hover:text-gray-200"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+        )}
+      >
+        {active && !collapsed && (
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-amber-400" />
+        )}
+        <span className="relative">
+          <Icon size={20} active={active} />
+          {item.hasAlert && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" />
+          )}
+          {collapsed && badge !== undefined && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold bg-amber-400 text-gray-900">
+              {badge > 9 ? "9+" : badge}
+            </span>
+          )}
+        </span>
+        {!collapsed && (
+          <span className="flex items-center justify-between flex-1 min-w-0">
+            <span className="text-sm truncate">{item.label}</span>
+            {badge !== undefined && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold min-w-[20px] text-center bg-amber-400 text-gray-900">
+                {formatCount(badge)}
+              </span>
+            )}
+          </span>
+        )}
+      </button>
+      {collapsed && (
+        <div
+          className={cn(
+            "absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none",
+            t.isDark
+              ? "bg-gray-700 text-gray-100 shadow-lg shadow-black/20"
+              : "bg-gray-900 text-white shadow-lg",
+          )}
+        >
+          {item.label}
+          {badge !== undefined && (
+            <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
+              {formatCount(badge)}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

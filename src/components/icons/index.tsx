@@ -44,6 +44,7 @@ function createIcon(activeName: string, displayName: string, inactiveName?: stri
 
 // ─── Navigation & Layout ─────────────────────────────────────────────
 export const LayoutDashboard = createIcon('solar:widget-4-bold-duotone', 'LayoutDashboard', 'solar:widget-4-linear');
+export const Home = createIcon('solar:home-2-bold-duotone', 'Home', 'solar:home-2-linear');
 export const Menu = createIcon('solar:hamburger-menu-bold-duotone', 'Menu', 'solar:hamburger-menu-linear');
 export const Settings = createIcon('solar:settings-bold-duotone', 'Settings', 'solar:settings-linear');
 export const LogOut = createIcon('solar:logout-2-bold-duotone', 'LogOut', 'solar:logout-2-linear');
