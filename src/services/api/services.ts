@@ -7,7 +7,6 @@ import type {
 	AgentService,
 	CreateAgentServiceData,
 	UpdateAgentServiceData,
-	PricingConfig,
 	CreateServiceTemplateData,
 	UpdateServiceTemplateData,
 	Category,
@@ -216,17 +215,6 @@ async function deleteAgentService(agentServiceId: string): Promise<void> {
 	await apiClient.delete(`/agent-services/${agentServiceId}`);
 }
 
-async function updateAgentServicePricingConfig(
-	agentServiceId: string,
-	pricingConfig: PricingConfig
-): Promise<AgentService> {
-	const response = await apiClient.put(
-		`/agent-services/${agentServiceId}/pricing-config`,
-		{ pricingConfig }
-	);
-	return response.data.data || response.data;
-}
-
 // Category APIs
 async function getAllCategories(adminId: string): Promise<Category[]> {
 	const response = await apiClient.get("/categories", {
@@ -284,7 +272,6 @@ export const serviceApi = {
 	createAgentService,
 	updateAgentService,
 	deleteAgentService,
-	updateAgentServicePricingConfig,
 	getAllCategories,
 	createCategory,
 	updateCategory,

@@ -15,7 +15,7 @@ import {
   ShoppingBag,
   Store,
   Building,
-  Wrench,
+  Palette,
   Tag,
   Users,
   UserCircle,
@@ -252,7 +252,7 @@ export default function AppLayout() {
         title: "Sell",
         items: [
           can(PERMISSIONS.SERVICES_VIEW) && { path: "/app/pricing", label: "Products and prices", icon: Tag },
-          can(PERMISSIONS.SERVICES_VIEW) && { path: "/app/services", label: "Older services", icon: Wrench },
+          can(PERMISSIONS.SERVICES_VIEW) && { path: "/app/artworks", label: "Art works", icon: Palette },
           isManager && { path: "/app/marketing", label: "Marketing", icon: TrendingUp },
           can(PERMISSIONS.REPORTS_VIEW) && { path: "/app/reports", label: "Reports", icon: FileText },
         ],
