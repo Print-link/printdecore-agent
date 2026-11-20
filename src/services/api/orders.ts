@@ -132,8 +132,14 @@ async function declineOrder(orderId: string, reason: string): Promise<{ message:
 	return { message: response.data.message };
 }
 
+/** Send (or change) the price for a request a customer sent to your shop */
+async function sendQuote(quotationId: string, amount: number): Promise<void> {
+	await apiClient.patch(`/quotations/${quotationId}/send`, { amount });
+}
+
 export const orderApi = {
 	declineOrder,
+	sendQuote,
 	getBranchOrders,
 	getBranchOrderDetail,
 	updateBranchOrder,

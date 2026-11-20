@@ -13,6 +13,7 @@ import {
 	OrderItemsList,
 	CompleteOrderModal,
 	DeclineOrderModal,
+	QuoteRequestCard,
 } from "./order-detail";
 import { Spinner } from "../icons";
 import { formatOrderDate, downloadFile } from "./utils/orderUtils";
@@ -171,6 +172,20 @@ export default function OrderDetailPreview({
 		},
 	});
 
+	// A request the customer sent this shop: send (or change) its price
+	const sendQuoteMutation = useMutation({
+		mutationFn: ({ quotationId, amount }: { quotationId: string; amount: number }) => apiService.sendQuote(quotationId, amount),
+		onSuccess: (_data, { amount }) => {
+			queryClient.invalidateQueries({ queryKey: ["orderDetail", order.id, branchId] });
+			queryClient.invalidateQueries({ queryKey: ["branchOrders", branchId] });
+			success(`The customer has your price of GHS ${amount.toLocaleString()}`, "Price sent", 4000);
+			if (onOrderUpdate) onOrderUpdate();
+		},
+		onError: (error: unknown) => {
+			showError(error instanceof Error ? error.message : "Couldn't send the price", "Price not sent", 5000);
+		},
+	});
+
 	const handleAdvanceStatus = (nextStatus: OrderStatus) => {
 		advanceStatusMutation.mutate(nextStatus);
 	};
@@ -242,6 +257,19 @@ export default function OrderDetailPreview({
 							onDecline={() => setShowDeclineModal(true)}
 						/>
 
+						{orderDetail?.printRequest && (
+							<QuoteRequestCard
+								request={orderDetail.printRequest}
+								status={orderDetail.status}
+								isSending={sendQuoteMutation.isPending || declineMutation.isPending}
+								onSendQuote={(amount) =>
+									orderDetail.printRequest?.quotation &&
+									sendQuoteMutation.mutate({ quotationId: orderDetail.printRequest.quotation.id, amount })
+								}
+								onDecline={orderDetail.printRequest.canQuote ? () => setShowDeclineModal(true) : undefined}
+							/>
+						)}
+
 						<ClientInfoCard client={order.client} />
 
 						{orderDetail && (
@@ -272,6 +300,7 @@ export default function OrderDetailPreview({
 				isPending={declineMutation.isPending}
 				onClose={() => setShowDeclineModal(false)}
 				onConfirm={(reason) => declineMutation.mutate(reason)}
+				unpaid={(orderDetail ?? order).status === "PENDING" || (orderDetail ?? order).status === "QUOTED"}
 			/>
 
 			{/* Complete Order Modal */}

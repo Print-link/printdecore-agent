@@ -97,8 +97,23 @@ export interface ClerkOrder {
 	updatedAt: string | Date;
 }
 
+/** What the customer asked for, on an order that waits for a quote */
+export interface QuoteRequest {
+  id: string;
+  requestNumber: string;
+  title: string;
+  quantity?: number;
+  /** The customer's specs and notes, one per line */
+  details?: string;
+  attachments: { url: string; name?: string; type?: string; size?: number }[];
+  quotation?: { id: string; status: string; amount?: number };
+  /** Your shop prices it (a request sent to you); otherwise Printdecore does */
+  canQuote: boolean;
+}
+
 export interface ClerkOrderDetail extends ClerkOrder {
   items: ClerkOrderItem[];
+  printRequest?: QuoteRequest;
 }
 
 export interface ClerkOrdersResponse {

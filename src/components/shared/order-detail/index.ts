@@ -7,3 +7,4 @@ export { FileThumbnail } from './FileThumbnail';
 export { CompleteOrderModal } from './CompleteOrderModal';
 
 export { DeclineOrderModal } from './DeclineOrderModal';
+export { QuoteRequestCard } from './QuoteRequestCard';
