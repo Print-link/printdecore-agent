@@ -105,6 +105,38 @@ export interface PreviewInput {
   pages?: number;
 }
 
+/** A product the shop made itself — priced only from its own list */
+export interface OwnProductRow {
+  id: string;
+  name: string;
+  category: string;
+  subCategoryId: string;
+  subCategory: string | null;
+  pricingUnit: PricingUnit | null;
+  /** Its prices are published */
+  priced: boolean;
+  /** Customers can order it */
+  onSale: boolean;
+}
+
+/** What the shop sends to make or change its own product */
+export interface OwnProductInput {
+  name: string;
+  subCategoryId: string;
+  definition: {
+    pricingUnit: PricingUnit;
+    sizeMode: ProductDefinition["sizeMode"];
+    attributes: Array<{
+      key: string;
+      name: string;
+      selection: "one" | "any";
+      required: boolean;
+      defaultOptionKeys?: string[];
+      options: Array<{ key: string; name: string; specs?: { widthMm?: number; heightMm?: number } }>;
+    }>;
+  };
+}
+
 type Ok<T> = { success: boolean; data: T };
 const base = (branchId: string) => `/shop-pricing/${branchId}`;
 
@@ -139,6 +171,15 @@ export const shopPricingApi = {
     )).data.data,
   savePrices: async (branchId: string, versionId: string, productId: string, prices: { entries: PriceEntry[]; modifiers: PriceModifier[] }) =>
     (await apiClient.put(`${base(branchId)}/versions/${versionId}/products/${productId}`, prices)).data.data,
+
+  ownProducts: async (branchId: string) => (await apiClient.get<Ok<OwnProductRow[]>>(`${base(branchId)}/own-products`)).data.data,
+  ownProduct: async (branchId: string, productId: string) =>
+    (await apiClient.get<Ok<{ product: ProductDefinition; subCategoryId: string }>>(`${base(branchId)}/own-products/${productId}`)).data.data,
+  createOwnProduct: async (branchId: string, input: OwnProductInput) =>
+    (await apiClient.post<Ok<{ product: ProductDefinition; subCategoryId: string }>>(`${base(branchId)}/own-products`, input)).data.data,
+  updateOwnProduct: async (branchId: string, productId: string, input: Partial<OwnProductInput>) =>
+    (await apiClient.put<Ok<{ product: ProductDefinition; subCategoryId: string }>>(`${base(branchId)}/own-products/${productId}`, input)).data.data,
+  removeOwnProduct: async (branchId: string, productId: string) => (await apiClient.delete(`${base(branchId)}/own-products/${productId}`)).data,
 
   preview: async (branchId: string, input: PreviewInput) =>
     (await apiClient.post<Ok<{ shop: QuoteResult; platform: QuoteResult }>>(`${base(branchId)}/preview`, input)).data.data,

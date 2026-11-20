@@ -288,7 +288,7 @@ export function ShopProductEditor({
   );
 }
 
-function Block({ title, subtitle, children, actions }: { title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode }) {
+export function Block({ title, subtitle, children, actions }: { title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode }) {
   const t = useThemeClasses();
   return (
     <section>
@@ -304,7 +304,7 @@ function Block({ title, subtitle, children, actions }: { title: string; subtitle
   );
 }
 
-function Notice({ children }: { children: React.ReactNode }) {
+export function Notice({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-xs text-gray-800 dark:text-amber-100">
       <AlertTriangle size={16} className="text-amber-500 shrink-0" />
@@ -327,7 +327,7 @@ const parseBreaks = (s: string) => {
   return out.sort((a, b) => a.min - b.min);
 };
 
-function OwnPrices({
+export function OwnPrices({
   branchId,
   product,
   draftVersionId,
@@ -522,13 +522,14 @@ function OwnPrices({
 
 // ── Preview ─────────────────────────────────────────────────────────────────
 
-function Preview({
+export function Preview({
   branchId,
   product,
   strategy,
   pct,
   disabled,
   versionId,
+  ownProduct = false,
 }: {
   branchId: string;
   product: ProductDefinition;
@@ -536,6 +537,8 @@ function Preview({
   pct: number;
   disabled: string[];
   versionId: string | null;
+  /** The shop's own product: there's no Printdecore price to compare with */
+  ownProduct?: boolean;
 }) {
   const t = useThemeClasses();
   const defaults = () => {
@@ -624,9 +627,9 @@ function Preview({
         <Button size="sm" onClick={run} loading={busy}>Price it</Button>
       </div>
       {result && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div className={cn("grid grid-cols-1 gap-3 mt-3", !ownProduct && "sm:grid-cols-2")}>
           <QuoteCard title="Your customer pays" result={result.shop} />
-          <QuoteCard title="Printdecore’s price" result={result.platform} muted />
+          {!ownProduct && <QuoteCard title="Printdecore’s price" result={result.platform} muted />}
         </div>
       )}
     </Block>

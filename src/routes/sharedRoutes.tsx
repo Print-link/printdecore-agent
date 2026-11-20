@@ -5,7 +5,8 @@ import { PERMISSIONS } from "../hooks/usePermissions";
 const HomePage = lazy(() => import("../pages/shared/HomePage"));
 const ToHome = lazy(() => import("../pages/shared/ToHome"));
 const OrdersPage = lazy(() => import("../pages/shared/OrdersPage"));
-const ServicesPage = lazy(() => import("../pages/shared/ServicesPage"));
+const ArtworksPage = lazy(() => import("../pages/shared/ArtworksPage"));
+const ToPricing = lazy(() => import("../pages/shared/ToPricing"));
 const ShopPricingPage = lazy(() => import("../pages/shared/ShopPricingPage"));
 const MessagesPage = lazy(() => import("../pages/shared/MessagesPage"));
 const BranchInfoPage = lazy(() => import("../pages/shared/BranchInfoPage"));
@@ -26,9 +27,11 @@ export const sharedRoutes: RouteConfig[] = [
     component: OrdersPage,
     permissions: [PERMISSIONS.ORDERS_VIEW],
   },
+  // The old Services page: its products and prices now live under Pricing
+  { path: "services", component: ToPricing },
   {
-    path: "services",
-    component: ServicesPage,
+    path: "artworks",
+    component: ArtworksPage,
     permissions: [PERMISSIONS.SERVICES_VIEW],
   },
   {

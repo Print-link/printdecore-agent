@@ -15,13 +15,15 @@ interface DeclineOrderModalProps {
 	isPending: boolean;
 	onClose: () => void;
 	onConfirm: (reason: string) => void;
+	/** A quote request the customer hasn't paid for — nothing to refund */
+	unpaid?: boolean;
 }
 
 /**
  * Turning down a marketplace order: pick a reason (or write one). The customer
  * sees it and gets a full refund, so the copy says exactly that.
  */
-export function DeclineOrderModal({ open, isPending, onClose, onConfirm }: DeclineOrderModalProps) {
+export function DeclineOrderModal({ open, isPending, onClose, onConfirm, unpaid = false }: DeclineOrderModalProps) {
 	const t = useThemeClasses();
 	const [choice, setChoice] = useState<string | null>(null);
 	const [other, setOther] = useState('');
@@ -35,9 +37,11 @@ export function DeclineOrderModal({ open, isPending, onClose, onConfirm }: Decli
 	};
 
 	return (
-		<Modal open={open} onClose={close} title="Decline this order?" maxWidth="md">
+		<Modal open={open} onClose={close} title={unpaid ? "Decline this request?" : "Decline this order?"} maxWidth="md">
 			<p className={`text-sm mb-4 ${t.textSecondary}`}>
-				The customer is refunded in full and sees the reason you choose.
+				{unpaid
+					? "The customer sees the reason you choose. They haven't paid anything."
+					: "The customer is refunded in full and sees the reason you choose."}
 			</p>
 
 			<div role="radiogroup" aria-label="Reason" className="space-y-2">
@@ -80,7 +84,7 @@ export function DeclineOrderModal({ open, isPending, onClose, onConfirm }: Decli
 
 			<div className="flex gap-2 mt-5">
 				<Button variant="secondary" onClick={close} disabled={isPending} className="flex-1">
-					Keep order
+					{unpaid ? "Keep request" : "Keep order"}
 				</Button>
 				<Button
 					onClick={() => reason && reason.length >= 3 && onConfirm(reason)}
@@ -89,7 +93,7 @@ export function DeclineOrderModal({ open, isPending, onClose, onConfirm }: Decli
 					icon={isPending ? undefined : XCircle}
 					className="flex-1 bg-red-500 hover:bg-red-600 text-white"
 				>
-					Decline & refund
+					{unpaid ? "Decline" : "Decline & refund"}
 				</Button>
 			</div>
 		</Modal>

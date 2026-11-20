@@ -11,7 +11,7 @@ export const BRANCH_ONLY_PATHS = [
   "/app/orders",
   "/app/jobs",
   "/app/pricing",
-  "/app/services",
+  "/app/artworks",
   "/app/reports",
   "/app/access-control",
   "/app/branch-info",

@@ -1,14 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useThemeClasses } from "../../../../lib/theme";
-import { cn } from "../../../../lib/utils";
-import { useToast } from "../../../../contexts/ToastContext";
+import { useThemeClasses } from "../../../lib/theme";
+import { cn } from "../../../lib/utils";
+import { useToast } from "../../../contexts/ToastContext";
 import {
   Card,
   Button,
   Input,
   Modal,
   EmptyState,
-} from "../../../../components/ui";
+} from "../../../components/ui";
 import {
   Plus,
   Edit,
@@ -17,9 +17,9 @@ import {
   X,
   Eye,
   EyeOff,
-} from "../../../../components/icons";
-import { artworkApi, type Artwork, type ArtworkEligibility } from "../../../../services/api/artworks";
-import { AlertTriangle } from "../../../../components/icons";
+} from "../../../components/icons";
+import { artworkApi, type Artwork, type ArtworkEligibility } from "../../../services/api/artworks";
+import { AlertTriangle } from "../../../components/icons";
 
 interface ArtworksViewProps {
   branchId: string;

@@ -7,13 +7,22 @@ import { cn } from "../../lib/utils";
 import { useToast } from "../../contexts/ToastContext";
 import { usePermissions } from "../../hooks/usePermissions";
 import { Badge, Button, Card, EmptyState, Modal, PageHeader } from "../../components/ui";
-import { Search, Tag, TrendingUp } from "../../components/icons";
-import { pricingError, shopPricingApi, UNIT_LABEL, type ShopPriceListSummary, type ShopProductRow } from "../../services/api/shopPricing";
+import { Plus, Search, Tag, TrendingUp } from "../../components/icons";
+import {
+  pricingError,
+  shopPricingApi,
+  UNIT_LABEL,
+  type OwnProductRow,
+  type ShopPriceListSummary,
+  type ShopProductRow,
+} from "../../services/api/shopPricing";
 import { ShopProductEditor } from "./pricing/ShopProductEditor";
+import { OwnProductEditor } from "./pricing/OwnProductEditor";
 
 /**
- * Printdecore's products the shop sells on the new pricing: what it offers and
- * how it prices each — the same as Printdecore, ±%, or its own price list.
+ * Everything the shop sells and its prices: Printdecore's products (priced the
+ * same as Printdecore, ±%, or from the shop's own list) and products the shop
+ * made itself (always from its own list).
  */
 export default function ShopPricingPage() {
   const { user } = useAuthStore();
@@ -28,7 +37,14 @@ export default function ShopPricingPage() {
     queryFn: () => shopPricingApi.products(branchId!),
     enabled: !!branchId,
   });
+  const { data: ownProducts = [] } = useQuery({
+    queryKey: ["shopPricing", branchId, "ownProducts"],
+    queryFn: () => shopPricingApi.ownProducts(branchId!),
+    enabled: !!branchId,
+  });
   const [editing, setEditing] = useState<ShopProductRow | null>(null);
+  /** undefined = closed, null = a new product */
+  const [editingOwn, setEditingOwn] = useState<OwnProductRow | null | undefined>(undefined);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -38,7 +54,8 @@ export default function ShopPricingPage() {
     for (const r of rows) byCategory.set(r.category, [...(byCategory.get(r.category) ?? []), r]);
     return [...byCategory.entries()];
   }, [data, search]);
-  const joinedCount = data?.products.filter((p) => p.setup).length ?? 0;
+  const shownOwn = ownProducts.filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()));
+  const joinedCount = (data?.products.filter((p) => p.setup).length ?? 0) + ownProducts.length;
 
   if (!branchId) {
     return (
@@ -52,8 +69,15 @@ export default function ShopPricingPage() {
     <div className="p-4 sm:p-6 space-y-5">
       <PageHeader
         title="Pricing"
-        description="Sell Printdecore’s products with their options. Keep Printdecore’s price, go higher or lower by a percentage, or set your own."
-        actions={canEdit && joinedCount > 0 ? <Button variant="secondary" icon={TrendingUp} onClick={() => setBulkOpen(true)}>Change all prices</Button> : undefined}
+        description="Sell Printdecore’s products — at Printdecore’s price, a percentage higher or lower, or your own — and products you make yourself."
+        actions={
+          canEdit ? (
+            <div className="flex gap-2">
+              {joinedCount > 0 && <Button variant="secondary" icon={TrendingUp} onClick={() => setBulkOpen(true)}>Change all prices</Button>}
+              <Button icon={Plus} onClick={() => setEditingOwn(null)}>New product</Button>
+            </div>
+          ) : undefined
+        }
       />
 
       {data?.priceList && <OwnListPanel branchId={branchId} list={data.priceList} canEdit={canEdit} />}
@@ -68,6 +92,35 @@ export default function ShopPricingPage() {
         />
       </div>
 
+      <div>
+        <p className={cn("text-xs font-semibold uppercase tracking-wide mb-1.5", t.textSecondary)}>Your own products</p>
+        {shownOwn.length === 0 ? (
+          <Card padding="sm">
+            <p className={cn("text-sm", t.textSecondary)}>
+              {search ? "None match your search." : "Sell something that isn’t in Printdecore’s list — make it here, with its own choices and prices."}
+            </p>
+          </Card>
+        ) : (
+          <Card padding="none">
+            <div className={cn("divide-y", t.isDark ? "divide-gray-700" : "divide-gray-100")}>
+              {shownOwn.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-sm font-medium truncate", t.text)}>{r.name}</p>
+                    <p className={cn("text-xs", t.textSecondary)}>
+                      {[r.subCategory, r.pricingUnit && `Priced ${UNIT_LABEL[r.pricingUnit]}`].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  {r.onSale ? <Badge color="green">On sale</Badge> : <Badge color="amber">{r.priced ? "Not on sale" : "Needs prices"}</Badge>}
+                  <Button size="sm" variant="secondary" onClick={() => setEditingOwn(r)}>{canEdit ? "Edit" : "View"}</Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+      </div>
+
+      <p className={cn("text-xs font-semibold uppercase tracking-wide -mb-3", t.textSecondary)}>Printdecore’s products</p>
       {isLoading ? (
         <p className={cn("text-sm", t.textSecondary)}>Loading…</p>
       ) : error ? (
@@ -87,7 +140,6 @@ export default function ShopPricingPage() {
                       <p className={cn("text-xs", t.textSecondary)}>
                         {r.pricingUnit ? `Priced ${UNIT_LABEL[r.pricingUnit]}` : ""}
                         {r.setup && r.setup.disabledOptionKeys.length > 0 && ` · ${r.setup.disabledOptionKeys.length} options off`}
-                        {r.hasOldService && " · you sell this with your own setup today"}
                       </p>
                     </div>
                     <SetupBadge row={r} />
@@ -103,6 +155,9 @@ export default function ShopPricingPage() {
       )}
 
       {editing && <ShopProductEditor branchId={branchId} row={editing} canEdit={canEdit} onClose={() => setEditing(null)} />}
+      {editingOwn !== undefined && (
+        <OwnProductEditor branchId={branchId} row={editingOwn} canEdit={canEdit} onClose={() => setEditingOwn(undefined)} />
+      )}
       <BulkChange branchId={branchId} open={bulkOpen} onClose={() => setBulkOpen(false)} />
     </div>
   );
@@ -145,7 +200,7 @@ function OwnListPanel({ branchId, list, canEdit }: { branchId: string; list: Sho
       <div className="flex-1 min-w-[200px]">
         <p className={cn("text-sm font-semibold", t.text)}>Your price list</p>
         <p className={cn("text-xs", t.textSecondary)}>
-          {list.liveVersionId ? "Published prices are live." : "Nothing published yet — customers pay Printdecore’s prices."}
+          {list.liveVersionId ? "Published prices are live." : "Nothing published yet — Printdecore’s products sell at Printdecore’s prices, and your own products go on sale once you publish."}
           {list.draftVersionId && ` Draft ${list.draftVersion} has changes customers don’t see yet.`}
         </p>
       </div>
