@@ -17,3 +17,31 @@
     color: #f9fafb;
   }
 }
+
+/* ── Order prompts (review a new order / have you started?) ───────────── */
+@keyframes pd-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pd-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pd-pop-in {
+  0% { opacity: 0; transform: translateY(24px) scale(0.94); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pd-pop-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(16px) scale(0.96); } }
+@keyframes pd-ring { 0% { transform: scale(0.8); opacity: 0.55; } 100% { transform: scale(2.1); opacity: 0; } }
+@keyframes pd-wiggle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-12deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(4deg); } }
+@keyframes pd-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pd-check { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+
+.pd-backdrop-in { animation: pd-backdrop-in 200ms ease-out both; }
+.pd-backdrop-out { animation: pd-backdrop-out 180ms ease-in both; }
+.pd-pop-in { animation: pd-pop-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.pd-pop-out { animation: pd-pop-out 180ms ease-in both; }
+.pd-ring { animation: pd-ring 1.8s ease-out infinite; }
+.pd-ring-delay { animation-delay: 0.6s; }
+.pd-wiggle { animation: pd-wiggle 900ms ease-in-out 300ms 2; }
+.pd-rise { animation: pd-rise 360ms ease-out both; }
+.pd-check path { stroke-dasharray: 24; animation: pd-check 360ms ease-out 80ms both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-backdrop-in, .pd-backdrop-out, .pd-pop-in, .pd-pop-out, .pd-ring, .pd-wiggle, .pd-rise, .pd-check path { animation: none !important; }
+}
