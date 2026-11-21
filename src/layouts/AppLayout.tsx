@@ -39,6 +39,7 @@ import { useWalkthroughStore } from "../stores/walkthroughStore";
 import { WalkthroughTooltip } from "../components/shared/WalkthroughTooltip";
 import { useWhatsAppStore } from "../stores/whatsappStore";
 import { usePermissions, PERMISSIONS } from "../hooks/usePermissions";
+import { needsQuote, quoteUrgency, useNow } from "../lib/quoteUrgency";
 
 interface NavItem {
   path: string;
@@ -47,9 +48,29 @@ interface NavItem {
   /** Other paths that light this item up */
   also?: string[];
   badge?: number;
+  /** Separate counts that each need something different (e.g. to quote, to start) */
+  badges?: NavBadge[];
   hasAlert?: boolean;
   id?: string;
 }
+
+type BadgeTone = "red" | "orange" | "amber" | "blue";
+
+interface NavBadge {
+  count: number;
+  tone: BadgeTone;
+  /** What the count means, for the tooltip and screen readers */
+  label: string;
+  /** Pulse while it's overdue */
+  pulse?: boolean;
+}
+
+const BADGE_TONE: Record<BadgeTone, string> = {
+  red: "bg-red-500 text-white",
+  orange: "bg-orange-500 text-white",
+  amber: "bg-amber-400 text-gray-900",
+  blue: "bg-blue-600 text-white",
+};
 
 interface NavSection {
   title?: string;
@@ -220,11 +241,32 @@ export default function AppLayout() {
     playSound,
   ]);
 
+  // Orders whose customer is waiting on this shop's price, and how urgently
+  const now = useNow();
+  const quoteQueue = useMemo(() => orders.filter(needsQuote), [orders]);
+  const quoteUrgencyNow = useMemo(() => {
+    const levels = quoteQueue.map((o) => quoteUrgency(o.createdAt, now));
+    return levels.includes("late") ? "late" : levels.includes("due") ? "due" : "new";
+  }, [quoteQueue, now]);
+
   const sections = useMemo(() => {
     const unreadMessagesCount = isConnected
       ? chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
       : 0;
-    const ordersBadge = pendingAndPaidCount > 0 ? pendingAndPaidCount : undefined;
+    const quoteCount = quoteQueue.length;
+    const ordersBadges: NavBadge[] = [
+      quoteCount > 0 && {
+        count: quoteCount,
+        tone: quoteUrgencyNow === "late" ? "red" : quoteUrgencyNow === "due" ? "orange" : "amber",
+        label: `${quoteCount} waiting for your price${quoteUrgencyNow === "late" ? " (overdue)" : ""}`,
+        pulse: quoteUrgencyNow === "late",
+      },
+      pendingAndPaidCount > 0 && {
+        count: pendingAndPaidCount,
+        tone: "blue",
+        label: `${pendingAndPaidCount} paid — accept and start`,
+      },
+    ].filter((b): b is NavBadge => !!b);
     const messagesBadge = unreadMessagesCount > 0 ? unreadMessagesCount : undefined;
     const can = (...p: Parameters<typeof hasPermission>) => isManager || hasPermission(...p);
 
@@ -238,7 +280,7 @@ export default function AppLayout() {
             also: ["/app/jobs"],
             label: "Orders",
             icon: ShoppingBag,
-            badge: ordersBadge,
+            badges: ordersBadges,
           },
           can(PERMISSIONS.MESSAGES_VIEW) && {
             path: "/app/messages",
@@ -288,6 +330,8 @@ export default function AppLayout() {
     isManager,
     hasPermission,
     pendingAndPaidCount,
+    quoteQueue,
+    quoteUrgencyNow,
     isConnected,
     chats,
     hasNoPaymentMethod,
@@ -623,6 +667,11 @@ function NavButton({
   const t = useThemeClasses();
   const Icon = item.icon;
   const badge = item.badge !== undefined && item.badge > 0 ? item.badge : undefined;
+  const pills = (item.badges ?? []).filter((b) => b.count > 0);
+  // Collapsed: one number, in the colour of the most pressing count
+  const pillTotal = pills.reduce((sum, b) => sum + b.count, 0);
+  const lead = pills[0];
+  const pillSummary = pills.map((b) => b.label).join(" · ");
   return (
     <div className="relative group">
       <button
@@ -649,6 +698,17 @@ function NavButton({
           {item.hasAlert && (
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" />
           )}
+          {collapsed && lead && (
+            <span
+              className={cn(
+                "absolute -top-1.5 -right-1.5 min-w-4 h-4 px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold",
+                BADGE_TONE[lead.tone],
+              )}
+              aria-label={pillSummary}
+            >
+              {pillTotal > 9 ? "9+" : pillTotal}
+            </span>
+          )}
           {collapsed && badge !== undefined && (
             <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-0.5 flex items-center justify-center rounded-full text-[9px] font-bold bg-amber-400 text-gray-900">
               {badge > 9 ? "9+" : badge}
@@ -658,6 +718,29 @@ function NavButton({
         {!collapsed && (
           <span className="flex items-center justify-between flex-1 min-w-0">
             <span className="text-sm truncate">{item.label}</span>
+            {pills.length > 0 && (
+              <span className="ml-2 flex shrink-0 items-center gap-1">
+                {pills.map((b) => (
+                  <span
+                    key={b.label}
+                    title={b.label}
+                    aria-label={b.label}
+                    className={cn(
+                      "relative min-w-[20px] px-1.5 py-0.5 rounded-full text-[11px] font-bold leading-none text-center tabular-nums",
+                      BADGE_TONE[b.tone],
+                    )}
+                  >
+                    {b.pulse && (
+                      <span
+                        aria-hidden="true"
+                        className={cn("absolute inset-0 rounded-full opacity-50 motion-safe:animate-ping", BADGE_TONE[b.tone])}
+                      />
+                    )}
+                    <span className="relative">{formatCount(b.count)}</span>
+                  </span>
+                ))}
+              </span>
+            )}
             {badge !== undefined && (
               <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold min-w-[20px] text-center bg-amber-400 text-gray-900">
                 {formatCount(badge)}
@@ -676,6 +759,7 @@ function NavButton({
           )}
         >
           {item.label}
+          {pills.length > 0 && <span className="block mt-0.5 text-[11px] font-normal opacity-80">{pillSummary}</span>}
           {badge !== undefined && (
             <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
               {formatCount(badge)}

@@ -215,6 +215,10 @@ function SetupBanner({ setup }: { setup: NonNullable<VendorHome["setup"]> }) {
   const done = setup.items.filter((i) => i.done).length;
   const pct = Math.round((done / Math.max(setup.items.length, 1)) * 100);
   const next = setup.items.find((i) => !i.done);
+  // Every step done: either Printdecore still has to list the shop, or the shop paused itself
+  const allDone = setup.ready ?? !next;
+  const paused = allDone && setup.listed && setup.acceptingOrders === false;
+  const waiting = allDone && !paused;
 
   return (
     <section
@@ -234,16 +238,26 @@ function SetupBanner({ setup }: { setup: NonNullable<VendorHome["setup"]> }) {
               fill="none"
               strokeWidth="4"
               strokeLinecap="round"
-              className="stroke-amber-500"
+              className={allDone ? "stroke-emerald-500" : "stroke-amber-500"}
               strokeDasharray={`${(pct / 100) * 94.2} 94.2`}
             />
           </svg>
           <span className={cn("absolute inset-0 flex items-center justify-center text-[10px] font-bold", t.text)}>{done}/{setup.items.length}</span>
         </div>
         <div className="flex-1 min-w-[12rem]">
-          <p className={cn("text-sm font-semibold", t.text)}>Finish setting up to appear on the marketplace</p>
+          <p className={cn("text-sm font-semibold", t.text)}>
+            {paused
+              ? "Your shop is hidden from the marketplace"
+              : waiting
+                ? "Setup complete — waiting for Printdecore to list your shop"
+                : "Finish setting up to appear on the marketplace"}
+          </p>
           <p className={cn("text-xs", t.textSecondary)}>
-            {next ? (
+            {paused ? (
+              "You've paused new orders. Customers can't find you until you resume."
+            ) : waiting ? (
+              "There's nothing more for you to do. Printdecore reviews new shops and lists them shortly."
+            ) : next ? (
               <>
                 Next: <span className="font-medium">{next.label}</span>
                 {next.owner === "ops" ? " — Printdecore turns this on for you" : ""}
@@ -254,6 +268,15 @@ function SetupBanner({ setup }: { setup: NonNullable<VendorHome["setup"]> }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {paused && (
+            <button
+              type="button"
+              onClick={() => navigate("/app/branch-info/marketplace")}
+              className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-black text-sm font-semibold"
+            >
+              Resume orders
+            </button>
+          )}
           {next?.link && next.owner !== "ops" && (
             <button
               type="button"

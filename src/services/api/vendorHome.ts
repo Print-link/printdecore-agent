@@ -41,7 +41,14 @@ export interface VendorHome {
   }[];
   topProducts: { name: string; orders: number; sales: number }[];
   branches: { id: string; name: string; sales: number; orders: number; openOrders: number; rating: number }[];
-  setup: { live: boolean; items: SetupItem[] } | null;
+  setup: {
+    live: boolean;
+    /** Every step done — waiting on Printdecore to list it, or paused by the shop */
+    ready?: boolean;
+    listed?: boolean;
+    acceptingOrders?: boolean;
+    items: SetupItem[];
+  } | null;
 }
 
 /** One branch, or every branch the user can see when branchId is omitted */
