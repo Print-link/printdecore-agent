@@ -125,6 +125,14 @@ export default function OrdersPage() {
 		return [...waiting, ...filtered.filter((o) => !needsQuote(o))];
 	}, [orders, searchQuery, statusFilter]);
 
+	// How many open orders sit at each stage, shown in the filter
+	const stageCounts = Object.fromEntries(
+		(Object.keys(STAGE_STATUSES) as PipelineStage[]).map((stage) => [
+			stage,
+			orders.filter((o) => STAGE_STATUSES[stage].includes(o.status)).length,
+		])
+	) as Record<PipelineStage, number>;
+
 	if (!hasPermission(PERMISSIONS.ORDERS_VIEW)) {
 		return (
 			<Card>
@@ -179,10 +187,13 @@ export default function OrdersPage() {
 							t.input
 						)}
 					>
-						<option value="all">All orders</option>
+						<option value="all">All orders ({orders.length})</option>
 						<optgroup label="Open orders">
 							{(Object.keys(STAGE_LABELS) as PipelineStage[]).map((stage) => (
-								<option key={stage} value={`stage:${stage}`}>{STAGE_LABELS[stage]}</option>
+								<option key={stage} value={`stage:${stage}`}>
+									{STAGE_LABELS[stage]}
+									{stageCounts[stage] ? ` (${stageCounts[stage]})` : ''}
+								</option>
 							))}
 							<option value="due:today">Due today</option>
 							<option value="due:overdue">Overdue</option>
