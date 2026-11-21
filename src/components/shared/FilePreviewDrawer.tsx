@@ -3,6 +3,7 @@ import { X, Download, ChevronLeft, ChevronRight } from '../icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FilePreview } from './FilePreview';
 import type { ClerkOrderDetail } from '../../types';
+import { saveFile, toOrderFile } from '../../lib/files';
 
 interface FilePreviewDrawerProps {
   isOpen: boolean;
@@ -81,25 +82,9 @@ export function FilePreviewDrawer({
     }
   };
 
-  const handleDownload = async () => {
-    if (!currentFile) return;
-    try {
-      const fileUrl = currentFile.url || '';
-      const fileName = currentFile.name || currentFile.publicId?.split('/').pop() || 'file';
-      
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+  const handleDownload = () => {
+    const file = currentFile && toOrderFile(currentFile);
+    if (file) void saveFile(file);
   };
 
   // Keyboard navigation
@@ -163,7 +148,7 @@ export function FilePreviewDrawer({
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 bottom-0 w-[60%] min-w-[500px] max-w-[900px] ${
+        className={`fixed top-0 right-0 bottom-0 w-full sm:w-[60%] sm:min-w-[500px] max-w-[900px] ${
           theme === 'dark' ? 'bg-gray-800' : 'bg-white'
         } shadow-[-4px_0_20px_rgba(0,0,0,0.15)] z-[1000] flex flex-col transform transition-transform ${
           isOpen ? 'translate-x-0' : 'translate-x-full'

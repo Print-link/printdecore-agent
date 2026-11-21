@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { FileText, Receipt, Send, XCircle } from '../../icons';
+import { Receipt, Send, XCircle } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
 import type { OrderStatus, QuoteRequest } from '../../../types';
 import { Button, Card } from '../../ui';
+import { toOrderFiles } from '../../../lib/files';
+import { FileList } from './FileList';
 
 interface QuoteRequestCardProps {
 	request: QuoteRequest;
@@ -51,21 +53,8 @@ export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDe
 			)}
 
 			{request.attachments.length > 0 && (
-				<div className="mt-3 flex flex-wrap gap-2">
-					{request.attachments.map((f) => (
-						<a
-							key={f.url}
-							href={f.url}
-							target="_blank"
-							rel="noreferrer"
-							className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium max-w-[16rem] ${
-								t.isDark ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-50'
-							} ${t.text}`}
-						>
-							<FileText size={14} />
-							<span className="truncate">{f.name || 'File'}</span>
-						</a>
-					))}
+				<div className="mt-3">
+					<FileList files={toOrderFiles(request.attachments)} title="Customer's files" />
 				</div>
 			)}
 

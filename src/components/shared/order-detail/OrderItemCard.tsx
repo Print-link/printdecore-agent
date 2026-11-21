@@ -1,8 +1,9 @@
-import { FileText, Tag } from '../../icons';
+import { Tag } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
 import { cn } from '../../../lib/utils';
 import { Card, Badge } from '../../ui';
-import { FileThumbnail } from './FileThumbnail';
+import { FileList } from './FileList';
+import { toOrderFiles } from '../../../lib/files';
 import type { ClerkOrderDetail } from '../../../types';
 
 interface OrderItemCardProps {
@@ -10,7 +11,6 @@ interface OrderItemCardProps {
 	itemIndex: number;
 	selectedFileIndex: { itemIndex: number; fileIndex: number } | null;
 	onFileSelect: (itemIndex: number | null, fileIndex: number | null) => void;
-	onFileDownload: (fileUrl: string, fileName: string) => void;
 }
 
 export function OrderItemCard({
@@ -18,7 +18,6 @@ export function OrderItemCard({
 	itemIndex,
 	selectedFileIndex,
 	onFileSelect,
-	onFileDownload,
 }: OrderItemCardProps) {
 	const t = useThemeClasses();
 
@@ -175,37 +174,16 @@ export function OrderItemCard({
 
 			{/* Files */}
 			{hasFiles && (
-				<div className={cn('mt-2 pt-2 border-t', t.isDark ? 'border-gray-600' : 'border-gray-300')}>
-					<div className="flex items-center justify-between mb-2">
-						<p className={cn('text-xs sm:text-sm font-semibold flex items-center gap-1.5', t.text)}>
-							<FileText size={14} />
-							Files ({files.length})
-						</p>
-					</div>
-					<div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2 sm:gap-3">
-						{files.map((file: unknown, fileIndex: number) => {
-							const isSelected =
-								selectedFileIndex?.itemIndex === itemIndex &&
-								selectedFileIndex?.fileIndex === fileIndex;
-
-							return (
-								<FileThumbnail
-									key={fileIndex}
-									file={file}
-									fileIndex={fileIndex}
-									isSelected={isSelected}
-									onClick={() => {
-										if (isSelected) {
-											onFileSelect(null, null);
-										} else {
-											onFileSelect(itemIndex, fileIndex);
-										}
-									}}
-									onDownload={onFileDownload}
-								/>
-							);
-						})}
-					</div>
+				<div className="mt-3">
+					<FileList
+						files={toOrderFiles(files)}
+						activeIndex={selectedFileIndex?.itemIndex === itemIndex ? selectedFileIndex.fileIndex : null}
+						onPreview={(fileIndex) =>
+							selectedFileIndex?.itemIndex === itemIndex && selectedFileIndex.fileIndex === fileIndex
+								? onFileSelect(null, null)
+								: onFileSelect(itemIndex, fileIndex)
+						}
+					/>
 				</div>
 			)}
 		</Card>
