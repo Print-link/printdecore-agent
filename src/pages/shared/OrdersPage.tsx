@@ -266,8 +266,16 @@ export default function OrdersPage() {
 													Your customer
 												</span>
 											)}
-											{quoting ? (
+											{quoting && order.priceDeclined ? (
+												<span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/30">
+													Price declined
+												</span>
+											) : quoting ? (
 												<QuoteNeededPill requestedAt={order.createdAt} />
+											) : order.declined ? (
+												<span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-700 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600">
+													Declined
+												</span>
 											) : (
 												<StatusBadge status={order.status} className="text-[10px] px-1.5 py-0.5" />
 											)}

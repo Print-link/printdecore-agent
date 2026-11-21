@@ -240,6 +240,7 @@ export default function OrderDetailPreview({
 							orderDetail.printRequest.quotation?.status !== "SENT" && (
 								<QuoteActionBanner
 									requestedAt={orderDetail.createdAt}
+									declined={orderDetail.printRequest.quotation?.status === "REJECTED"}
 									onAct={() => {
 										const input = document.getElementById(`quote-${orderDetail.printRequest?.id}`);
 										input?.scrollIntoView({ behavior: "smooth", block: "center" });

@@ -23,6 +23,8 @@ import { queryClient } from "./lib/queryClient";
 import { openRoutes, renderRoutes } from "./routes";
 import { managerRoutes } from "./routes/managerRoutes";
 import { sharedRoutes } from "./routes/sharedRoutes";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
+import { LegacyRedirect } from "./pages/shared/NotFoundPage";
 
 const AcceptInvitationPage = lazy(
   () => import("./pages/shared/AcceptInvitationPage"),
@@ -75,6 +77,7 @@ function App() {
             <OfflineBanner />
             <ToastContainer />
             <Router>
+              <ErrorBoundary>
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   {/* Auth */}
@@ -113,6 +116,9 @@ function App() {
 
                     {/* Manager-only pages */}
                     {renderRoutes(managerRoutes)}
+
+                    {/* Anything else under /app */}
+                    <Route path="*" element={<LegacyRedirect />} />
                   </Route>
 
                   {/* Invitation signup */}
@@ -123,8 +129,12 @@ function App() {
 
                   {/* Root redirect */}
                   <Route path="/" element={<RootRedirect />} />
+
+                  {/* Old links without /app (e.g. /orders) */}
+                  <Route path="*" element={<LegacyRedirect />} />
                 </Routes>
               </Suspense>
+              </ErrorBoundary>
             </Router>
             <ReactQueryDevtools initialIsOpen={false} />
           </ToastProvider>

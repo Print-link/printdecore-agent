@@ -105,7 +105,16 @@ export function QuoteQueueBar({ requestedAt, filtered, onToggle }: QuoteQueueBar
 }
 
 /** Top of an order that needs your price: what's wrong and the one thing to do */
-export function QuoteActionBanner({ requestedAt, onAct }: { requestedAt: string | Date; onAct: () => void }) {
+export function QuoteActionBanner({
+	requestedAt,
+	onAct,
+	declined = false,
+}: {
+	requestedAt: string | Date;
+	onAct: () => void;
+	/** The customer turned your last price down and is waiting for a new one */
+	declined?: boolean;
+}) {
 	const t = useThemeClasses();
 	const now = useNow();
 	const urgency = quoteUrgency(requestedAt, now);
@@ -130,7 +139,11 @@ export function QuoteActionBanner({ requestedAt, onAct }: { requestedAt: string 
 						<PulseDot urgency={urgency} />
 					</p>
 					<p className={`mt-0.5 text-sm font-semibold ${t.text}`}>
-						{late ? 'This customer has waited too long for a price' : 'The customer is waiting for your price'}
+						{declined
+							? 'The customer declined your price — send them a new one'
+							: late
+								? 'This customer has waited too long for a price'
+								: 'The customer is waiting for your price'}
 					</p>
 					<p className={`mt-0.5 text-xs ${t.textSecondary}`}>
 						Requested {waitedFor(requestedAt, now)}
@@ -146,7 +159,7 @@ export function QuoteActionBanner({ requestedAt, onAct }: { requestedAt: string 
 				}`}
 			>
 				<Receipt size={16} />
-				Set your price
+				{declined ? 'Send a new price' : 'Set your price'}
 			</button>
 		</div>
 	);
