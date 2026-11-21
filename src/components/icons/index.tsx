@@ -172,6 +172,9 @@ export const Diamond = createIcon('solar:diamond-bold-duotone', 'Diamond', 'sola
 // ─── Upload & Misc ──────────────────────────────────────────────────
 export const Upload = createIcon('solar:upload-bold-duotone', 'Upload');
 export const File = createIcon('solar:file-bold-duotone', 'File');
+export const Sparkles = createIcon('solar:magic-stick-3-bold-duotone', 'Sparkles');
+export const ImageIcon = createIcon('solar:gallery-bold-duotone', 'ImageIcon');
+export const Spreadsheet = createIcon('solar:document-text-bold-duotone', 'Spreadsheet');
 export const Minus = createIcon('solar:minus-circle-bold-duotone', 'Minus');
 
 // ─── SVG Spinners (animated loading indicators) ─────────────────────

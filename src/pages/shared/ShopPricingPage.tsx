@@ -7,7 +7,7 @@ import { cn } from "../../lib/utils";
 import { useToast } from "../../contexts/ToastContext";
 import { usePermissions } from "../../hooks/usePermissions";
 import { Badge, Button, Card, EmptyState, Modal, PageHeader } from "../../components/ui";
-import { Plus, Search, Tag, TrendingUp } from "../../components/icons";
+import { Layers, Plus, Search, Sparkles, Tag, TrendingUp, Upload } from "../../components/icons";
 import {
   pricingError,
   shopPricingApi,
@@ -18,6 +18,8 @@ import {
 } from "../../services/api/shopPricing";
 import { ShopProductEditor } from "./pricing/ShopProductEditor";
 import { OwnProductEditor } from "./pricing/OwnProductEditor";
+import { PricingAssistant } from "./pricing/PricingAssistant";
+import { CategoriesPanel } from "./pricing/CategoriesPanel";
 
 /**
  * Everything the shop sells and its prices: Printdecore's products (priced the
@@ -46,6 +48,8 @@ export default function ShopPricingPage() {
   /** undefined = closed, null = a new product */
   const [editingOwn, setEditingOwn] = useState<OwnProductRow | null | undefined>(undefined);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const groups = useMemo(() => {
@@ -72,13 +76,39 @@ export default function ShopPricingPage() {
         description="Sell Printdecore’s products — at Printdecore’s price, a percentage higher or lower, or your own — and products you make yourself."
         actions={
           canEdit ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {joinedCount > 0 && <Button variant="secondary" icon={TrendingUp} onClick={() => setBulkOpen(true)}>Change all prices</Button>}
-              <Button icon={Plus} onClick={() => setEditingOwn(null)}>New product</Button>
+              <Button variant="secondary" icon={Layers} onClick={() => setCategoriesOpen(true)}>Categories</Button>
+              <Button variant="secondary" icon={Plus} onClick={() => setEditingOwn(null)}>New product</Button>
+              <Button icon={Sparkles} onClick={() => setAssistantOpen(true)}>Set up with AI</Button>
             </div>
           ) : undefined
         }
       />
+
+      {canEdit && (
+        <button
+          type="button"
+          onClick={() => setAssistantOpen(true)}
+          className={cn(
+            "w-full text-left rounded-2xl border p-4 sm:p-5 flex items-center gap-4 transition-shadow hover:shadow-md",
+            t.isDark ? "border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent" : "border-amber-200 bg-gradient-to-r from-amber-50 to-white",
+          )}
+        >
+          <span className="w-11 h-11 rounded-xl bg-amber-400 text-gray-900 flex items-center justify-center shrink-0"><Sparkles size={22} /></span>
+          <span className="flex-1 min-w-0">
+            <span className={cn("block text-sm font-semibold", t.text)}>
+              {ownProducts.length ? "Add more products or fix your prices with AI" : "Let AI set up your products and prices"}
+            </span>
+            <span className={cn("block text-xs mt-0.5", t.textSecondary)}>
+              Upload your Excel price list or just describe what you print. The assistant builds your categories, choices and prices — you check and approve.
+            </span>
+          </span>
+          <span className={cn("hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-2", t.isDark ? "bg-gray-800 text-amber-300" : "bg-white text-amber-700 border border-amber-200")}>
+            <Upload size={14} /> Upload price list
+          </span>
+        </button>
+      )}
 
       {data?.priceList && <OwnListPanel branchId={branchId} list={data.priceList} canEdit={canEdit} />}
 
@@ -159,6 +189,8 @@ export default function ShopPricingPage() {
         <OwnProductEditor branchId={branchId} row={editingOwn} canEdit={canEdit} onClose={() => setEditingOwn(undefined)} />
       )}
       <BulkChange branchId={branchId} open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      {assistantOpen && <PricingAssistant branchId={branchId} onClose={() => setAssistantOpen(false)} />}
+      {categoriesOpen && <CategoriesPanel branchId={branchId} canEdit={canEdit} onClose={() => setCategoriesOpen(false)} />}
     </div>
   );
 }

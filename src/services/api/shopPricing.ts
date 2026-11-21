@@ -195,3 +195,77 @@ export const UNIT_LABEL: Record<PricingUnit, string> = {
   side: "per printed side",
   sheet: "per sheet",
 };
+
+// ── Pricing assistant ──────────────────────────────────────────────────────
+
+/** A spreadsheet read into rows by the server (nothing is stored) */
+export interface ReadSheet {
+  fileName: string;
+  sheets: Array<{ name: string; rows: string[][]; cutRows: number }>;
+}
+
+export interface DraftChoice {
+  name: string;
+  required?: boolean;
+  multiple?: boolean;
+  options: string[];
+}
+export interface DraftPrice {
+  when: Record<string, string>;
+  price: number;
+  breaks?: Array<{ fromQty: number; price: number }>;
+  setupFee?: number;
+  minimumCharge?: number;
+}
+export interface DraftExtra {
+  choice: string;
+  option: string;
+  charge: "per_item" | "per_order" | "percent" | "per_measure" | "per_side";
+  amount: number;
+  label?: string;
+}
+export interface DraftProduct {
+  ref: string;
+  name: string;
+  description?: string;
+  category: string;
+  type: string;
+  pricingUnit: PricingUnit;
+  customSize?: boolean;
+  choices: DraftChoice[];
+  prices: DraftPrice[];
+  extras?: DraftExtra[];
+  notes?: string[];
+  problems?: string[];
+  updatesExisting?: boolean;
+}
+export interface CatalogDraft {
+  summary: string;
+  categories: Array<{ name: string; description?: string }>;
+  products: DraftProduct[];
+  suggestions: string[];
+  questions: string[];
+}
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+export interface ApplyResult {
+  saved: Array<{ name: string; productId: string; updated: boolean }>;
+  failed: Array<{ name: string; problem: string }>;
+  categoriesCreated: string[];
+  published: boolean;
+  draftVersionId?: string;
+}
+
+export const pricingAssistantApi = {
+  readSheet: async (branchId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return (await apiClient.post<Ok<ReadSheet>>(`${base(branchId)}/assistant/sheet`, form, { headers: { "Content-Type": "multipart/form-data" } })).data.data;
+  },
+  chat: async (branchId: string, body: { messages: AssistantMessage[]; sheet?: ReadSheet | null; draft?: CatalogDraft | null }) =>
+    (await apiClient.post<Ok<{ reply: string; draft: CatalogDraft | null }>>(`${base(branchId)}/assistant/chat`, body, { timeout: 180000 })).data.data,
+  apply: async (branchId: string, draft: CatalogDraft, publish: boolean) =>
+    (await apiClient.post<Ok<ApplyResult>>(`${base(branchId)}/assistant/apply`, { draft, publish }, { timeout: 120000 })).data.data,
+};
