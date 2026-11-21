@@ -14,6 +14,7 @@ import {
 	CompleteOrderModal,
 	DeclineOrderModal,
 	QuoteRequestCard,
+	QuoteActionBanner,
 } from "./order-detail";
 import { Spinner } from "../icons";
 import { formatOrderDate } from "./utils/orderUtils";
@@ -234,6 +235,18 @@ export default function OrderDetailPreview({
 					</div>
 				) : (
 					<>
+						{orderDetail?.printRequest?.canQuote &&
+							orderDetail.status === "PENDING" &&
+							orderDetail.printRequest.quotation?.status !== "SENT" && (
+								<QuoteActionBanner
+									requestedAt={orderDetail.createdAt}
+									onAct={() => {
+										const input = document.getElementById(`quote-${orderDetail.printRequest?.id}`);
+										input?.scrollIntoView({ behavior: "smooth", block: "center" });
+										input?.focus({ preventScroll: true });
+									}}
+								/>
+							)}
 						<OrderInfoCard
 							order={orderDetail || order}
 							isUpdating={

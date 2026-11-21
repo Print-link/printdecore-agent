@@ -15,6 +15,8 @@ import { ReviewOrderModal } from "../../components/shared/order-prompts/ReviewOr
 import type { ClerkOrder } from "../../types";
 import type { PipelineStage } from "../../services/api/vendorHome";
 import { STAGE_STATUSES, STAGE_LABELS, isOpenStatus } from "../../lib/orderStages";
+import { needsQuote } from "../../lib/quoteUrgency";
+import { QuoteNeededPill, QuoteQueueBar, UrgencyEdge, WaitingFor } from "../../components/shared/order-detail";
 
 /**
  * The filter lives in the link (?filter=), so Home can open the list already
@@ -116,7 +118,11 @@ export default function OrdersPage() {
 
 		filtered = filtered.filter((order) => matchesFilter(order, statusFilter));
 
-		return filtered;
+		// Customers waiting for a price come first, longest wait at the top
+		const waiting = filtered
+			.filter(needsQuote)
+			.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+		return [...waiting, ...filtered.filter((o) => !needsQuote(o))];
 	}, [orders, searchQuery, statusFilter]);
 
 	if (!hasPermission(PERMISSIONS.ORDERS_VIEW)) {
@@ -210,6 +216,11 @@ export default function OrdersPage() {
 					)}
 				>
 					<div className="flex-1 overflow-y-auto overflow-x-hidden pr-1 max-h-[40vh] lg:max-h-none">
+						<QuoteQueueBar
+							requestedAt={orders.filter(needsQuote).map((o) => o.createdAt)}
+							filtered={statusFilter === "stage:new"}
+							onToggle={() => setStatusFilter(statusFilter === "stage:new" ? "all" : "stage:new")}
+						/>
 						{isLoading ? (
 							<OrdersListSkeleton />
 						) : filteredOrders.length === 0 ? (
@@ -218,14 +229,18 @@ export default function OrdersPage() {
 							</Card>
 						) : (
 							<div className="space-y-2">
-								{filteredOrders.map((order) => (
+								{filteredOrders.map((order) => {
+									const quoting = needsQuote(order);
+									return (
+
 									<div
 										key={order.id}
 										onClick={() =>
 											selectedOrder?.id === order.id ? setSelectedOrder(null) : openOrder(order)
 										}
 										className={cn(
-											'p-3 rounded-lg cursor-pointer transition-all',
+											'relative overflow-hidden p-3 rounded-lg cursor-pointer transition-all',
+											quoting && 'pl-4',
 											selectedOrder?.id === order.id
 												? 'ring-2 ring-amber-400 bg-amber-50 dark:bg-amber-900/20'
 												: cn(t.surface, t.isDark ? 'hover:border-gray-600' : 'hover:border-gray-300')
@@ -240,21 +255,31 @@ export default function OrdersPage() {
 													Your customer
 												</span>
 											)}
-											<StatusBadge status={order.status} className="text-[10px] px-1.5 py-0.5" />
+											{quoting ? (
+												<QuoteNeededPill requestedAt={order.createdAt} />
+											) : (
+												<StatusBadge status={order.status} className="text-[10px] px-1.5 py-0.5" />
+											)}
 										</div>
 										<p className={cn('text-xs mb-1', t.textSecondary)}>
 											{order.client.fullName}
 										</p>
+										{quoting && <UrgencyEdge requestedAt={order.createdAt} />}
 										<div className="flex items-center justify-between">
-											<p className={cn('text-base font-bold', t.text)}>
-												{'\u20B5'}{order.totalPrice.toFixed(2)}
-											</p>
+											{quoting ? (
+												<WaitingFor requestedAt={order.createdAt} />
+											) : (
+												<p className={cn('text-base font-bold', t.text)}>
+													{'\u20B5'}{order.totalPrice.toFixed(2)}
+												</p>
+											)}
 											<p className="text-[10px] text-gray-500">
 												{order.itemCount} item{order.itemCount !== 1 ? "s" : ""}
 											</p>
 										</div>
 									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 					</div>
