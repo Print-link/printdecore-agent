@@ -23,9 +23,14 @@ const QUOTABLE: OrderStatus[] = ['PENDING', 'QUOTED'];
 export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDecline }: QuoteRequestCardProps) {
 	const t = useThemeClasses();
 	const sent = request.quotation?.status === 'SENT' || status === 'QUOTED';
-	const [amount, setAmount] = useState(() => (sent && request.quotation?.amount ? String(request.quotation.amount) : ''));
+	// You type your own price; the customer pays it plus Printdecore's commission
+	const [amount, setAmount] = useState(() => (sent && request.quotation?.shopPrice ? String(request.quotation.shopPrice) : ''));
 	const value = Number(amount);
 	const valid = Number.isFinite(value) && value > 0;
+	const rate = request.commissionRate ?? 0;
+	const commission = valid ? Math.round(value * rate) / 100 : 0;
+	const customerPays = valid ? Math.round((value + commission) * 100) / 100 : 0;
+	const ghs = (n: number) => `GHS ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 	const canQuote = request.canQuote && !!request.quotation && QUOTABLE.includes(status);
 	const lines = (request.details ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
 
@@ -85,8 +90,26 @@ export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDe
 							} focus:outline-none focus:ring-2 focus:ring-amber-400`}
 						/>
 					</div>
+					{valid && (
+						<div className={`mt-3 rounded-lg px-3 py-2 text-sm space-y-0.5 ${t.isDark ? 'bg-gray-900/60' : 'bg-white'}`}>
+							<div className={`flex justify-between ${t.textSecondary}`}>
+								<span>You're paid</span>
+								<span className="tabular-nums">{ghs(value)}</span>
+							</div>
+							{rate > 0 && (
+								<div className={`flex justify-between ${t.textSecondary}`}>
+									<span>Platform service fee ({rate}%)</span>
+									<span className="tabular-nums">+ {ghs(commission)}</span>
+								</div>
+							)}
+							<div className={`flex justify-between font-semibold ${t.text}`}>
+								<span>Customer pays</span>
+								<span className="tabular-nums">{ghs(customerPays)}</span>
+							</div>
+						</div>
+					)}
 					<p className={`mt-2 text-xs ${t.textSecondary}`}>
-						The customer gets it straight away and pays you from their order. Include design, delivery and anything else in this price.
+						The customer gets it straight away and pays from their order. Include design, delivery and anything else in your price.
 					</p>
 					<div className="mt-3 flex gap-2">
 						{onDecline && (
@@ -108,7 +131,9 @@ export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDe
 				request.quotation?.amount !== undefined && (
 					<p className={`mt-3 flex items-center gap-1.5 text-sm ${t.text}`}>
 						<Receipt size={16} />
-						Price sent: GHS {request.quotation.amount.toLocaleString()}
+						{request.quotation.shopPrice !== undefined
+								? `Your price ${ghs(request.quotation.shopPrice)} · customer pays ${ghs(request.quotation.amount)}`
+								: `Price sent: ${ghs(request.quotation.amount)}`}
 					</p>
 				)
 			)}
