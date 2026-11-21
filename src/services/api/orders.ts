@@ -32,6 +32,8 @@ async function getBranchOrders(branchId: string): Promise<ClerkOrder[]> {
 			channel?: 'managed' | 'marketplace';
 			fulfilmentType?: 'delivery' | 'pickup';
 			estimatedCompletionTime?: Date | string;
+			declined?: boolean;
+			priceDeclined?: boolean;
 			createdAt: Date | string;
 			updatedAt: Date | string;
 			client: {
@@ -53,6 +55,8 @@ async function getBranchOrders(branchId: string): Promise<ClerkOrder[]> {
 			channel: order.channel || 'managed',
 			fulfilmentType: order.fulfilmentType,
 			estimatedCompletionTime: order.estimatedCompletionTime,
+			declined: order.declined,
+			priceDeclined: order.priceDeclined,
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
 		})

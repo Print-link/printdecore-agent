@@ -93,6 +93,10 @@ export interface ClerkOrder {
 	deliveryAddress?: string;
 	recipientPhone?: string;
 	declineReason?: string;
+	/** In lists: cancelled because your shop declined it */
+	declined?: boolean;
+	/** In lists: the customer declined your price and is waiting for a new one */
+	priceDeclined?: boolean;
 	/** After you decline: how the customer's refund went (none if they hadn't paid) */
 	refundStatus?: 'pending' | 'processed' | 'failed';
 	createdAt: string | Date;

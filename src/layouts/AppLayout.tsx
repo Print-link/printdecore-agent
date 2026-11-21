@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { Suspense, useState, useMemo, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/authStore";
@@ -29,8 +29,10 @@ import {
   MessageCircle,
   FileText,
   TrendingUp,
+  Spinner,
 } from "../components/icons";
 import { Avatar } from "../components/ui";
+import { ErrorBoundary } from "../components/shared/ErrorBoundary";
 import { ScopeSwitcher } from "../components/shared/ScopeSwitcher";
 import { RequireBranch } from "../components/shared/RequireBranch";
 import { useAutoScope, isBranchOnlyPath } from "../hooks/useBranchScope";
@@ -611,7 +613,12 @@ export default function AppLayout() {
           {isManager && !selectedBranch && isBranchOnlyPath(location.pathname) ? (
             <RequireBranch />
           ) : (
-            <Outlet />
+            // A crashed page keeps the menu around it, and clears when you navigate
+            <ErrorBoundary inline resetKey={location.pathname}>
+              <Suspense fallback={<div className="flex justify-center py-16"><Spinner size="lg" /></div>}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </main>
       </div>
