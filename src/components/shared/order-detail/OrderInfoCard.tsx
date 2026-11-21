@@ -155,8 +155,24 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 			)}
 
 			{order.status === 'CANCELLED' && order.declineReason && (
-				<div className={`mb-3 p-2 rounded-md text-sm ${t.isDark ? 'bg-red-900/20 text-red-300' : 'bg-red-50 text-red-700'}`}>
-					You declined this order: “{order.declineReason}”. The customer was refunded.
+				<div
+					role="status"
+					className={`relative mb-3 overflow-hidden rounded-lg border p-3 pl-4 text-sm ${
+						t.isDark ? 'border-red-500/30 bg-red-500/10' : 'border-red-200 bg-red-50'
+					}`}
+				>
+					<span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-red-500" />
+					<p className={`flex items-center gap-1.5 font-semibold ${t.isDark ? 'text-red-300' : 'text-red-700'}`}>
+						<XCircle size={16} /> You declined this order
+					</p>
+					<p className={`mt-1 ${t.text}`}>“{order.declineReason}”</p>
+					<p className={`mt-1 text-xs ${t.textSecondary}`}>
+						{order.refundStatus === 'failed'
+							? "The customer was told. The automatic refund didn't go through — Printdecore will refund them."
+							: order.refundStatus
+								? 'The customer was told and is being refunded in full.'
+								: "The customer was told. They hadn't paid, so there's nothing to refund."}
+					</p>
 				</div>
 			)}
 

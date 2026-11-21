@@ -93,6 +93,8 @@ export interface ClerkOrder {
 	deliveryAddress?: string;
 	recipientPhone?: string;
 	declineReason?: string;
+	/** After you decline: how the customer's refund went (none if they hadn't paid) */
+	refundStatus?: 'pending' | 'processed' | 'failed';
 	createdAt: string | Date;
 	updatedAt: string | Date;
 }
@@ -108,6 +110,8 @@ export interface QuoteRequest {
   attachments: { url: string; name?: string; type?: string; size?: number }[];
   /** amount: what the customer pays. shopPrice: what you asked (commission goes on top) */
   quotation?: { id: string; status: string; amount?: number; shopPrice?: number };
+  /** The customer turned your last price down: when, and why if they said */
+  priceDeclined?: { at: string | Date; reason?: string };
   /** Your shop can price it */
   canQuote: boolean;
   /** Printdecore's commission (%), added on top of your price */

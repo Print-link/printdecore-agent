@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Send, XCircle } from '../../icons';
+import { MessageCircle, Receipt, Send, XCircle } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
 import type { OrderStatus, QuoteRequest } from '../../../types';
 import { Button, Card } from '../../ui';
@@ -25,8 +25,12 @@ const QUOTABLE: OrderStatus[] = ['PENDING', 'QUOTED'];
 export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDecline }: QuoteRequestCardProps) {
 	const t = useThemeClasses();
 	const sent = request.quotation?.status === 'SENT' || status === 'QUOTED';
+	// The customer turned the last price down and is waiting for a new one
+	const declined = !sent && (request.quotation?.status === 'REJECTED' || !!request.priceDeclined);
 	// You type your own price; the customer pays it plus Printdecore's commission
-	const [amount, setAmount] = useState(() => (sent && request.quotation?.shopPrice ? String(request.quotation.shopPrice) : ''));
+	const [amount, setAmount] = useState(() =>
+		(sent || declined) && request.quotation?.shopPrice ? String(request.quotation.shopPrice) : '',
+	);
 	const value = Number(amount);
 	const valid = Number.isFinite(value) && value > 0;
 	const rate = request.commissionRate ?? 0;
@@ -58,10 +62,41 @@ export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDe
 				</div>
 			)}
 
+			{declined && QUOTABLE.includes(status) && (
+				<div
+					role="alert"
+					className={`relative mt-4 overflow-hidden rounded-lg border p-3 pl-4 ${
+						t.isDark ? 'border-red-500/30 bg-red-500/10' : 'border-red-200 bg-red-50'
+					}`}
+				>
+					<span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-red-500" />
+					<p className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider ${t.isDark ? 'text-red-300' : 'text-red-600'}`}>
+						<XCircle size={14} /> Price declined
+						{request.priceDeclined?.at && (
+							<span className={`font-medium normal-case tracking-normal ${t.textSecondary}`}>
+								· {new Date(request.priceDeclined.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+							</span>
+						)}
+					</p>
+					<p className={`mt-1 text-sm font-semibold ${t.text}`}>
+						The customer declined {request.quotation?.shopPrice !== undefined ? `your price of ${ghs(request.quotation.shopPrice)}` : 'your price'}
+					</p>
+					{request.priceDeclined?.reason ? (
+						<p className={`mt-1.5 flex items-start gap-1.5 text-sm ${t.text}`}>
+							<MessageCircle size={15} className={`mt-0.5 shrink-0 ${t.textSecondary}`} />
+							<span>“{request.priceDeclined.reason}”</span>
+						</p>
+					) : (
+						<p className={`mt-1 text-xs ${t.textSecondary}`}>They didn't say why — a message can help before you re-price.</p>
+					)}
+					{canQuote && <p className={`mt-1.5 text-xs ${t.textSecondary}`}>Send a new price below, or decline the request.</p>}
+				</div>
+			)}
+
 			{canQuote ? (
 				<div className={`mt-4 p-3 rounded-lg ${t.isDark ? 'bg-amber-900/20' : 'bg-amber-50'}`}>
 					<label htmlFor={`quote-${request.id}`} className={`block text-sm font-semibold ${t.text}`}>
-						{sent ? 'Your price (sent — you can change it until they pay)' : 'Your price for the whole job'}
+						{sent ? 'Your price (sent — you can change it until they pay)' : declined ? 'Your new price for the whole job' : 'Your price for the whole job'}
 					</label>
 					<div className="mt-2 flex items-center gap-2">
 						<span className={`text-sm font-semibold ${t.textSecondary}`}>GHS</span>
@@ -112,7 +147,7 @@ export function QuoteRequestCard({ request, status, isSending, onSendQuote, onDe
 							icon={Send}
 							className="flex-1 bg-amber-500 hover:bg-amber-600 text-black"
 						>
-							{isSending ? 'Sending…' : sent ? 'Update price' : 'Send price'}
+							{isSending ? 'Sending…' : sent ? 'Update price' : declined ? 'Send new price' : 'Send price'}
 						</Button>
 					</div>
 				</div>
