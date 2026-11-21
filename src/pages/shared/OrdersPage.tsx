@@ -11,6 +11,8 @@ import { OrdersListSkeleton } from '../../components/ui/skeletons';
 import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import OrderDetailPreview from "../../components/shared/OrderDetailPreview";
+import { ReviewOrderModal } from "../../components/shared/order-prompts/ReviewOrderModal";
+import { useOrderPromptStore } from "../../stores/orderPromptStore";
 import type { ClerkOrder } from "../../types";
 import type { PipelineStage } from "../../services/api/vendorHome";
 import { STAGE_STATUSES, STAGE_LABELS, isOpenStatus } from "../../lib/orderStages";
@@ -47,11 +49,25 @@ export default function OrdersPage() {
 			return p;
 		}, { replace: true });
 	const [selectedOrder, setSelectedOrder] = useState<ClerkOrder | null>(null);
+	// A new paid order asks to be reviewed (marked Received) before it opens
+	const [reviewing, setReviewing] = useState<ClerkOrder | null>(null);
+	const setReviewOpen = useOrderPromptStore((s) => s.setReviewOpen);
+	useEffect(() => {
+		setReviewOpen(!!reviewing);
+		return () => setReviewOpen(false);
+	}, [reviewing, setReviewOpen]);
 
 	// Determine which branch_id to use
 	// Clerks use their own branch_id from login, managers use selected branch
 	const branchId = isClerk ? user?.branch_id : selectedBranch?.id;
 	const queryClient = useQueryClient();
+	const canUpdate = hasPermission(PERMISSIONS.ORDERS_UPDATE);
+
+	/** Open an order — a new paid one first asks to be reviewed */
+	const openOrder = (order: ClerkOrder) => {
+		if (order.status === "PAID" && canUpdate) setReviewing(order);
+		else setSelectedOrder(order);
+	};
 
 	// Use getBranchOrders API (same as agent app)
 	const {
@@ -81,12 +97,13 @@ export default function OrdersPage() {
 		if (!openId) return;
 		const found = orders.find((o) => o.id === openId);
 		if (found) {
-			setSelectedOrder(found);
+			openOrder(found);
 			setParams((p) => {
 				p.delete("order");
 				return p;
 			}, { replace: true });
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- openOrder only reads the permission
 	}, [openId, orders, setParams]);
 
 	const filteredOrders = useMemo(() => {
@@ -212,9 +229,7 @@ export default function OrdersPage() {
 									<div
 										key={order.id}
 										onClick={() =>
-											setSelectedOrder(
-												selectedOrder?.id === order.id ? null : order
-											)
+											selectedOrder?.id === order.id ? setSelectedOrder(null) : openOrder(order)
 										}
 										className={cn(
 											'p-3 rounded-lg cursor-pointer transition-all',
@@ -269,6 +284,16 @@ export default function OrdersPage() {
 						/>
 					</div>
 				)}
+
+				<ReviewOrderModal
+					order={reviewing}
+					onClose={() => setReviewing(null)}
+					onReviewed={(order) => {
+						setReviewing(null);
+						setSelectedOrder(order);
+						refetch();
+					}}
+				/>
 
 				{/* Empty State when no order selected */}
 				{!selectedOrder && (

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/authStore";
 import { useBranchStore } from "../stores/branchStore";
+import { StartWorkReminder } from "../components/shared/order-prompts/StartWorkReminder";
 import { useTheme } from "../contexts/ThemeContext";
 import { useThemeClasses } from "../lib/theme";
 import { cn, formatCount } from "../lib/utils";
@@ -571,6 +572,9 @@ export default function AppLayout() {
           )}
         </main>
       </div>
+
+      {/* Received but not started? Asks from anywhere in the app */}
+      {(isManager || isClerk) && hasPermission(PERMISSIONS.ORDERS_UPDATE) && <StartWorkReminder orders={orders} />}
 
       {/* Walkthrough Tooltips */}
       {isManager && (
