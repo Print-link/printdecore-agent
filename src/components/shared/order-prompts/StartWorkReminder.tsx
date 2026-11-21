@@ -44,18 +44,11 @@ export function StartWorkReminder({ orders }: StartWorkReminderProps) {
 
 	const waiting = useMemo(() => orders.filter((o) => o.status === 'RECEIVED'), [orders]);
 
-	// Orders that left Received are done with — drop their timers
+	// Orders that have moved past Received are done with — drop their timers.
+	// Only orders we can see: an empty list while loading must not wipe snoozes.
 	useEffect(() => {
-		const ids = new Set(waiting.map((o) => o.id));
-		try {
-			for (let i = localStorage.length - 1; i >= 0; i--) {
-				const k = localStorage.key(i);
-				if (k?.startsWith('pd:start-reminder:') && !ids.has(k.slice(18))) forget(k.slice(18));
-			}
-		} catch {
-			// storage blocked
-		}
-	}, [waiting]);
+		for (const o of orders) if (o.status !== 'RECEIVED') forget(o.id);
+	}, [orders]);
 
 	const due = useMemo(
 		() =>
