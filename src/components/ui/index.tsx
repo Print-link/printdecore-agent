@@ -293,7 +293,7 @@ const STATUS_COLORS: Record<string, BadgeColor> = {
   RECEIVED: "blue",
   IN_PROGRESS: "blue",
   PRINTING: "blue",
-  QUALITY_CHECK: "purple",
+  QUALITY_CHECK: "blue",
   READY_FOR_PICKUP: "blue",
   OUT_FOR_DELIVERY: "purple",
   DELIVERED: "green",
@@ -308,6 +308,21 @@ const STATUS_COLORS: Record<string, BadgeColor> = {
   revoked: "red",
 };
 
+/** Order statuses as the shop's three steps name them */
+const STATUS_LABELS: Record<string, string> = {
+  PAID: "Paid — to accept",
+  RECEIVED: "In production",
+  IN_PROGRESS: "In production",
+  PRINTING: "In production",
+  QUALITY_CHECK: "In production",
+  READY_FOR_PICKUP: "Ready for pickup",
+  OUT_FOR_DELIVERY: "Out for delivery",
+  DELIVERED: "Completed",
+  COMPLETED: "Completed",
+  AWAITING_PAYMENT: "Awaiting payment",
+  CONFIRMING_AVAILABILITY: "Confirming",
+};
+
 export function StatusBadge({
   status,
   className,
@@ -317,9 +332,9 @@ export function StatusBadge({
 }) {
   if (!status) return null;
   const color = STATUS_COLORS[status] || "gray";
-  const label = status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const label =
+    STATUS_LABELS[status] ??
+    status.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
   return (
     <Badge color={color} className={className}>
       {label}

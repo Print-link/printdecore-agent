@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useThemeClasses } from '../../lib/theme';
+import { stepDoneMessage } from '../../lib/shopSteps';
 import { useAuthStore } from '../../stores/authStore';
 import { useBranchStore } from '../../stores/branchStore';
 import { useToast } from "../../contexts/ToastContext";
@@ -145,8 +146,8 @@ export default function OrderDetailPreview({
 			});
 			queryClient.invalidateQueries({ queryKey: ["branchOrders", branchId] });
 			success(
-				`Order ${order.orderNumber} is now ${status.replace(/_/g, " ").toLowerCase()}`,
-				"Order Updated",
+				stepDoneMessage(status),
+				`Order ${order.orderNumber} updated`,
 				4000
 			);
 			if (onOrderUpdate) onOrderUpdate();
