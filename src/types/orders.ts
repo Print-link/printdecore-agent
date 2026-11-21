@@ -106,9 +106,12 @@ export interface QuoteRequest {
   /** The customer's specs and notes, one per line */
   details?: string;
   attachments: { url: string; name?: string; type?: string; size?: number }[];
-  quotation?: { id: string; status: string; amount?: number };
-  /** Your shop prices it (a request sent to you); otherwise Printdecore does */
+  /** amount: what the customer pays. shopPrice: what you asked (commission goes on top) */
+  quotation?: { id: string; status: string; amount?: number; shopPrice?: number };
+  /** Your shop can price it */
   canQuote: boolean;
+  /** Printdecore's commission (%), added on top of your price */
+  commissionRate?: number;
 }
 
 export interface ClerkOrderDetail extends ClerkOrder {

@@ -178,7 +178,7 @@ export default function OrderDetailPreview({
 		onSuccess: (_data, { amount }) => {
 			queryClient.invalidateQueries({ queryKey: ["orderDetail", order.id, branchId] });
 			queryClient.invalidateQueries({ queryKey: ["branchOrders", branchId] });
-			success(`The customer has your price of GHS ${amount.toLocaleString()}`, "Price sent", 4000);
+			success(`Your price of GHS ${amount.toLocaleString()} is with the customer`, "Price sent", 4000);
 			if (onOrderUpdate) onOrderUpdate();
 		},
 		onError: (error: unknown) => {
@@ -266,7 +266,8 @@ export default function OrderDetailPreview({
 									orderDetail.printRequest?.quotation &&
 									sendQuoteMutation.mutate({ quotationId: orderDetail.printRequest.quotation.id, amount })
 								}
-								onDecline={orderDetail.printRequest.canQuote ? () => setShowDeclineModal(true) : undefined}
+								// Only a request sent to your shop can be turned down; Printdecore handles its own
+								onDecline={orderDetail.channel === 'marketplace' ? () => setShowDeclineModal(true) : undefined}
 							/>
 						)}
 
