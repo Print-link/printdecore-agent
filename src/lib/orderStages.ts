@@ -5,8 +5,9 @@ import type { PipelineStage } from "../services/api/vendorHome";
 export const STAGE_STATUSES: Record<PipelineStage, OrderStatus[]> = {
   new: ["PENDING"],
   quoted: ["QUOTED", "AWAITING_PAYMENT", "CONFIRMING_AVAILABILITY"],
-  paid: ["PAID", "RECEIVED"],
-  production: ["IN_PROGRESS", "PRINTING", "QUALITY_CHECK"],
+  paid: ["PAID"],
+  // RECEIVED: older orders accepted before that step was dropped
+  production: ["RECEIVED", "IN_PROGRESS", "PRINTING", "QUALITY_CHECK"],
   ready: ["READY_FOR_PICKUP", "OUT_FOR_DELIVERY"],
 };
 

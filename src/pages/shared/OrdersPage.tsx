@@ -12,7 +12,6 @@ import { useThemeClasses } from '../../lib/theme';
 import { cn } from '../../lib/utils';
 import OrderDetailPreview from "../../components/shared/OrderDetailPreview";
 import { ReviewOrderModal } from "../../components/shared/order-prompts/ReviewOrderModal";
-import { useOrderPromptStore } from "../../stores/orderPromptStore";
 import type { ClerkOrder } from "../../types";
 import type { PipelineStage } from "../../services/api/vendorHome";
 import { STAGE_STATUSES, STAGE_LABELS, isOpenStatus } from "../../lib/orderStages";
@@ -49,13 +48,8 @@ export default function OrdersPage() {
 			return p;
 		}, { replace: true });
 	const [selectedOrder, setSelectedOrder] = useState<ClerkOrder | null>(null);
-	// A new paid order asks to be reviewed (marked Received) before it opens
+	// A new paid order asks to be accepted (it goes straight into production) before it opens
 	const [reviewing, setReviewing] = useState<ClerkOrder | null>(null);
-	const setReviewOpen = useOrderPromptStore((s) => s.setReviewOpen);
-	useEffect(() => {
-		setReviewOpen(!!reviewing);
-		return () => setReviewOpen(false);
-	}, [reviewing, setReviewOpen]);
 
 	// Determine which branch_id to use
 	// Clerks use their own branch_id from login, managers use selected branch
@@ -191,7 +185,6 @@ export default function OrdersPage() {
 						<option value="PENDING">Pending</option>
 						<option value="QUOTED">Quoted</option>
 						<option value="PAID">Paid</option>
-						<option value="RECEIVED">Received</option>
 						<option value="PRINTING">Printing</option>
 						<option value="IN_PROGRESS">In Progress</option>
 						<option value="QUALITY_CHECK">Quality Check</option>
