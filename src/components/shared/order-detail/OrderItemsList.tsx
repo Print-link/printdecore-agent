@@ -6,14 +6,12 @@ interface OrderItemsListProps {
 	orderDetail: ClerkOrderDetail;
 	selectedFileIndex: { itemIndex: number; fileIndex: number } | null;
 	onFileSelect: (itemIndex: number | null, fileIndex: number | null) => void;
-	onFileDownload: (fileUrl: string, fileName: string) => void;
 }
 
 export function OrderItemsList({
 	orderDetail,
 	selectedFileIndex,
 	onFileSelect,
-	onFileDownload,
 }: OrderItemsListProps) {
 	const { theme } = useTheme();
 
@@ -42,7 +40,6 @@ export function OrderItemsList({
 						itemIndex={itemIndex}
 						selectedFileIndex={selectedFileIndex}
 						onFileSelect={onFileSelect}
-						onFileDownload={onFileDownload}
 					/>
 				))}
 			</div>

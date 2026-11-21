@@ -16,7 +16,7 @@ import {
 	QuoteRequestCard,
 } from "./order-detail";
 import { Spinner } from "../icons";
-import { formatOrderDate, downloadFile } from "./utils/orderUtils";
+import { formatOrderDate } from "./utils/orderUtils";
 import type { ClerkOrder, OrderStatus } from "../../types";
 
 interface OrderDetailPreviewProps {
@@ -205,15 +205,6 @@ export default function OrderDetailPreview({
 		markAsReceivedMutation.mutate(estimatedTime);
 	};
 
-	const handleDownloadFile = async (fileUrl: string, fileName: string) => {
-		try {
-			await downloadFile(fileUrl, fileName);
-			success(`Downloaded ${fileName}`, "Download Successful", 3000);
-		} catch {
-			showError("Failed to download file", "Download Failed", 4000);
-		}
-	};
-
 	const handleFileSelect = (
 		itemIndex: number | null,
 		fileIndex: number | null
@@ -278,7 +269,6 @@ export default function OrderDetailPreview({
 								orderDetail={orderDetail}
 								selectedFileIndex={selectedFileIndex}
 								onFileSelect={handleFileSelect}
-								onFileDownload={handleDownloadFile}
 							/>
 						)}
 					</>
