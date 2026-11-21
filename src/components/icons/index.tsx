@@ -77,6 +77,7 @@ export const BellOff = createIcon('solar:bell-off-bold-duotone', 'BellOff');
 
 // ─── Status & Feedback ──────────────────────────────────────────────
 export const Check = createIcon('solar:check-circle-bold-duotone', 'Check');
+export const Copy = createIcon('solar:copy-linear', 'Copy');
 export const CheckCircle = createIcon('solar:check-circle-bold-duotone', 'CheckCircle');
 export const CheckCircle2 = createIcon('solar:verified-check-bold-duotone', 'CheckCircle2');
 export const XCircle = createIcon('solar:close-circle-bold-duotone', 'XCircle');

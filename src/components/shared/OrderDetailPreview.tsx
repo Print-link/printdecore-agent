@@ -275,7 +275,7 @@ export default function OrderDetailPreview({
 							/>
 						)}
 
-						<ClientInfoCard client={order.client} />
+						<ClientInfoCard client={orderDetail?.client ?? order.client} channel={(orderDetail ?? order).channel} />
 
 						{orderDetail && (
 							<OrderItemsList
