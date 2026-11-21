@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Download, Eye, FileText, Printer, Spinner } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
-import { canPrint, formatBytes, KIND_ACCENT, previewUrl, printFile, saveFile, type OrderFile } from '../../../lib/files';
+import { canPrint, formatBytes, printFile, saveFile, type OrderFile } from '../../../lib/files';
 import { FileTypeIcon } from './FileTypeIcon';
 
 interface FileListProps {
@@ -15,28 +15,10 @@ interface FileListProps {
 
 type RowState = 'idle' | 'saving' | 'saved';
 
-/**
- * The file's picture: a real thumbnail where there is one (images, the first
- * page of a PDF), otherwise an illustration of that kind of file.
- */
-function FileTile({ file, dark }: { file: OrderFile; dark: boolean }) {
-	const [broken, setBroken] = useState(false);
-	const src = previewUrl(file);
-	if (src && !broken) {
-		return (
-			<span className={`relative h-12 w-10 shrink-0 overflow-hidden rounded-md ring-1 ${dark ? 'ring-gray-600 bg-gray-800' : 'ring-gray-200 bg-white'} shadow-sm`}>
-				<img src={src} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
-				<span
-					className="absolute bottom-0.5 left-0.5 rounded-[3px] px-1 text-[8px] font-extrabold leading-[12px] tracking-wide text-white"
-					style={{ backgroundColor: KIND_ACCENT[file.kind] }}
-				>
-					{file.ext.slice(0, 4)}
-				</span>
-			</span>
-		);
-	}
-	return <FileTypeIcon kind={file.kind} ext={file.ext} dark={dark} className="shrink-0" />;
-}
+/** An illustration of the kind of file it is */
+const FileTile = ({ file, dark }: { file: OrderFile; dark: boolean }) => (
+	<FileTypeIcon kind={file.kind} ext={file.ext} dark={dark} className="shrink-0" />
+);
 
 /**
  * The files on an order or request, as a list: what each one is, how big,

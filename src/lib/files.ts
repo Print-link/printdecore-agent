@@ -193,15 +193,3 @@ export async function printFile(file: Pick<OrderFile, 'url' | 'name'>): Promise<
 		return 'opened';
 	}
 }
-
-/**
- * A small picture of the file: images as themselves, and PDFs stored on
- * Cloudinary as their first page. Null when there's nothing to show.
- */
-export function previewUrl(file: Pick<OrderFile, 'url' | 'kind'>): string | null {
-	if (file.kind === 'image') return file.url;
-	if (file.kind === 'pdf' && /res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(file.url)) {
-		return file.url.replace('/image/upload/', '/image/upload/pg_1,w_120,h_144,c_fill,g_north,f_jpg/').replace(/\.pdf(?=$|[?#])/i, '.jpg');
-	}
-	return null;
-}
