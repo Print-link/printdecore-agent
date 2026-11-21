@@ -32,6 +32,9 @@ function matchesFilter(order: ClerkOrder, filter: string) {
 		if (filter === "due:overdue") return due < now;
 		return due.toDateString() === now.toDateString();
 	}
+	// Older orders in the longer flow's in-between steps count with the step they're part of
+	if (filter === "IN_PROGRESS") return STAGE_STATUSES.production.includes(order.status);
+	if (filter === "COMPLETED") return order.status === "COMPLETED" || order.status === "DELIVERED";
 	return order.status === filter;
 }
 
@@ -201,13 +204,10 @@ export default function OrdersPage() {
 						<optgroup label="Status">
 						<option value="PENDING">Pending</option>
 						<option value="QUOTED">Quoted</option>
-						<option value="PAID">Paid</option>
-						<option value="PRINTING">Printing</option>
-						<option value="IN_PROGRESS">In Progress</option>
-						<option value="QUALITY_CHECK">Quality Check</option>
-						<option value="READY_FOR_PICKUP">Ready for Pickup</option>
-						<option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-						<option value="DELIVERED">Delivered</option>
+						<option value="PAID">Paid — to accept</option>
+						<option value="IN_PROGRESS">In production</option>
+						<option value="READY_FOR_PICKUP">Ready for pickup</option>
+						<option value="OUT_FOR_DELIVERY">Out for delivery</option>
 						<option value="COMPLETED">Completed</option>
 						<option value="CANCELLED">Cancelled</option>
 						</optgroup>

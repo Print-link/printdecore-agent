@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, MapPin, Package, Printer, Search, Store, Truck, XCircle } from '../../icons';
+import { Check, CheckCircle, Clock, Eye, MapPin, Package, Printer, Store, Truck, XCircle } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
+import { customerSees, nextAction, shopStep, stepLabels } from '../../../lib/shopSteps';
 import type { ClerkOrder, OrderStatus } from '../../../types';
 import { Card, Button, StatusBadge, Select } from '../../ui';
 
@@ -14,36 +15,69 @@ interface OrderInfoCardProps {
 	onDecline?: () => void;
 }
 
-type Stage = { next: OrderStatus; label: string; icon: typeof Printer };
-
 /**
- * The one next step for an order, matching what the server allows. Accepting
- * (PAID → IN_PROGRESS, needs a ready-by time) and completing (needs a confirm)
- * are handled separately, so they aren't here. After quality check the step
- * depends on whether the customer is collecting or getting it delivered.
+ * The three steps a shop takes on a paid order, with the current one marked,
+ * and what the customer sees right now — so staff know what they've been told.
  */
-const nextStage = (order: ClerkOrder): Stage | undefined => {
-	const pickup = order.fulfilmentType === 'pickup';
-	switch (order.status) {
-		case 'RECEIVED': // older orders accepted before that step was dropped
-		case 'PRINTING':
-		case 'IN_PROGRESS':
-			return { next: 'QUALITY_CHECK', label: 'Send to quality check', icon: Search };
-		case 'QUALITY_CHECK':
-			return pickup
-				? { next: 'READY_FOR_PICKUP', label: 'Ready for pickup', icon: Package }
-				: { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery', icon: Truck };
-		case 'READY_FOR_PICKUP':
-			return pickup ? undefined : { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery', icon: Truck };
-		case 'OUT_FOR_DELIVERY':
-			return { next: 'DELIVERED', label: 'Mark delivered', icon: CheckCircle };
-		default:
-			return undefined;
-	}
-};
+function ShopStepper({ order }: { order: ClerkOrder }) {
+	const t = useThemeClasses();
+	const step = shopStep(order.status);
+	if (step === null) return null;
+	const labels = stepLabels(order);
+	const sees = customerSees(order);
+	const icons = [Printer, order.fulfilmentType === 'delivery' ? Truck : Package, CheckCircle];
 
-/** Done-and-handed-over states the server lets you close an order from. */
-const COMPLETABLE_STATUSES: OrderStatus[] = ['READY_FOR_PICKUP', 'DELIVERED'];
+	return (
+		<div className={`mb-3 rounded-lg border p-3 ${t.isDark ? 'border-gray-700 bg-gray-900/30' : 'border-gray-200 bg-gray-50'}`}>
+			<ol className="flex items-start" aria-label="Order steps">
+				{labels.map((label, i) => {
+					const done = i < step;
+					const current = i === step && step < 3;
+					const Icon = icons[i];
+					return (
+						<li key={label} className="relative flex flex-1 flex-col items-center text-center" aria-current={current ? 'step' : undefined}>
+							{i > 0 && (
+								<span
+									aria-hidden="true"
+									className={`absolute right-1/2 top-4 h-0.5 w-full -translate-y-1/2 ${
+										i <= step ? 'bg-emerald-500' : t.isDark ? 'bg-gray-700' : 'bg-gray-200'
+									}`}
+								/>
+							)}
+							<span
+								className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full ring-4 ${
+									t.isDark ? 'ring-gray-800' : 'ring-gray-50'
+								} ${
+									done
+										? 'bg-emerald-500 text-white'
+										: current
+											? 'bg-amber-400 text-black'
+											: t.isDark
+												? 'bg-gray-700 text-gray-400'
+												: 'bg-white text-gray-400 ring-gray-50 border border-gray-200'
+								}`}
+							>
+								{done ? <Check size={15} /> : <Icon size={15} />}
+							</span>
+							<span
+								className={`mt-1.5 px-1 text-[11px] leading-tight ${
+									done || current ? `font-semibold ${t.text}` : t.textSecondary
+								}`}
+							>
+								{i + 1}. {label}
+							</span>
+						</li>
+					);
+				})}
+			</ol>
+			{sees && (
+				<p className={`mt-3 flex items-center justify-center gap-1.5 text-xs ${t.textSecondary}`}>
+					<Eye size={13} /> Customer sees: <span className={`font-medium ${t.text}`}>{sees}</span>
+				</p>
+			)}
+		</div>
+	);
+}
 
 // Time options for estimated completion
 const TIME_OPTIONS = [
@@ -65,10 +99,11 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 
 	const marketplace = order.channel === 'marketplace';
 	// Only paid orders can be started — unpaid managed orders are still with Printdecore
-	const canMarkAsReceived = order.status === 'PAID';
+	const action = nextAction(order);
+	const canMarkAsReceived = action?.kind === 'accept';
 	const canDecline = marketplace && !!onDecline && order.status === 'PAID';
-	const canMarkAsCompleted = COMPLETABLE_STATUSES.includes(order.status);
-	const stage = nextStage(order);
+	const complete = action?.kind === 'complete' ? action : null;
+	const stage = action?.kind === 'advance' ? action : null;
 
 	const handleMarkAsReceivedClick = () => {
 		setShowTimeDropdown(true);
@@ -142,6 +177,8 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 				</div>
 			)}
 
+			<ShopStepper order={order} />
+
 			{order.fulfilmentType && (
 				<div className={`mb-3 flex items-start gap-2 text-sm ${t.text}`}>
 					{order.fulfilmentType === 'pickup' ? <Store size={16} /> : <MapPin size={16} />}
@@ -177,7 +214,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 			)}
 
 			{/* The ready-by time the customer was given, while the order is being made */}
-			{['RECEIVED', 'IN_PROGRESS', 'PRINTING', 'QUALITY_CHECK'].includes(order.status) && formattedEstimatedTime && (
+			{shopStep(order.status) === 1 && formattedEstimatedTime && (
 				<div
 					className={`mb-3 p-2 rounded-md flex items-center gap-2 ${
 						t.isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-700'
@@ -279,22 +316,22 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 					<Button
 						onClick={() => onAdvanceStatus(stage.next)}
 						disabled={isUpdating}
-						icon={stage.icon}
+						icon={stage.next === 'OUT_FOR_DELIVERY' ? Truck : Package}
 						className="bg-blue-500 hover:bg-blue-600 text-white"
 					>
 						{isUpdating ? 'Updating...' : stage.label}
 					</Button>
 				)}
 
-				{/* Mark as Completed Button (available from any late-stage order) */}
-				{canMarkAsCompleted && !showTimeDropdown && (
+				{/* Last step: in the customer's hands */}
+				{complete && !showTimeDropdown && (
 					<Button
 						onClick={onMarkAsComplete}
 						disabled={isUpdating}
 						icon={CheckCircle}
 						className="bg-green-500 hover:bg-green-600 text-white"
 					>
-						{isUpdating ? 'Updating...' : 'Mark as Completed'}
+						{isUpdating ? 'Updating...' : complete.label}
 					</Button>
 				)}
 			</div>
