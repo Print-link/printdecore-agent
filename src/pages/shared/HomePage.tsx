@@ -19,6 +19,8 @@ import {
   Printer,
   MessageCircle,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Star,
   SpinnerRing,
 } from "../../components/icons";
@@ -49,9 +51,25 @@ const when = (iso: string) => {
   return d.toLocaleDateString("en-GH", { day: "numeric", month: "short" });
 };
 
+/** Short money for chart axes: ₵800, ₵1.2k, ₵3M */
+const axisMoney = (v: number) =>
+  v >= 1_000_000 ? `₵${+(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `₵${+(v / 1000).toFixed(1)}k` : `₵${Math.round(v)}`;
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** One colour per stage of an order, used by the bar and its legend */
+const STAGE_COLOURS: Record<PipelineStage, string> = {
+  new: "bg-amber-400",
+  quoted: "bg-sky-400",
+  paid: "bg-emerald-500",
+  production: "bg-violet-500",
+  ready: "bg-teal-400",
+};
+
 /**
- * Home for a branch, or for every branch at once: what needs doing now, how the
- * shop is doing, and where open orders stand.
+ * Home for a branch, or for every branch at once. Four sections, top to
+ * bottom: what needs you now, where open orders stand, how the shop is doing,
+ * and the latest orders.
  */
 export default function HomePage() {
   const t = useThemeClasses();
@@ -93,48 +111,19 @@ export default function HomePage() {
     : "Your branch";
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-5">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className={cn("text-2xl font-semibold tracking-tight", t.text)}>
-            {greeting()}
-            {name ? `, ${name}` : ""}
-          </h1>
-          <p className={cn("text-sm mt-0.5", t.textSecondary)}>
-            {scope && <span className={cn("font-medium", t.text)}>{scope}</span>}
-            {scope && " · "}
-            {new Date().toLocaleDateString("en-GH", { weekday: "long", day: "numeric", month: "long" })}
-          </p>
-        </div>
-        {showMoney && (
-          <div className="flex items-center gap-2">
-            {isFetching && !isLoading && <SpinnerRing size={16} />}
-            <div
-              role="radiogroup"
-              aria-label="Period"
-              className={cn("inline-flex p-0.5 rounded-lg border", t.border, t.isDark ? "bg-gray-800" : "bg-white")}
-            >
-              {PERIODS.map((p) => (
-                <button
-                  key={p.value}
-                  role="radio"
-                  aria-checked={period === p.value}
-                  onClick={() => setPeriod(p.value)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm rounded-md transition-colors",
-                    period === p.value
-                      ? t.isDark ? "bg-gray-700 text-white font-medium" : "bg-gray-900 text-white font-medium"
-                      : cn(t.textSecondary, t.isDark ? "hover:text-gray-200" : "hover:text-gray-900"),
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <header>
+        <h1 className={cn("text-xl sm:text-2xl font-semibold tracking-tight", t.text)}>
+          {greeting()}
+          {name ? `, ${name}` : ""}
+        </h1>
+        <p className={cn("text-sm mt-0.5", t.textSecondary)}>
+          {scope && <span className={cn("font-medium", t.text)}>{scope}</span>}
+          {scope && " · "}
+          {new Date().toLocaleDateString("en-GH", { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+      </header>
 
       {isLoading ? (
         <HomeSkeleton />
@@ -147,19 +136,27 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          {isManager && data.setup && !data.setup.live && <SetupCard setup={data.setup} />}
+          {isManager && data.setup && !data.setup.live && <SetupBanner setup={data.setup} />}
 
-          <NeedsYou data={data} unread={unread} open={(q) => openOrders(q)} openMessages={() => navigate("/app/messages")} />
-
-          {showMoney && <Metrics data={data} previousLabel={previousLabel} />}
-
-          <Pipeline data={data} open={(stage) => openOrders(`?filter=stage:${stage}`)} />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+            <Attention
+              className="lg:col-span-3"
+              data={data}
+              unread={unread}
+              open={(q) => openOrders(q)}
+              openMessages={() => navigate("/app/messages")}
+            />
+            <Pipeline className="lg:col-span-2" data={data} open={(stage) => openOrders(`?filter=stage:${stage}`)} />
+          </div>
 
           {showMoney && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <SalesTrend data={data} />
-              <TopProducts data={data} />
-            </div>
+            <Performance
+              data={data}
+              period={period}
+              setPeriod={setPeriod}
+              previousLabel={previousLabel}
+              refreshing={isFetching && !isLoading}
+            />
           )}
 
           {allBranches && data.branches.length > 0 && (
@@ -179,46 +176,108 @@ export default function HomePage() {
   );
 }
 
-/* ─── Sections ──────────────────────────────────────────────────────────── */
+/* ─── Building blocks ───────────────────────────────────────────────────── */
 
-function Panel({ title, action, children, className }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+function Panel({
+  title,
+  subtitle,
+  action,
+  children,
+  className,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
   const t = useThemeClasses();
   return (
-    <section className={cn("rounded-xl", t.surface, className)}>
-      {title && (
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className={cn("text-sm font-semibold", t.text)}>{title}</h2>
-          {action}
+    <section className={cn("rounded-xl flex flex-col", t.surface, className)}>
+      <div className={cn("flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b", t.border)}>
+        <div className="min-w-0">
+          <h2 className={cn("text-[15px] font-semibold", t.text)}>{title}</h2>
+          {subtitle && <p className={cn("text-xs mt-0.5", t.textTertiary)}>{subtitle}</p>}
         </div>
-      )}
+        {action}
+      </div>
       {children}
     </section>
   );
 }
 
-function SetupCard({ setup }: { setup: NonNullable<VendorHome["setup"]> }) {
+/* ─── Setup: one line until opened ──────────────────────────────────────── */
+
+function SetupBanner({ setup }: { setup: NonNullable<VendorHome["setup"]> }) {
   const t = useThemeClasses();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const done = setup.items.filter((i) => i.done).length;
   const pct = Math.round((done / Math.max(setup.items.length, 1)) * 100);
+  const next = setup.items.find((i) => !i.done);
+
   return (
-    <Panel>
-      <div className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className={cn("text-base font-semibold", t.text)}>Get your shop ready for customers</h2>
-            <p className={cn("text-sm", t.textSecondary)}>
-              {done} of {setup.items.length} done. Customers can find you once everything is ticked.
-            </p>
-          </div>
-          <span className={cn("text-sm font-semibold tabular-nums", t.text)}>{pct}%</span>
+    <section
+      className={cn(
+        "rounded-xl border",
+        t.isDark ? "bg-amber-950/20 border-amber-800/40" : "bg-amber-50/70 border-amber-200",
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
+        <div className="relative h-10 w-10 shrink-0" aria-hidden="true">
+          <svg viewBox="0 0 36 36" className="h-10 w-10 -rotate-90">
+            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="4" className={t.isDark ? "stroke-gray-700" : "stroke-amber-100"} />
+            <circle
+              cx="18"
+              cy="18"
+              r="15"
+              fill="none"
+              strokeWidth="4"
+              strokeLinecap="round"
+              className="stroke-amber-500"
+              strokeDasharray={`${(pct / 100) * 94.2} 94.2`}
+            />
+          </svg>
+          <span className={cn("absolute inset-0 flex items-center justify-center text-[10px] font-bold", t.text)}>{done}/{setup.items.length}</span>
         </div>
-        <div className={cn("h-1.5 rounded-full mt-3 overflow-hidden", t.isDark ? "bg-gray-700" : "bg-gray-100")}>
-          <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
+        <div className="flex-1 min-w-[12rem]">
+          <p className={cn("text-sm font-semibold", t.text)}>Finish setting up to appear on the marketplace</p>
+          <p className={cn("text-xs", t.textSecondary)}>
+            {next ? (
+              <>
+                Next: <span className="font-medium">{next.label}</span>
+                {next.owner === "ops" ? " — Printdecore turns this on for you" : ""}
+              </>
+            ) : (
+              "Almost there"
+            )}
+          </p>
         </div>
-        <ul className="mt-4 grid sm:grid-cols-2 gap-x-6 gap-y-1">
+        <div className="flex items-center gap-2">
+          {next?.link && next.owner !== "ops" && (
+            <button
+              type="button"
+              onClick={() => navigate(next.link!)}
+              className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-black text-sm font-semibold"
+            >
+              Continue
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className={cn("inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm", t.textSecondary, t.isDark ? "hover:bg-gray-800" : "hover:bg-amber-100/70")}
+          >
+            {open ? "Hide" : "All steps"}
+            {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      </div>
+      {open && (
+        <ul className={cn("grid sm:grid-cols-2 gap-x-6 px-5 pb-4 pt-1 border-t", t.isDark ? "border-amber-800/30" : "border-amber-200/70")}>
           {setup.items.map((item) => {
-            const clickable = !item.done && item.link;
+            const clickable = !item.done && item.link && item.owner !== "ops";
             return (
               <li key={item.key}>
                 <button
@@ -226,106 +285,176 @@ function SetupCard({ setup }: { setup: NonNullable<VendorHome["setup"]> }) {
                   disabled={!clickable}
                   onClick={() => clickable && navigate(item.link!)}
                   className={cn(
-                    "w-full flex items-start gap-3 py-2 px-2 -mx-2 rounded-lg text-left",
-                    clickable && (t.isDark ? "hover:bg-gray-700/40" : "hover:bg-gray-50"),
+                    "w-full flex items-start gap-3 py-2 text-left rounded-lg",
+                    clickable && "hover:underline",
                   )}
                 >
                   {item.done ? (
-                    <CheckCircle size={18} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle size={18} className="text-emerald-500 mt-0.5 shrink-0" />
                   ) : (
-                    <span className={cn("w-[18px] h-[18px] mt-0.5 rounded-full border-2 flex-shrink-0", t.isDark ? "border-gray-600" : "border-gray-300")} />
+                    <span className={cn("w-[18px] h-[18px] mt-0.5 rounded-full border-2 shrink-0", t.isDark ? "border-gray-600" : "border-amber-300")} />
                   )}
-                  <span className="flex-1 min-w-0">
-                    <span className={cn("block text-sm", item.done ? cn(t.textTertiary, "line-through") : t.text)}>{item.label}</span>
+                  <span className="min-w-0">
+                    <span className={cn("block text-sm", item.done ? t.textTertiary : t.text)}>{item.label}</span>
                     {!item.done && (
                       <span className={cn("block text-xs", t.textTertiary)}>
                         {item.owner === "ops" ? "Printdecore turns this on for you" : item.hint}
                       </span>
                     )}
                   </span>
-                  {clickable && <ChevronRight size={16} className={cn("mt-0.5", t.textTertiary)} />}
                 </button>
               </li>
             );
           })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/* ─── Needs your attention: one prioritised list ────────────────────────── */
+
+type Tone = "critical" | "action" | "info";
+
+function Attention({
+  data,
+  unread,
+  open,
+  openMessages,
+  className,
+}: {
+  data: VendorHome;
+  unread: number;
+  open: (query: string) => void;
+  openMessages: () => void;
+  className?: string;
+}) {
+  const t = useThemeClasses();
+  const a = data.attention;
+  // Most urgent first; only what has something in it
+  const rows: { key: string; tone: Tone; icon: typeof Clock; title: string; detail: string; count: number; go: () => void }[] = [
+    { key: "late", tone: "critical" as Tone, icon: AlertTriangle, count: a.overdue, title: `${plural(a.overdue, "order")} overdue`, detail: "Past the time you promised — finish or update the customer", go: () => open("?filter=due:overdue") },
+    { key: "start", tone: "action" as Tone, icon: Printer, count: a.toStart, title: `${plural(a.toStart, "paid order")} to start`, detail: "The customer has paid — review and begin", go: () => open("?filter=stage:paid") },
+    { key: "quote", tone: "action" as Tone, icon: FileText, count: a.toQuote, title: `${plural(a.toQuote, "request")} to price`, detail: "Customers are waiting for your quote", go: () => open("?filter=stage:new") },
+    { key: "due", tone: "action" as Tone, icon: Clock, count: a.dueToday, title: `${plural(a.dueToday, "order")} due today`, detail: "Promised for today", go: () => open("?filter=due:today") },
+    { key: "msgs", tone: "action" as Tone, icon: MessageCircle, count: unread, title: `${plural(unread, "unread message")}`, detail: "On WhatsApp", go: openMessages },
+    { key: "pay", tone: "info" as Tone, icon: CreditCard, count: a.awaitingPayment, title: `${plural(a.awaitingPayment, "quote")} awaiting payment`, detail: "Waiting on the customer — nothing to do yet", go: () => open("?filter=stage:quoted") },
+  ].filter((r) => r.count > 0);
+
+  const toDo = rows.filter((r) => r.tone !== "info").reduce((s, r) => s + r.count, 0);
+
+  const toneStyles: Record<Tone, { icon: string; chip: string }> = {
+    critical: {
+      icon: t.isDark ? "bg-red-900/40 text-red-400" : "bg-red-50 text-red-600",
+      chip: t.isDark ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-700",
+    },
+    action: {
+      icon: t.isDark ? "bg-amber-900/30 text-amber-400" : "bg-amber-50 text-amber-600",
+      chip: t.isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-700",
+    },
+    info: {
+      icon: t.isDark ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500",
+      chip: t.isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600",
+    },
+  };
+
+  return (
+    <Panel
+      className={className}
+      title="Needs your attention"
+      subtitle={toDo ? `${plural(toDo, "thing")} to do` : "You're all caught up"}
+    >
+      {rows.length ? (
+        <ul className={cn("divide-y", t.isDark ? "divide-gray-700" : "divide-gray-100")}>
+          {rows.map((r) => {
+            const Icon = r.icon;
+            const s = toneStyles[r.tone];
+            return (
+              <li key={r.key}>
+                <button
+                  type="button"
+                  onClick={r.go}
+                  className={cn("group w-full flex items-center gap-3.5 px-5 py-3.5 text-left transition-colors", t.isDark ? "hover:bg-gray-700/30" : "hover:bg-gray-50")}
+                >
+                  <span className={cn("h-9 w-9 shrink-0 rounded-lg flex items-center justify-center", s.icon)}>
+                    <Icon size={18} />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className={cn("block text-sm font-medium", r.tone === "critical" ? "text-red-600 dark:text-red-400" : t.text)}>{r.title}</span>
+                    <span className={cn("block text-xs truncate", t.textTertiary)}>{r.detail}</span>
+                  </span>
+                  <ChevronRight size={16} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", t.textTertiary)} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 px-5 py-10 text-center">
+          <span className={cn("h-10 w-10 rounded-full flex items-center justify-center", t.isDark ? "bg-emerald-900/30" : "bg-emerald-50")}>
+            <CheckCircle size={20} className="text-emerald-500" />
+          </span>
+          <p className={cn("text-sm font-medium", t.text)}>Nothing waiting on you</p>
+          <p className={cn("text-xs", t.textTertiary)}>New orders and messages will show up here.</p>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/* ─── Open orders: one bar, one legend ──────────────────────────────────── */
+
+function Pipeline({ data, open, className }: { data: VendorHome; open: (stage: PipelineStage) => void; className?: string }) {
+  const t = useThemeClasses();
+  const total = data.pipeline.reduce((s, p) => s + p.count, 0);
+  return (
+    <Panel className={className} title="Open orders" subtitle={total ? `${plural(total, "order")} in progress` : "No open orders"}>
+      <div className="px-5 py-4 flex-1 flex flex-col">
+        <div
+          className={cn("flex h-2.5 w-full overflow-hidden rounded-full", t.isDark ? "bg-gray-700" : "bg-gray-100")}
+          role="img"
+          aria-label={data.pipeline.map((p) => `${p.label}: ${p.count}`).join(", ")}
+        >
+          {total > 0 &&
+            data.pipeline
+              .filter((p) => p.count > 0)
+              .map((p) => (
+                <span
+                  key={p.stage}
+                  className={cn("h-full first:rounded-l-full last:rounded-r-full border-r-2 last:border-r-0", STAGE_COLOURS[p.stage], t.isDark ? "border-gray-800" : "border-white")}
+                  style={{ width: `${(p.count / total) * 100}%` }}
+                />
+              ))}
+        </div>
+        <ul className="mt-3 -mx-2">
+          {data.pipeline.map((p) => (
+            <li key={p.stage}>
+              <button
+                type="button"
+                onClick={() => open(p.stage)}
+                className={cn("w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left", t.isDark ? "hover:bg-gray-700/30" : "hover:bg-gray-50")}
+              >
+                <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", STAGE_COLOURS[p.stage], p.count === 0 && "opacity-30")} />
+                <span className={cn("flex-1 text-sm truncate", p.count ? t.text : t.textTertiary)}>{p.label}</span>
+                <span className={cn("text-sm font-semibold tabular-nums", p.count ? t.text : t.textTertiary)}>{p.count}</span>
+              </button>
+            </li>
+          ))}
         </ul>
       </div>
     </Panel>
   );
 }
 
-function NeedsYou({
-  data,
-  unread,
-  open,
-  openMessages,
-}: {
-  data: VendorHome;
-  unread: number;
-  open: (query: string) => void;
-  openMessages: () => void;
-}) {
-  const t = useThemeClasses();
-  const a = data.attention;
-  const tiles = [
-    { key: "quote", label: "To quote", hint: "New requests", count: a.toQuote, icon: FileText, go: () => open("?filter=stage:new") },
-    { key: "pay", label: "Awaiting payment", hint: "Quoted, not paid", count: a.awaitingPayment, icon: CreditCard, go: () => open("?filter=stage:quoted") },
-    { key: "start", label: "To start", hint: "Paid, not started", count: a.toStart, icon: Printer, go: () => open("?filter=stage:paid") },
-    { key: "due", label: "Due today", hint: "Open orders", count: a.dueToday, icon: Clock, go: () => open("?filter=due:today") },
-    { key: "late", label: "Overdue", hint: "Past their due time", count: a.overdue, icon: AlertTriangle, go: () => open("?filter=due:overdue"), urgent: true },
-    { key: "msgs", label: "Unread messages", hint: "WhatsApp", count: unread, icon: MessageCircle, go: openMessages },
-  ];
-  const waiting = tiles.some((x) => x.count > 0);
-
-  return (
-    <section>
-      <div className="flex items-baseline justify-between mb-2">
-        <h2 className={cn("text-sm font-semibold", t.text)}>Needs you</h2>
-        {!waiting && <span className={cn("text-xs", t.textTertiary)}>You're all caught up</span>}
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {tiles.map((x) => {
-          const Icon = x.icon;
-          const on = x.count > 0;
-          return (
-            <button
-              key={x.key}
-              type="button"
-              onClick={x.go}
-              className={cn(
-                "group text-left rounded-xl p-4 border transition-all",
-                on
-                  ? x.urgent
-                    ? t.isDark ? "bg-red-950/40 border-red-800/60 hover:border-red-700" : "bg-red-50 border-red-200 hover:border-red-300"
-                    : t.isDark ? "bg-amber-950/30 border-amber-700/50 hover:border-amber-600" : "bg-amber-50 border-amber-200 hover:border-amber-300"
-                  : cn(t.isDark ? "bg-gray-800 border-gray-700 hover:border-gray-600" : "bg-white border-gray-200 hover:border-gray-300"),
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <Icon
-                  size={18}
-                  className={on ? (x.urgent ? "text-red-500" : "text-amber-500") : t.textTertiary}
-                />
-                <ArrowRight size={14} className={cn("opacity-0 group-hover:opacity-100 transition-opacity", t.textTertiary)} />
-              </div>
-              <p className={cn("mt-3 text-2xl font-semibold tabular-nums", on ? t.text : t.textTertiary)}>{x.count}</p>
-              <p className={cn("text-sm font-medium", on ? t.text : t.textSecondary)}>{x.label}</p>
-              <p className={cn("text-xs", t.textTertiary)}>{x.hint}</p>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
+/* ─── Performance: figures, trend and best sellers together ────────────── */
 
 function Delta({ value, previousLabel }: { value: number | null; previousLabel: string }) {
   const t = useThemeClasses();
-  if (value === null) return <span className={cn("text-xs", t.textTertiary)}>New vs {previousLabel}</span>;
+  if (value === null) return <span className={cn("text-xs", t.textTertiary)}>New this period</span>;
   const up = value > 0;
   const flat = value === 0;
   return (
-    <span className="text-xs">
+    <span className="text-xs" title={`Compared with the ${previousLabel}`}>
       <span
         className={cn(
           "font-semibold tabular-nums",
@@ -339,73 +468,97 @@ function Delta({ value, previousLabel }: { value: number | null; previousLabel: 
   );
 }
 
-function Metrics({ data, previousLabel }: { data: VendorHome; previousLabel: string }) {
+function Performance({
+  data,
+  period,
+  setPeriod,
+  previousLabel,
+  refreshing,
+}: {
+  data: VendorHome;
+  period: HomePeriod;
+  setPeriod: (p: HomePeriod) => void;
+  previousLabel: string;
+  refreshing: boolean;
+}) {
   const t = useThemeClasses();
   const m = data.metrics;
-  const cards = [
-    { label: "Sales", value: formatCurrency(m.sales.current), delta: change(m.sales), hint: "Paid orders" },
-    { label: "Orders", value: String(m.orders.current), delta: change(m.orders), hint: "Not cancelled" },
-    { label: "Average order", value: formatCurrency(m.averageOrder.current), delta: change(m.averageOrder), hint: "Per paid order" },
+  const figures = [
+    { label: "Sales", value: formatCurrency(m.sales.current), delta: <Delta value={change(m.sales)} previousLabel={previousLabel} /> },
+    { label: "Orders", value: String(m.orders.current), delta: <Delta value={change(m.orders)} previousLabel={previousLabel} /> },
+    { label: "Average order", value: formatCurrency(m.averageOrder.current), delta: <Delta value={change(m.averageOrder)} previousLabel={previousLabel} /> },
+    {
+      label: "Rating",
+      value: m.rating.count ? (
+        <span className="inline-flex items-center gap-1.5">
+          {m.rating.average.toFixed(1)}
+          <Star size={16} className="text-amber-400" />
+        </span>
+      ) : (
+        "–"
+      ),
+      delta: <span className={cn("text-xs", t.textTertiary)}>{m.rating.count ? `${plural(m.rating.count, "review")}, all time` : "No reviews yet"}</span>,
+    },
   ];
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((c) => (
-        <div key={c.label} className={cn("rounded-xl p-4", t.surface)}>
-          <p className={cn("text-sm", t.textSecondary)}>{c.label}</p>
-          <p className={cn("mt-1 text-2xl font-semibold tabular-nums tracking-tight", t.text)}>{c.value}</p>
-          <div className="mt-1">
-            <Delta value={c.delta} previousLabel={previousLabel} />
-          </div>
-        </div>
-      ))}
-      <div className={cn("rounded-xl p-4", t.surface)}>
-        <p className={cn("text-sm", t.textSecondary)}>Rating</p>
-        <p className={cn("mt-1 text-2xl font-semibold tabular-nums tracking-tight flex items-center gap-1.5", t.text)}>
-          {m.rating.count ? m.rating.average.toFixed(1) : "–"}
-          {m.rating.count > 0 && <Star size={18} className="text-amber-400" />}
-        </p>
-        <p className={cn("mt-1 text-xs", t.textTertiary)}>
-          {m.rating.count ? `${m.rating.count} review${m.rating.count === 1 ? "" : "s"}, all time` : "No reviews yet"}
-        </p>
-      </div>
-    </div>
-  );
-}
 
-function Pipeline({ data, open }: { data: VendorHome; open: (stage: PipelineStage) => void }) {
-  const t = useThemeClasses();
-  const total = data.pipeline.reduce((s, p) => s + p.count, 0);
   return (
     <Panel
-      title="Open orders"
-      action={<span className={cn("text-xs tabular-nums", t.textTertiary)}>{total} in progress</span>}
+      title="Performance"
+      subtitle="Paid orders in the selected period"
+      action={
+        <div className="flex items-center gap-2">
+          {refreshing && <SpinnerRing size={16} />}
+          <div role="radiogroup" aria-label="Period" className={cn("inline-flex p-0.5 rounded-lg border", t.border, t.isDark ? "bg-gray-900" : "bg-gray-50")}>
+            {PERIODS.map((p) => (
+              <button
+                key={p.value}
+                role="radio"
+                aria-checked={period === p.value}
+                onClick={() => setPeriod(p.value)}
+                className={cn(
+                  "px-3 py-1 text-xs sm:text-sm rounded-md transition-colors",
+                  period === p.value
+                    ? t.isDark ? "bg-gray-700 text-white font-medium shadow-sm" : "bg-white text-gray-900 font-medium shadow-sm"
+                    : cn(t.textSecondary, t.isDark ? "hover:text-gray-200" : "hover:text-gray-900"),
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      }
     >
-      <div className="px-5 pb-5">
-        <div className="grid grid-cols-5 gap-1">
-          {data.pipeline.map((p, i) => (
-            <button
-              key={p.stage}
-              type="button"
-              onClick={() => open(p.stage)}
-              className={cn(
-                "relative text-left px-3 py-3 transition-colors",
-                i === 0 ? "rounded-l-lg" : "",
-                i === data.pipeline.length - 1 ? "rounded-r-lg" : "",
-                p.count > 0
-                  ? t.isDark ? "bg-gray-700/60 hover:bg-gray-700" : "bg-gray-100 hover:bg-gray-200"
-                  : t.isDark ? "bg-gray-800/60 hover:bg-gray-700/40" : "bg-gray-50 hover:bg-gray-100",
-              )}
-            >
-              <p className={cn("text-xl font-semibold tabular-nums", p.count > 0 ? t.text : t.textTertiary)}>{p.count}</p>
-              <p className={cn("text-xs sm:text-sm truncate", p.count > 0 ? t.textSecondary : t.textTertiary)}>{p.label}</p>
-              {p.count > 0 && total > 0 && (
-                <span
-                  className="absolute left-0 bottom-0 h-1 bg-amber-400 rounded-full"
-                  style={{ width: `${Math.max(8, (p.count / total) * 100)}%` }}
-                />
-              )}
-            </button>
-          ))}
+      {/* Key figures: one strip, divided — not four separate cards */}
+      <dl className={cn("grid grid-cols-2 lg:grid-cols-4 border-b", t.border)}>
+        {figures.map((f, i) => (
+          <div
+            key={f.label}
+            className={cn(
+              "px-5 py-4",
+              t.border,
+              i % 2 === 1 && "border-l",
+              i >= 2 && "border-t lg:border-t-0",
+              i === 2 && "lg:border-l",
+            )}
+          >
+            <dt className={cn("text-xs font-medium uppercase tracking-wide", t.textTertiary)}>{f.label}</dt>
+            <dd className={cn("mt-1 text-xl sm:text-2xl font-semibold tabular-nums tracking-tight", t.text)}>{f.value}</dd>
+            <dd className="mt-0.5">{f.delta}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3">
+        <div className="lg:col-span-2 px-3 pt-4 pb-3">
+          <p className={cn("px-2 text-xs font-medium uppercase tracking-wide", t.textTertiary)}>Sales trend</p>
+          <div className="h-60 mt-2">
+            <SalesTrend data={data} />
+          </div>
+        </div>
+        <div className={cn("px-5 py-4 border-t lg:border-t-0 lg:border-l", t.border)}>
+          <p className={cn("text-xs font-medium uppercase tracking-wide", t.textTertiary)}>Best sellers</p>
+          <TopProducts data={data} />
         </div>
       </div>
     </Panel>
@@ -418,98 +571,87 @@ function SalesTrend({ data }: { data: VendorHome }) {
   const grid = t.isDark ? "#374151" : "#f3f4f6";
   const axis = t.isDark ? "#9ca3af" : "#6b7280";
   const any = data.series.some((s) => s.sales > 0 || s.orders > 0);
+  if (!any) return <Empty text="No sales in this period yet" />;
   return (
-    <Panel title="Sales" className="lg:col-span-2">
-      <div className="h-64 px-2 pb-3">
-        {any ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data.series} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="homeSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={stroke} stopOpacity={0.18} />
-                  <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke={grid} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: axis }} tickLine={false} axisLine={false} minTickGap={24} />
-              <YAxis
-                tick={{ fontSize: 11, fill: axis }}
-                tickLine={false}
-                axisLine={false}
-                width={64}
-                tickFormatter={(v: number) => formatCurrency(v, { compact: true })}
-              />
-              <Tooltip
-                cursor={{ stroke: axis, strokeDasharray: "3 3" }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const p = payload[0].payload as VendorHome["series"][number];
-                  return (
-                    <div className={cn("rounded-lg border px-3 py-2 shadow-lg text-xs", t.isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
-                      <p className={cn("font-medium mb-0.5", t.text)}>{p.label}</p>
-                      <p className={t.text}>{formatCurrency(p.sales)}</p>
-                      <p className={t.textSecondary}>
-                        {p.orders} order{p.orders === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                  );
-                }}
-              />
-              <Area type="monotone" dataKey="sales" stroke={stroke} strokeWidth={2} fill="url(#homeSales)" activeDot={{ r: 4, strokeWidth: 2, stroke: t.isDark ? "#1f2937" : "#fff" }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <Empty text="No sales in this period yet" />
-        )}
-      </div>
-    </Panel>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data.series} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+        <defs>
+          <linearGradient id="homeSales" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity={0.18} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid vertical={false} stroke={grid} />
+        <XAxis dataKey="label" tick={{ fontSize: 11, fill: axis }} tickLine={false} axisLine={false} minTickGap={24} />
+        <YAxis
+          tick={{ fontSize: 11, fill: axis }}
+          tickLine={false}
+          axisLine={false}
+          width={48}
+          tickFormatter={axisMoney}
+        />
+        <Tooltip
+          cursor={{ stroke: axis, strokeDasharray: "3 3" }}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const p = payload[0].payload as VendorHome["series"][number];
+            return (
+              <div className={cn("rounded-lg border px-3 py-2 shadow-lg text-xs", t.isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+                <p className={cn("font-medium mb-0.5", t.text)}>{p.label}</p>
+                <p className={t.text}>{formatCurrency(p.sales)}</p>
+                <p className={t.textSecondary}>{plural(p.orders, "order")}</p>
+              </div>
+            );
+          }}
+        />
+        <Area type="monotone" dataKey="sales" stroke={stroke} strokeWidth={2} fill="url(#homeSales)" activeDot={{ r: 4, strokeWidth: 2, stroke: t.isDark ? "#1f2937" : "#fff" }} />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
 function TopProducts({ data }: { data: VendorHome }) {
   const t = useThemeClasses();
   const max = Math.max(...data.topProducts.map((p) => p.sales), 1);
-  return (
-    <Panel title="Top products">
-      <div className="px-5 pb-5">
-        {data.topProducts.length ? (
-          <ul className="space-y-3">
-            {data.topProducts.map((p) => (
-              <li key={p.name}>
-                <div className="flex items-baseline justify-between gap-2 text-sm">
-                  <span className={cn("truncate", t.text)}>{p.name}</span>
-                  <span className={cn("tabular-nums flex-shrink-0", t.text)}>{formatCurrency(p.sales, { compact: true })}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className={cn("h-1.5 flex-1 rounded-full overflow-hidden", t.isDark ? "bg-gray-700" : "bg-gray-100")}>
-                    <div className="h-full rounded-full bg-amber-400" style={{ width: `${(p.sales / max) * 100}%` }} />
-                  </div>
-                  <span className={cn("text-xs tabular-nums w-16 text-right", t.textTertiary)}>
-                    {p.orders} order{p.orders === 1 ? "" : "s"}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="h-48">
-            <Empty text="Your best sellers will show here" />
-          </div>
-        )}
+  if (!data.topProducts.length) {
+    return (
+      <div className="h-32 lg:h-52 mt-2">
+        <Empty text="Your best sellers will show here" />
       </div>
-    </Panel>
+    );
+  }
+  return (
+    <ol className="mt-3 space-y-3.5">
+      {data.topProducts.map((p, i) => (
+        <li key={p.name}>
+          <div className="flex items-baseline gap-2 text-sm">
+            <span className={cn("w-4 text-xs tabular-nums", t.textTertiary)}>{i + 1}</span>
+            <span className={cn("flex-1 truncate", t.text)}>{p.name}</span>
+            <span className={cn("tabular-nums shrink-0 font-medium", t.text)}>{formatCurrency(p.sales, { compact: true })}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-1 pl-6">
+            <div className={cn("h-1.5 flex-1 rounded-full overflow-hidden", t.isDark ? "bg-gray-700" : "bg-gray-100")}>
+              <div className="h-full rounded-full bg-amber-400" style={{ width: `${(p.sales / max) * 100}%` }} />
+            </div>
+            <span className={cn("text-xs tabular-nums w-16 text-right", t.textTertiary)}>{plural(p.orders, "order")}</span>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
+/* ─── Tables ────────────────────────────────────────────────────────────── */
+
 function BranchTable({ data, showMoney, pick }: { data: VendorHome; showMoney: boolean; pick: (b: { id: string }) => void }) {
   const t = useThemeClasses();
-  const th = cn("px-5 py-2 text-xs font-medium text-right", t.textTertiary);
+  const th = cn("px-5 py-2.5 text-xs font-medium uppercase tracking-wide text-right", t.textTertiary);
   return (
-    <Panel title="Branches">
+    <Panel title="Branches" subtitle="Select a branch to work in it">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
-            <tr className={cn("border-y", t.border)}>
+          <thead className={t.surfaceInset}>
+            <tr className={cn("border-b", t.border)}>
               <th className={cn(th, "text-left")}>Branch</th>
               {showMoney && <th className={th}>Sales</th>}
               <th className={th}>Orders</th>
@@ -552,45 +694,61 @@ function RecentOrders({
   viewAll: () => void;
 }) {
   const t = useThemeClasses();
+  const th = cn("px-3 sm:px-5 py-2.5 text-xs font-medium uppercase tracking-wide text-left whitespace-nowrap", t.textTertiary);
   return (
     <Panel
       title="Latest orders"
       action={
         data.recentOrders.length > 0 && (
-          <button onClick={viewAll} className="text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1">
-            All orders <ArrowRight size={12} />
+          <button onClick={viewAll} className="text-sm font-medium text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1">
+            View all <ArrowRight size={14} />
           </button>
         )
       }
     >
       {data.recentOrders.length ? (
-        <ul className={cn("divide-y border-t", t.border, t.isDark ? "divide-gray-700" : "divide-gray-100")}>
-          {data.recentOrders.map((o) => (
-            <li key={o.id}>
-              <button
-                type="button"
-                onClick={() => open(o)}
-                className={cn("w-full flex items-center gap-4 px-5 py-3 text-left", t.isDark ? "hover:bg-gray-700/30" : "hover:bg-gray-50")}
-              >
-                <span className="flex-1 min-w-0">
-                  <span className={cn("block text-sm font-medium truncate", t.text)}>
-                    {o.product ?? "Order"}
-                    {o.items > 1 && <span className={t.textTertiary}> +{o.items - 1} more</span>}
-                  </span>
-                  <span className={cn("block text-xs truncate", t.textTertiary)}>
-                    {[o.customerName ?? "Customer", showBranch && o.branchName, when(o.createdAt)].filter(Boolean).join(" · ")}
-                  </span>
-                </span>
-                <StatusBadge status={o.status as never} className="text-[11px] px-2 py-0.5 flex-shrink-0" />
-                {showMoney && (
-                  <span className={cn("text-sm tabular-nums w-24 text-right flex-shrink-0", t.text)}>{formatCurrency(o.total)}</span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className={t.surfaceInset}>
+              <tr className={cn("border-b", t.border)}>
+                <th className={th}>Order</th>
+                <th className={cn(th, "hidden sm:table-cell")}>Customer</th>
+                {showBranch && <th className={cn(th, "hidden md:table-cell")}>Branch</th>}
+                <th className={th}>Status</th>
+                <th className={cn(th, "hidden sm:table-cell")}>Placed</th>
+                {showMoney && <th className={cn(th, "text-right hidden sm:table-cell")}>Total</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {data.recentOrders.map((o) => (
+                <tr
+                  key={o.id}
+                  onClick={() => open(o)}
+                  className={cn("cursor-pointer border-b last:border-0", t.border, t.isDark ? "hover:bg-gray-700/30" : "hover:bg-gray-50")}
+                >
+                  <td className="px-3 sm:px-5 py-3 w-full max-w-0 sm:max-w-[16rem] sm:w-auto">
+                    <span className={cn("block font-medium truncate", t.text)}>
+                      {o.product ?? "Custom job"}
+                      {o.items > 1 && <span className={t.textTertiary}> +{o.items - 1} more</span>}
+                    </span>
+                    <span className={cn("block text-xs truncate sm:hidden", t.textTertiary)}>
+                      {[o.customerName ?? "Customer", when(o.createdAt), showMoney && formatCurrency(o.total)].filter(Boolean).join(" · ")}
+                    </span>
+                  </td>
+                  <td className={cn("px-3 sm:px-5 py-3 hidden sm:table-cell whitespace-nowrap", t.textSecondary)}>{o.customerName ?? "Customer"}</td>
+                  {showBranch && <td className={cn("px-3 sm:px-5 py-3 hidden md:table-cell whitespace-nowrap", t.textSecondary)}>{o.branchName}</td>}
+                  <td className="px-3 sm:px-5 py-3">
+                    <StatusBadge status={o.status as never} className="text-[11px] px-2 py-0.5 whitespace-nowrap" />
+                  </td>
+                  <td className={cn("px-3 sm:px-5 py-3 hidden sm:table-cell whitespace-nowrap", t.textTertiary)}>{when(o.createdAt)}</td>
+                  {showMoney && <td className={cn("px-3 sm:px-5 py-3 text-right tabular-nums whitespace-nowrap hidden sm:table-cell", t.text)}>{formatCurrency(o.total)}</td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <div className="h-40 px-5 pb-5">
+        <div className="h-40 p-5">
           <Empty text="No orders yet. They'll appear here as customers order." />
         </div>
       )}
@@ -611,19 +769,13 @@ function HomeSkeleton() {
   const t = useThemeClasses();
   const block = cn("rounded-xl animate-pulse", t.isDark ? "bg-gray-800" : "bg-gray-200/70");
   return (
-    <div className="space-y-6" aria-busy="true">
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={cn(block, "h-28")} />
-        ))}
+    <div className="space-y-5" aria-busy="true">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className={cn(block, "h-64 lg:col-span-3")} />
+        <div className={cn(block, "h-64 lg:col-span-2")} />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={cn(block, "h-24")} />
-        ))}
-      </div>
-      <div className={cn(block, "h-28")} />
-      <div className={cn(block, "h-72")} />
+      <div className={cn(block, "h-96")} />
+      <div className={cn(block, "h-64")} />
     </div>
   );
 }
