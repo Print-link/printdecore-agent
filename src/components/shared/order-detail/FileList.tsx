@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Check, Download, Eye, FileText, Spinner } from '../../icons';
+import { Check, Download, Eye, FileText, Printer, Spinner } from '../../icons';
 import { useThemeClasses } from '../../../lib/theme';
-import { formatBytes, saveFile, type FileKind, type OrderFile } from '../../../lib/files';
+import { canPrint, formatBytes, KIND_ACCENT, previewUrl, printFile, saveFile, type OrderFile } from '../../../lib/files';
+import { FileTypeIcon } from './FileTypeIcon';
 
 interface FileListProps {
 	files: OrderFile[];
@@ -12,42 +13,29 @@ interface FileListProps {
 	activeIndex?: number | null;
 }
 
-/** Badge colours per kind, so a print file is recognisable at a glance */
-const KIND_STYLE: Record<FileKind, { light: string; dark: string }> = {
-	pdf: { light: 'bg-red-50 text-red-700 ring-red-200', dark: 'bg-red-500/15 text-red-300 ring-red-500/30' },
-	image: { light: 'bg-sky-50 text-sky-700 ring-sky-200', dark: 'bg-sky-500/15 text-sky-300 ring-sky-500/30' },
-	doc: { light: 'bg-blue-50 text-blue-700 ring-blue-200', dark: 'bg-blue-500/15 text-blue-300 ring-blue-500/30' },
-	sheet: { light: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dark: 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30' },
-	slides: { light: 'bg-orange-50 text-orange-700 ring-orange-200', dark: 'bg-orange-500/15 text-orange-300 ring-orange-500/30' },
-	design: { light: 'bg-violet-50 text-violet-700 ring-violet-200', dark: 'bg-violet-500/15 text-violet-300 ring-violet-500/30' },
-	archive: { light: 'bg-amber-50 text-amber-800 ring-amber-200', dark: 'bg-amber-500/15 text-amber-300 ring-amber-500/30' },
-	other: { light: 'bg-gray-100 text-gray-600 ring-gray-200', dark: 'bg-gray-700 text-gray-300 ring-gray-600' },
-};
-
 type RowState = 'idle' | 'saving' | 'saved';
 
+/**
+ * The file's picture: a real thumbnail where there is one (images, the first
+ * page of a PDF), otherwise an illustration of that kind of file.
+ */
 function FileTile({ file, dark }: { file: OrderFile; dark: boolean }) {
 	const [broken, setBroken] = useState(false);
-	const style = KIND_STYLE[file.kind];
-	if (file.kind === 'image' && !broken) {
+	const src = previewUrl(file);
+	if (src && !broken) {
 		return (
-			<img
-				src={file.url}
-				alt=""
-				loading="lazy"
-				onError={() => setBroken(true)}
-				className={`h-10 w-10 shrink-0 rounded-md object-cover ring-1 ${dark ? 'ring-gray-600' : 'ring-gray-200'}`}
-			/>
+			<span className={`relative h-12 w-10 shrink-0 overflow-hidden rounded-md ring-1 ${dark ? 'ring-gray-600 bg-gray-800' : 'ring-gray-200 bg-white'} shadow-sm`}>
+				<img src={src} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
+				<span
+					className="absolute bottom-0.5 left-0.5 rounded-[3px] px-1 text-[8px] font-extrabold leading-[12px] tracking-wide text-white"
+					style={{ backgroundColor: KIND_ACCENT[file.kind] }}
+				>
+					{file.ext.slice(0, 4)}
+				</span>
+			</span>
 		);
 	}
-	return (
-		<span
-			aria-hidden="true"
-			className={`h-10 w-10 shrink-0 rounded-md ring-1 flex items-center justify-center text-[10px] font-bold tracking-wide ${dark ? style.dark : style.light}`}
-		>
-			{file.ext.slice(0, 4)}
-		</span>
-	);
+	return <FileTypeIcon kind={file.kind} ext={file.ext} dark={dark} className="shrink-0" />;
 }
 
 /**
@@ -58,6 +46,7 @@ export function FileList({ files, title = 'Files', onPreview, activeIndex }: Fil
 	const t = useThemeClasses();
 	const [state, setState] = useState<Record<number, RowState>>({});
 	const [savingAll, setSavingAll] = useState(false);
+	const [printing, setPrinting] = useState<number | null>(null);
 
 	if (files.length === 0) return null;
 
@@ -69,6 +58,15 @@ export function FileList({ files, title = 'Files', onPreview, activeIndex }: Fil
 		await saveFile(files[i]);
 		set(i, 'saved');
 		setTimeout(() => set(i, 'idle'), 2000);
+	};
+
+	const print = async (i: number) => {
+		setPrinting(i);
+		try {
+			await printFile(files[i]);
+		} finally {
+			setPrinting(null);
+		}
 	};
 
 	const downloadAll = async () => {
@@ -137,6 +135,21 @@ export function FileList({ files, title = 'Files', onPreview, activeIndex }: Fil
 								<p className={`text-xs ${t.textSecondary}`}>{meta.join(' · ')}</p>
 							</div>
 							<div className="flex shrink-0 items-center gap-0.5">
+								{canPrint(file) && (
+									<button
+										type="button"
+										onClick={() => print(i)}
+										disabled={printing !== null}
+										aria-label={`Print ${file.name}`}
+										title="Print without downloading"
+										className={`mr-1 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+											t.isDark ? 'bg-amber-400 text-black hover:bg-amber-300' : 'bg-gray-900 text-white hover:bg-gray-700'
+										}`}
+									>
+										{printing === i ? <Spinner size="sm" /> : <Printer size={14} />}
+										<span>{printing === i ? 'Preparing…' : 'Print'}</span>
+									</button>
+								)}
 								{onPreview ? (
 									<button type="button" onClick={() => onPreview(i)} className={iconBtn} aria-label={`Preview ${file.name}`} title="Preview">
 										<Eye size={16} />

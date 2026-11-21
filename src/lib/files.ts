@@ -22,6 +22,18 @@ export interface FileLike {
 
 export type FileKind = 'image' | 'pdf' | 'doc' | 'sheet' | 'slides' | 'design' | 'archive' | 'other';
 
+/** Each kind's accent, used for the label band and the drawing on the page */
+export const KIND_ACCENT: Record<FileKind, string> = {
+	pdf: '#DC2626',
+	image: '#0284C7',
+	doc: '#2563EB',
+	sheet: '#16A34A',
+	slides: '#EA580C',
+	design: '#7C3AED',
+	archive: '#CA8A04',
+	other: '#64748B',
+};
+
 export interface OrderFile {
 	url: string;
 	name: string;
@@ -124,4 +136,72 @@ export async function saveFile(file: Pick<OrderFile, 'url' | 'name'>): Promise<v
 		a.click();
 		a.remove();
 	}
+}
+
+/** PDFs can go straight to the printer from the app */
+export const canPrint = (file: Pick<OrderFile, 'kind'>) => file.kind === 'pdf';
+
+let printFrame: HTMLIFrameElement | null = null;
+
+/**
+ * Open the browser's print dialog for a PDF without downloading it: the file
+ * is loaded into a hidden frame from memory and printed from there. If the
+ * host won't hand the file over (or the browser can't print a frame), the PDF
+ * opens in a new tab, where it prints with the viewer's print button.
+ */
+export async function printFile(file: Pick<OrderFile, 'url' | 'name'>): Promise<'printed' | 'opened'> {
+	try {
+		const res = await fetch(file.url, { mode: 'cors' });
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data = await res.blob();
+		// Only print a real PDF (a missing file can come back as an HTML page)
+		if ((await data.slice(0, 5).text()) !== '%PDF-') throw new Error('Not a PDF');
+		const blob = new Blob([data], { type: 'application/pdf' });
+		const href = URL.createObjectURL(blob);
+
+		printFrame?.remove();
+		const frame = document.createElement('iframe');
+		frame.title = `Print ${file.name}`;
+		frame.setAttribute('aria-hidden', 'true');
+		// Off screen but laid out: some browsers won't print a display:none frame
+		Object.assign(frame.style, { position: 'fixed', right: '0', bottom: '0', width: '1px', height: '1px', border: '0', opacity: '0' });
+		printFrame = frame;
+
+		await new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => reject(new Error('Timed out loading the PDF')), 20000);
+			frame.onload = () => {
+				clearTimeout(timer);
+				// Give the PDF viewer a moment to render before printing
+				setTimeout(() => {
+					try {
+						frame.contentWindow?.focus();
+						frame.contentWindow?.print();
+						resolve();
+					} catch (e) {
+						reject(e);
+					}
+				}, 400);
+			};
+			frame.src = href;
+			document.body.appendChild(frame);
+		});
+		// Keep the file around while the dialog is open; free it later
+		setTimeout(() => URL.revokeObjectURL(href), 60_000);
+		return 'printed';
+	} catch {
+		window.open(file.url, '_blank', 'noopener');
+		return 'opened';
+	}
+}
+
+/**
+ * A small picture of the file: images as themselves, and PDFs stored on
+ * Cloudinary as their first page. Null when there's nothing to show.
+ */
+export function previewUrl(file: Pick<OrderFile, 'url' | 'kind'>): string | null {
+	if (file.kind === 'image') return file.url;
+	if (file.kind === 'pdf' && /res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(file.url)) {
+		return file.url.replace('/image/upload/', '/image/upload/pg_1,w_120,h_144,c_fill,g_north,f_jpg/').replace(/\.pdf(?=$|[?#])/i, '.jpg');
+	}
+	return null;
 }

@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react';
-import { X, Download, ChevronLeft, ChevronRight } from '../icons';
+import { useEffect, useMemo, useState } from 'react';
+import { X, Download, ChevronLeft, ChevronRight, Printer, Spinner } from '../icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FilePreview } from './FilePreview';
 import type { ClerkOrderDetail } from '../../types';
-import { saveFile, toOrderFile } from '../../lib/files';
+import { canPrint, printFile, saveFile, toOrderFile } from '../../lib/files';
 
 interface FilePreviewDrawerProps {
   isOpen: boolean;
@@ -18,22 +18,31 @@ interface FilePreviewDrawerProps {
  * Allows navigation between files and provides download functionality
  * Available for both clerk and manager roles - no role restrictions
  */
-export function FilePreviewDrawer({
+export function FilePreviewDrawer(props: FilePreviewDrawerProps) {
+  const { isOpen, orderDetail, selectedFileIndex } = props;
+  if (!isOpen || !orderDetail || !selectedFileIndex) return null;
+  return <DrawerPanel {...props} orderDetail={orderDetail} selectedFileIndex={selectedFileIndex} />;
+}
+
+/** The open drawer: its hooks always run in the same order */
+function DrawerPanel({
   isOpen,
   onClose,
   orderDetail,
   selectedFileIndex,
   onFileChange,
-}: FilePreviewDrawerProps) {
+}: FilePreviewDrawerProps & {
+  orderDetail: ClerkOrderDetail;
+  selectedFileIndex: { itemIndex: number; fileIndex: number };
+}) {
   const { theme } = useTheme();
-
-  if (!isOpen || !orderDetail || !selectedFileIndex) return null;
+  const [printing, setPrinting] = useState(false);
 
   const currentItem = orderDetail.items[selectedFileIndex.itemIndex];
   const currentFile = currentItem?.options?.files?.[selectedFileIndex.fileIndex];
 
   // Get all files from all items for navigation
-  const allFiles: Array<{ itemIndex: number; fileIndex: number; file: any }> = [];
+  const allFiles: Array<{ itemIndex: number; fileIndex: number; file: unknown }> = [];
   orderDetail.items.forEach((item, itemIndex) => {
     // Parse options if needed
     let parsedOptions = item.options;
@@ -79,6 +88,17 @@ export function FilePreviewDrawer({
     if (hasNext) {
       const nextFile = allFiles[currentFilePosition + 1];
       onFileChange(nextFile.itemIndex, nextFile.fileIndex);
+    }
+  };
+
+  const handlePrint = async () => {
+    const file = currentFile && toOrderFile(currentFile);
+    if (!file) return;
+    setPrinting(true);
+    try {
+      await printFile(file);
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -135,6 +155,7 @@ export function FilePreviewDrawer({
   }, [currentFile]);
 
   const fileUrl = currentFile?.url || '';
+  const printable = !!currentFile && canPrint(toOrderFile(currentFile) ?? { kind: 'other' });
 
   return (
     <>
@@ -199,9 +220,26 @@ export function FilePreviewDrawer({
             >
               <ChevronRight size={20} />
             </button>
+            {/* Print (PDFs) — straight to the printer, no download */}
+            {printable && (
+              <button
+                onClick={handlePrint}
+                disabled={printing}
+                title="Print without downloading"
+                aria-label={`Print ${fileName}`}
+                className={`px-3 py-2 rounded-md flex items-center gap-1.5 text-sm font-semibold transition-all disabled:opacity-60 ${
+                  theme === 'dark' ? 'bg-amber-400 hover:bg-amber-300 text-black' : 'bg-gray-900 hover:bg-gray-700 text-white'
+                }`}
+              >
+                {printing ? <Spinner size="sm" /> : <Printer size={18} />}
+                {printing ? 'Preparing…' : 'Print'}
+              </button>
+            )}
             {/* Download Button */}
             <button
               onClick={handleDownload}
+              title="Download"
+              aria-label={`Download ${fileName}`}
               className={`p-2 rounded-md flex items-center transition-all ${
                 theme === 'dark'
                   ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
