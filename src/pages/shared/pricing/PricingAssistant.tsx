@@ -115,8 +115,13 @@ export function PricingAssistant({ branchId, onClose }: { branchId: string; onCl
     const id = requestAnimationFrame(() => setShown(true));
     return () => cancelAnimationFrame(id);
   }, []);
-  useEffect(() => save(branchId, { messages, draft, sheet }), [branchId, messages, draft, sheet]);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages, thinking]);
+  useEffect(() => {
+    save(branchId, { messages, draft, sheet });
+  }, [branchId, messages, draft, sheet]);
+  // A block body: newer browsers return a Promise from scrollIntoView, which React would take as a cleanup function
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, thinking]);
 
   const close = () => {
     setShown(false);
