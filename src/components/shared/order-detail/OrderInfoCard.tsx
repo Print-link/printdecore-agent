@@ -18,15 +18,14 @@ type Stage = { next: OrderStatus; label: string; icon: typeof Printer };
 
 /**
  * The one next step for an order, matching what the server allows. Accepting
- * (PAID → RECEIVED, needs a ready-by time) and completing (needs a confirm)
+ * (PAID → IN_PROGRESS, needs a ready-by time) and completing (needs a confirm)
  * are handled separately, so they aren't here. After quality check the step
  * depends on whether the customer is collecting or getting it delivered.
  */
 const nextStage = (order: ClerkOrder): Stage | undefined => {
 	const pickup = order.fulfilmentType === 'pickup';
 	switch (order.status) {
-		case 'RECEIVED':
-			return { next: 'PRINTING', label: 'Start printing', icon: Printer };
+		case 'RECEIVED': // older orders accepted before that step was dropped
 		case 'PRINTING':
 		case 'IN_PROGRESS':
 			return { next: 'QUALITY_CHECK', label: 'Send to quality check', icon: Search };
@@ -67,7 +66,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 	const marketplace = order.channel === 'marketplace';
 	// Only paid orders can be started — unpaid managed orders are still with Printdecore
 	const canMarkAsReceived = order.status === 'PAID';
-	const canDecline = marketplace && !!onDecline && (order.status === 'PAID' || order.status === 'RECEIVED');
+	const canDecline = marketplace && !!onDecline && order.status === 'PAID';
 	const canMarkAsCompleted = COMPLETABLE_STATUSES.includes(order.status);
 	const stage = nextStage(order);
 
@@ -138,7 +137,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 				>
 					<p className={`text-sm font-semibold ${t.text}`}>New order — paid and waiting for you</p>
 					<p className={`text-xs mt-0.5 ${t.textSecondary}`}>
-						Accept it with a ready-by time, or decline and the customer is refunded.
+						Accept with a ready-by time and it goes straight into production, or decline and the customer is refunded.
 					</p>
 				</div>
 			)}
@@ -161,8 +160,8 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 				</div>
 			)}
 
-			{/* Show estimated completion time if order is received */}
-			{order.status === 'RECEIVED' && formattedEstimatedTime && (
+			{/* The ready-by time the customer was given, while the order is being made */}
+			{['RECEIVED', 'IN_PROGRESS', 'PRINTING', 'QUALITY_CHECK'].includes(order.status) && formattedEstimatedTime && (
 				<div
 					className={`mb-3 p-2 rounded-md flex items-center gap-2 ${
 						t.isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-700'
@@ -170,7 +169,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 				>
 					<Clock size={16} />
 					<span className="text-sm">
-						Estimated completion: <strong>{formattedEstimatedTime}</strong>
+						Ready by: <strong>{formattedEstimatedTime}</strong>
 					</span>
 				</div>
 			)}
@@ -234,13 +233,13 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 								icon={isUpdating ? undefined : Package}
 								className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
 							>
-								{isUpdating ? 'Updating...' : 'Confirm'}
+								{isUpdating ? 'Updating...' : 'Start order'}
 							</Button>
 						</div>
 					</Card>
 				)}
 
-				{/* Accept / confirm received (needs a ready-by time) — plus decline for marketplace orders */}
+				{/* Accept: starts production (needs a ready-by time) — plus decline for marketplace orders */}
 				{canMarkAsReceived && !showTimeDropdown && (
 					<div className="flex gap-2">
 						{canDecline && (
@@ -254,7 +253,7 @@ export function OrderInfoCard({ order, isUpdating, onMarkAsComplete, onMarkAsRec
 							icon={Package}
 							className="bg-blue-500 hover:bg-blue-600 text-white"
 						>
-							{isUpdating ? 'Updating...' : marketplace ? 'Accept order' : 'Confirm received'}
+							{isUpdating ? 'Updating...' : 'Accept & start'}
 						</Button>
 					</div>
 				)}

@@ -5,7 +5,6 @@ import { useThemeClasses } from '../../../lib/theme';
 import { Bell, Clock, Package, Spinner, Store, Truck } from '../../icons';
 import type { ClerkOrder } from '../../../types';
 import { PromptModal } from './PromptModal';
-import { askAgainIn, FIRST_ASK_MS } from './startReminder';
 
 /** How soon it'll be ready; the customer sees this time */
 const READY_BY = [
@@ -20,13 +19,13 @@ interface ReviewOrderModalProps {
 	/** A paid order nobody has picked up yet; null closes the modal */
 	order: ClerkOrder | null;
 	onClose: () => void;
-	/** Marked as received: open it */
+	/** Accepted and in production: open it */
 	onReviewed: (order: ClerkOrder) => void;
 }
 
 /**
- * A new paid order was clicked: offer to review it. Reviewing marks it
- * Received with a ready-by time (the customer is told), then opens it.
+ * A new paid order was clicked: offer to accept it. Accepting puts it straight
+ * into production with a ready-by time (the customer is told), then opens it.
  */
 export function ReviewOrderModal({ order, onClose, onReviewed }: ReviewOrderModalProps) {
 	const t = useThemeClasses();
@@ -48,11 +47,10 @@ export function ReviewOrderModal({ order, onClose, onReviewed }: ReviewOrderModa
 		mutationFn: (o: ClerkOrder) => {
 			const readyBy = new Date(Date.now() + minutes * 60 * 1000).toISOString();
 			return apiService
-				.updateBranchOrder(o.id, { status: 'RECEIVED', estimatedCompletionTime: readyBy })
-				.then(() => ({ ...o, status: 'RECEIVED' as const, estimatedCompletionTime: readyBy, updatedAt: new Date().toISOString() }));
+				.updateBranchOrder(o.id, { status: 'IN_PROGRESS', estimatedCompletionTime: readyBy })
+				.then(() => ({ ...o, status: 'IN_PROGRESS' as const, estimatedCompletionTime: readyBy, updatedAt: new Date().toISOString() }));
 		},
 		onSuccess: (updated) => {
-			askAgainIn(updated.id, FIRST_ASK_MS);
 			queryClient.invalidateQueries({ queryKey: ['branchOrders'] });
 			queryClient.invalidateQueries({ queryKey: ['orderDetail', updated.id] });
 			setDone(true);
@@ -80,7 +78,7 @@ export function ReviewOrderModal({ order, onClose, onReviewed }: ReviewOrderModa
 						{marketplace ? <><Store size={12} /> Your customer</> : 'Via Printdecore'} · Paid
 					</span>
 					<h2 id="review-order-title" className={`mt-2 text-xl font-bold ${t.text}`}>
-						Review order {o.orderNumber}?
+						Start order {o.orderNumber}?
 					</h2>
 					<p className={`mt-1 text-sm ${t.textSecondary}`}>
 						{o.client.fullName || 'A customer'} paid <span className={`font-semibold ${t.text}`}>₵{o.totalPrice.toFixed(2)}</span>
@@ -128,7 +126,7 @@ export function ReviewOrderModal({ order, onClose, onReviewed }: ReviewOrderModa
 							})}
 						</div>
 						<p className={`mt-2 text-xs ${t.textSecondary}`}>
-							Reviewing marks it <span className="font-semibold">Received</span> — the customer is told you're on it and when it'll be ready.
+							Starting puts it <span className="font-semibold">In production</span> — the customer is told you're on it and when it'll be ready.
 						</p>
 					</div>
 
@@ -162,14 +160,14 @@ export function ReviewOrderModal({ order, onClose, onReviewed }: ReviewOrderModa
 									<svg className="pd-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
 										<path d="M5 12.5l4.5 4.5L19 7.5" />
 									</svg>
-									Received
+									Started
 								</>
 							) : receive.isPending ? (
 								<>
 									<Spinner size="sm" className="text-black" /> Opening…
 								</>
 							) : (
-								'Review order'
+								'Start order'
 							)}
 						</button>
 					</div>

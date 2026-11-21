@@ -98,11 +98,11 @@ export default function OrderDetailPreview({
 		},
 	});
 
-	// Mutation for updating to RECEIVED status with estimated completion time
+	// Accepting a paid order starts production, with a ready-by time for the customer
 	const markAsReceivedMutation = useMutation({
 		mutationFn: (estimatedCompletionTime: Date) => {
 			return apiService.updateBranchOrder(order.id, {
-				status: "RECEIVED",
+				status: "IN_PROGRESS",
 				estimatedCompletionTime: estimatedCompletionTime.toISOString(),
 			});
 		},
@@ -118,8 +118,8 @@ export default function OrderDetailPreview({
 			});
 			// Show success toast
 			success(
-				`Order ${order.orderNumber} has been marked as received`,
-				"Order Received",
+				`Order ${order.orderNumber} is in production — the customer has the ready-by time`,
+				"Order accepted",
 				4000
 			);
 			if (onOrderUpdate) onOrderUpdate();
@@ -128,7 +128,7 @@ export default function OrderDetailPreview({
 			const errorMessage =
 				error instanceof Error
 					? error.message
-					: "Failed to mark order as received";
+					: "Couldn't accept this order";
 			showError(errorMessage, "Update Failed", 5000);
 		},
 	});
