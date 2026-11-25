@@ -7,29 +7,47 @@ import { Badge, Button } from "../../../components/ui";
 import { Plus, Trash2 } from "../../../components/icons";
 import { apiService } from "../../../services/api";
 import {
+  inputTypeOf,
+  OPTION_INPUTS,
   pricingError,
   shopPricingApi,
   UNIT_LABEL,
+  type Condition,
+  type FieldConfig,
+  type InputType,
   type OwnProductInput,
   type OwnProductRow,
   type PricingUnit,
   type ProductDefinition,
+  type ServicePrices,
 } from "../../../services/api/shopPricing";
-import { Block, Notice, OwnPrices, Preview } from "./ShopProductEditor";
+import { Block, Notice, Preview } from "./parts";
+import { SimplePrices } from "./SimplePrices";
+import { FieldConfigEditor, VisibilityEditor } from "./FieldSettings";
+import { FIELD_TYPES } from "./fieldTypes";
+import { PriceRulesEditor } from "./PriceRulesEditor";
+import { ServiceMedia } from "./ServiceMedia";
 
 type SizeMode = ProductDefinition["sizeMode"];
 
 interface OptionDraft {
   key?: string;
   name: string;
+  description?: string;
+  /** For document printing: this option prints on one or both sides of the sheet */
+  sides?: 1 | 2;
 }
 interface ChoiceDraft {
   key?: string;
   name: string;
-  selection: "one" | "any";
+  inputType: InputType;
   required: boolean;
   options: OptionDraft[];
+  config: FieldConfig;
+  helpText: string;
+  visibleWhen: Condition | null;
 }
+const isOptions = (type: InputType) => OPTION_INPUTS.includes(type);
 interface SizeDraft {
   key?: string;
   name: string;
@@ -39,6 +57,8 @@ interface SizeDraft {
 
 const SIZE_KEY = "size";
 const AREA = (u: PricingUnit) => u === "sqft" || u === "sqm";
+/** Priced by the customer's document: they give its pages, the price counts sides or sheets */
+const PAGED = (u: PricingUnit) => u === "side" || u === "sheet";
 
 /** "Gloss finish" → "gloss_finish", unique among `taken` */
 const keyFrom = (name: string, taken: Set<string>) => {
@@ -84,10 +104,6 @@ export function OwnProductEditor({
     queryFn: () => shopPricingApi.ownProduct(branchId, productId!),
     enabled: !!productId,
   });
-  const { data: list } = useQuery({
-    queryKey: ["shopPricing", branchId, "products"],
-    queryFn: () => shopPricingApi.products(branchId),
-  });
   const { data: categories = [] } = useQuery({
     queryKey: ["serviceCategories", branchId],
     queryFn: () => apiService.getServiceCategories(branchId),
@@ -101,6 +117,12 @@ export function OwnProductEditor({
   const [sizeMode, setSizeMode] = useState<SizeMode>("none");
   const [sizes, setSizes] = useState<SizeDraft[]>([]);
   const [choices, setChoices] = useState<ChoiceDraft[]>([]);
+  const [quoteMode, setQuoteMode] = useState<"instant" | "quote">("instant");
+  const [description, setDescription] = useState("");
+  const [prices, setPrices] = useState<ServicePrices>({ entries: [], modifiers: [], rules: [] });
+  /** Bumped when prices are reloaded, so the price inputs start fresh */
+  const [pricesLoaded, setPricesLoaded] = useState(0);
+  const [onSale, setOnSale] = useState(!!row?.onSale);
   const [saving, setSaving] = useState(false);
   const [problems, setProblems] = useState<string[]>([]);
 
@@ -131,16 +153,34 @@ export function OwnProductEditor({
     setChoices(
       p.attributes
         .filter((a) => a !== sizeAttr)
-        .map((a) => ({ key: a.key, name: a.name, selection: a.selection, required: a.required, options: a.options.map((o) => ({ key: o.key, name: o.name })) })),
+        .map((a) => ({
+          key: a.key,
+          name: a.name,
+          inputType: inputTypeOf(a),
+          required: a.required,
+          options: a.options.map((o) => ({
+            key: o.key,
+            name: o.name,
+            ...(o.description && { description: o.description }),
+            ...((o.specs?.sides === 1 || o.specs?.sides === 2) && { sides: o.specs.sides as 1 | 2 }),
+          })),
+          config: a.config ?? {},
+          helpText: a.helpText ?? "",
+          visibleWhen: a.visibleWhen ?? null,
+        })),
     );
+    setQuoteMode(p.quoteMode ?? "instant");
+    setDescription(p.description ?? "");
+    setPrices({ entries: data.prices?.entries ?? [], modifiers: data.prices?.modifiers ?? [], rules: data.prices?.rules ?? [] });
+    setPricesLoaded((n) => n + 1);
   }, [data]);
 
   useEffect(() => {
     if (!takeBaseline.current) return;
     takeBaseline.current = false;
-    setBaseline(JSON.stringify(input()));
+    setBaseline(JSON.stringify({ ...input(), prices }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, choices, sizes, unit, sizeMode, subCategoryId]);
+  }, [name, choices, sizes, unit, sizeMode, subCategoryId, quoteMode, description, prices]);
 
   // Find the saved listing's category once the categories are in
   useEffect(() => {
@@ -190,37 +230,52 @@ export function OwnProductEditor({
     }
     for (const c of choices) {
       const taken = new Set(c.options.map((o) => o.key).filter(Boolean) as string[]);
+      const options = isOptions(c.inputType);
       attributes.push({
         key: c.key ?? keyFrom(c.name, attrKeys),
         name: c.name,
-        selection: c.selection,
-        required: c.selection === "one" && c.required,
-        options: c.options.map((o) => ({ key: o.key ?? keyFrom(o.name, taken), name: o.name })),
+        inputType: c.inputType,
+        selection: c.inputType === "multi_select" ? "any" : "one",
+        required: c.inputType !== "multi_select" && c.inputType !== "checkbox" && c.required,
+        options: options
+          ? c.options.map((o) => ({
+              key: o.key ?? keyFrom(o.name, taken),
+              name: o.name,
+              ...(o.description?.trim() && { description: o.description.trim() }),
+              ...(o.sides && c.inputType === "select" && { specs: { sides: o.sides } }),
+            }))
+          : [],
+        ...(!options && Object.keys(c.config).length && { config: c.config }),
+        helpText: c.helpText.trim() || null,
+        visibleWhen: c.visibleWhen,
       });
     }
-    return { name, subCategoryId, definition: { pricingUnit: unit, sizeMode, attributes } };
+    return { name, subCategoryId, definition: { pricingUnit: unit, sizeMode, quoteMode, description: description.trim() || null, attributes } };
   };
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["shopPricing", branchId] });
 
+  /** The one Save: details and prices go live together */
   const save = async () => {
     setProblems([]);
-    if (!name.trim()) return setProblems(["Give the product a name"]);
-    if (!subCategoryId) return setProblems(["Choose where the product is listed"]);
+    if (!name.trim()) return setProblems(["Give the service a name"]);
+    if (!subCategoryId) return setProblems(["Choose where the service is listed"]);
     setSaving(true);
     try {
-      if (productId) {
-        await shopPricingApi.updateOwnProduct(branchId, productId, input());
-        success("Saved");
-      } else {
+      let id = productId;
+      if (!id) {
         const made = await shopPricingApi.createOwnProduct(branchId, input());
-        setProductId(made.product.id);
-        success(`${made.product.name} created — now set its prices`);
+        id = made.product.id;
+        setProductId(id);
       }
+      await shopPricingApi.saveService(branchId, id, { ...input(), prices });
+      setOnSale(true);
+      success(`${name.trim()} is saved and live`);
       refresh();
     } catch (e) {
       const err = pricingError(e);
       setProblems(err.problems.length ? err.problems : [err.message]);
+      refresh();
     } finally {
       setSaving(false);
     }
@@ -230,7 +285,7 @@ export function OwnProductEditor({
     if (!productId || !window.confirm(`Stop selling ${name}? Past orders keep it; customers can't order it any more.`)) return;
     try {
       await shopPricingApi.removeOwnProduct(branchId, productId);
-      success("Product removed");
+      success("Service removed");
       refresh();
       close();
     } catch (e) {
@@ -262,9 +317,31 @@ export function OwnProductEditor({
   const field = cn("w-full px-3 py-2 rounded-lg border text-sm", t.input);
   const small = cn("px-2 py-1.5 rounded-md border text-sm", t.input);
   const product = data?.product;
-  const draftVersionId = list?.priceList?.draftVersionId ?? null;
-  const liveVersionId = list?.priceList?.liveVersionId ?? null;
-  const dirty = baseline !== JSON.stringify(input());
+  const current = input();
+  const dirty = baseline !== JSON.stringify({ ...current, prices });
+  /** Fields changed since the last save: the preview prices the saved service */
+  const fieldsChanged = !!baseline && JSON.stringify(JSON.parse(baseline).definition) !== JSON.stringify(current.definition);
+  // The price table follows the fields on screen, so new options can be priced before saving
+  const formProduct: ProductDefinition = {
+    id: productId ?? "",
+    name,
+    quoteMode,
+    pricingUnit: unit,
+    sizeMode,
+    usesPages: PAGED(unit),
+    limits: product?.limits ?? {},
+    attributes: current.definition.attributes.map((a) => ({
+      key: a.key,
+      name: a.name,
+      selection: a.selection ?? (a.inputType === "multi_select" ? "any" : "one"),
+      required: a.required,
+      defaultOptionKeys: [],
+      inputType: a.inputType,
+      config: a.config,
+      visibleWhen: a.visibleWhen,
+      options: a.options.filter((o) => o.name.trim()).map((o) => ({ key: o.key, name: o.name, specs: o.specs })),
+    })),
+  };
 
   const setChoice = (i: number, c: ChoiceDraft) => setChoices(choices.map((x, j) => (j === i ? c : x)));
 
@@ -278,14 +355,14 @@ export function OwnProductEditor({
           shown ? "translate-x-0" : "translate-x-full",
         )}
         role="dialog"
-        aria-label={productId ? `Edit ${name}` : "New product"}
+        aria-label={productId ? `Edit ${name}` : "New service"}
       >
         <div className={cn("px-6 py-4 border-b flex items-center gap-3", t.border)}>
           <div className="flex-1 min-w-0">
-            <h3 className={cn("text-base font-semibold truncate", t.text)}>{productId ? name || "Your product" : "New product"}</h3>
-            <p className={cn("text-xs", t.textSecondary)}>Your own product, priced from your price list</p>
+            <h3 className={cn("text-base font-semibold truncate", t.text)}>{productId ? name || "Your product" : "New service"}</h3>
+            <p className={cn("text-xs", t.textSecondary)}>What customers can order from you, and its price</p>
           </div>
-          {row && <Badge color={row.onSale ? "green" : "amber"}>{row.onSale ? "On sale" : "Not on sale yet"}</Badge>}
+          {productId && <Badge color={onSale ? "green" : "amber"}>{onSale ? "On sale" : "Not on sale yet"}</Badge>}
           <button type="button" onClick={close} className={cn("text-sm", t.textSecondary)} aria-label="Close">✕</button>
         </div>
 
@@ -294,7 +371,7 @@ export function OwnProductEditor({
             <p className={cn("text-sm", t.textSecondary)}>Loading…</p>
           ) : (
             <>
-              <Block title="Product">
+              <Block title="Service">
                 <div className="space-y-3">
                   <label className="block text-xs">
                     <span className={t.textSecondary}>Name</span>
@@ -317,11 +394,45 @@ export function OwnProductEditor({
                     </label>
                   </div>
                   <label className="block text-xs">
+                    <span className={t.textSecondary}>Description customers see (optional)</span>
+                    <textarea className={cn(field, "mt-1")} rows={2} maxLength={2000} value={description} disabled={!canEdit}
+                      placeholder="What it is, turnaround, what to send" onChange={(e) => setDescription(e.target.value)} />
+                  </label>
+                  <div className="text-xs">
+                    <span className={t.textSecondary}>How customers get a price</span>
+                    <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {([
+                        ["instant", "Instant price", "Priced from your price table and rules."],
+                        ["quote", "Quote on request", "Customers send their answers; you reply with a quote."],
+                      ] as const).map(([mode, title, body]) => (
+                        <button key={mode} type="button" disabled={!canEdit} onClick={() => setQuoteMode(mode)} aria-pressed={quoteMode === mode}
+                          className={cn("text-left rounded-lg border px-3 py-2", quoteMode === mode ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20" : t.border)}>
+                          <p className={cn("text-sm font-medium", t.text)}>{title}</p>
+                          <p className={cn("text-[11px] mt-0.5", t.textSecondary)}>{body}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="block text-xs">
                     <span className={t.textSecondary}>One price is for</span>
                     <select className={cn(field, "mt-1")} value={unit} disabled={!canEdit} onChange={(e) => setUnit(e.target.value as PricingUnit)}>
                       {(Object.keys(UNIT_LABEL) as PricingUnit[]).map((u) => <option key={u} value={u}>{UNIT_LABEL[u].replace("per ", "each ")}</option>)}
                     </select>
                   </label>
+                  {PAGED(unit) && (
+                    <div className={cn("rounded-lg border px-3 py-2 text-xs space-y-1", t.border, t.textSecondary)}>
+                      <p className={cn("font-medium", t.text)}>Priced by the customer's document</p>
+                      <p>
+                        Customers enter their document's pages (or add the PDF and we count them) and how many copies they want.
+                        {unit === "side"
+                          ? " Your price is charged for every printed page: pages × copies."
+                          : " Your price is charged for every sheet of paper: pages ÷ 2 (rounded up) on options that print both sides, then × copies."}
+                      </p>
+                      <p>
+                        Example: 120 pages, 3 copies, double-sided → {unit === "side" ? "360 printed pages" : "180 sheets"}. Mark each option under “What customers fill in” as printing on one side or both.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Block>
 
@@ -366,30 +477,39 @@ export function OwnProductEditor({
               </Block>
 
               <Block
-                title="Choices"
-                subtitle="What customers choose, like colour, finish or paper. You price each option in your price table."
+                title="What customers fill in"
+                subtitle="Choices like finish or paper (priced in your price table), and fields like text, sizes, files or dates. A field can show only when an earlier answer matches."
                 actions={canEdit ? (
                   <Button size="sm" variant="secondary" icon={Plus}
-                    onClick={() => setChoices([...choices, { name: "", selection: "one", required: true, options: [{ name: "" }] }])}>
-                    Add a choice
+                    onClick={() => setChoices([...choices, { name: "", inputType: "select", required: true, options: [{ name: "" }], config: {}, helpText: "", visibleWhen: null }])}>
+                    Add a field
                   </Button>
                 ) : undefined}
               >
-                {choices.length === 0 && <p className={cn("text-sm", t.textSecondary)}>No choices — customers just pick a quantity.</p>}
+                {choices.length === 0 && <p className={cn("text-sm", t.textSecondary)}>Nothing yet — customers just pick a quantity.</p>}
                 <div className="space-y-3">
                   {choices.map((c, i) => (
                     <div key={i} className={cn("rounded-lg border p-3 space-y-2", t.border)}>
                       <div className="flex flex-wrap items-center gap-2">
-                        <input className={cn(small, "flex-1 min-w-[140px]")} placeholder="Choice, e.g. Finish" value={c.name} disabled={!canEdit}
+                        <input className={cn(small, "flex-1 min-w-[140px]")} placeholder="Name, e.g. Finish" value={c.name} disabled={!canEdit}
                           onChange={(e) => setChoice(i, { ...c, name: e.target.value })} />
-                        <select className={small} value={c.selection} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, selection: e.target.value as "one" | "any" })}>
-                          <option value="one">Pick one</option>
-                          <option value="any">Pick any</option>
+                        <select className={small} value={c.inputType} disabled={!canEdit} aria-label="Field type"
+                          onChange={(e) => {
+                            const inputType = e.target.value as InputType;
+                            // Options belong to choices; settings to fields — switching drops what no longer fits
+                            setChoice(i, {
+                              ...c,
+                              inputType,
+                              options: isOptions(inputType) ? (c.options.length ? c.options : [{ name: "" }]) : [],
+                              config: inputType === c.inputType ? c.config : {},
+                            });
+                          }}>
+                          {FIELD_TYPES.map((f) => <option key={f.type} value={f.type}>{f.label}</option>)}
                         </select>
-                        {c.selection === "one" && (
+                        {c.inputType !== "multi_select" && c.inputType !== "checkbox" && (
                           <label className={cn("text-xs flex items-center gap-1", t.textSecondary)}>
                             <input type="checkbox" checked={c.required} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, required: e.target.checked })} />
-                            Must choose
+                            Must answer
                           </label>
                         )}
                         {canEdit && (
@@ -398,52 +518,91 @@ export function OwnProductEditor({
                           </button>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {c.options.map((o, k) => (
-                          <span key={k} className="inline-flex items-center gap-1">
-                            <input className={cn(small, "w-36")} placeholder="Option, e.g. Gloss" value={o.name} disabled={!canEdit}
-                              onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, name: e.target.value } : x)) })} />
-                            {canEdit && c.options.length > 1 && (
-                              <button type="button" aria-label="Remove option" className={t.textTertiary}
-                                onClick={() => setChoice(i, { ...c, options: c.options.filter((_, j) => j !== k) })}>✕</button>
-                            )}
-                          </span>
-                        ))}
-                        {canEdit && (
-                          <Button size="sm" variant="ghost" icon={Plus} onClick={() => setChoice(i, { ...c, options: [...c.options, { name: "" }] })}>Option</Button>
-                        )}
-                      </div>
+                      {isOptions(c.inputType) ? (
+                        <div className="flex flex-wrap gap-2">
+                          {c.options.map((o, k) => (
+                            <span key={k} className="inline-flex flex-col gap-1">
+                              <span className="inline-flex items-center gap-1">
+                                <input className={cn(small, "w-36")} placeholder="Option, e.g. Gloss" value={o.name} disabled={!canEdit}
+                                  onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, name: e.target.value } : x)) })} />
+                                {canEdit && c.options.length > 1 && (
+                                  <button type="button" aria-label="Remove option" className={t.textTertiary}
+                                    onClick={() => setChoice(i, { ...c, options: c.options.filter((_, j) => j !== k) })}>✕</button>
+                                )}
+                              </span>
+                              <input className={cn(small, "w-36 text-xs py-1")} placeholder="Short note (optional)" maxLength={500} value={o.description ?? ""} disabled={!canEdit}
+                                onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, description: e.target.value } : x)) })} />
+                              {PAGED(unit) && c.inputType === "select" && (
+                                <select className={cn(small, "w-36 text-xs py-1")} disabled={!canEdit} aria-label={`${o.name || "Option"} prints on`}
+                                  value={o.sides ?? ""}
+                                  onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, sides: e.target.value ? (Number(e.target.value) as 1 | 2) : undefined } : x)) })}>
+                                  <option value="">Sides: not set</option>
+                                  <option value="1">Prints one side</option>
+                                  <option value="2">Prints both sides</option>
+                                </select>
+                              )}
+                            </span>
+                          ))}
+                          {canEdit && (
+                            <Button size="sm" variant="ghost" icon={Plus} onClick={() => setChoice(i, { ...c, options: [...c.options, { name: "" }] })}>Option</Button>
+                          )}
+                        </div>
+                      ) : (
+                        <FieldConfigEditor type={c.inputType} config={c.config} disabled={!canEdit} onChange={(config) => setChoice(i, { ...c, config })} />
+                      )}
+                      <input className={cn(small, "w-full text-xs")} placeholder={c.inputType === "checkbox" ? "What ticking it means, e.g. Yes, laminate it" : "Help for customers (optional)"}
+                        maxLength={500} value={c.helpText} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, helpText: e.target.value })} />
+                      <VisibilityEditor
+                        value={c.visibleWhen}
+                        disabled={!canEdit}
+                        onChange={(visibleWhen) => setChoice(i, { ...c, visibleWhen })}
+                        earlier={[
+                          ...(takesPresets ? [{ key: SIZE_KEY, name: "Size", type: "select" as InputType, options: sizes.filter((s) => s.key).map((s) => ({ key: s.key, name: s.name })) }] : []),
+                          ...choices.slice(0, i).map((x) => ({ key: x.key, name: x.name, type: x.inputType, options: x.options })),
+                        ]}
+                      />
                     </div>
                   ))}
                 </div>
               </Block>
 
-              {product && dirty && canEdit && (
-                <Notice>Save your changes before pricing — new choices and sizes appear in the price table once saved.</Notice>
+              {quoteMode === "quote" ? (
+                <Block title="Price" subtitle="Quote on request: customers send their answers through the Printdecore assistant and you reply with a price. No price table needed." >
+                  <span />
+                </Block>
+              ) : (
+                <SimplePrices
+                  key={pricesLoaded}
+                  product={formProduct}
+                  entries={prices.entries}
+                  modifiers={prices.modifiers}
+                  canEdit={canEdit}
+                  onChange={(next) => setPrices({ ...prices, ...next })}
+                  more={<PriceRulesEditor branchId={branchId} product={formProduct} rules={prices.rules} onChange={(rules) => setPrices({ ...prices, rules })} canEdit={canEdit} />}
+                />
               )}
 
-              {product && (
-                <>
-                  <OwnPrices branchId={branchId} product={product} draftVersionId={draftVersionId} liveVersionId={liveVersionId} canEdit={canEdit} onChanged={refresh} />
-                  {!row?.priced && (
-                    <p className={cn("text-xs", t.textSecondary)}>
-                      Customers can order it once you publish your prices from the Pricing page.
-                    </p>
-                  )}
-                  <Preview branchId={branchId} product={product} strategy="own" pct={0} disabled={[]} versionId={draftVersionId} ownProduct />
-                </>
-              )}
+              {product && quoteMode !== "quote" && (fieldsChanged ? (
+                <Notice>Save to try orders with the fields you just changed.</Notice>
+              ) : (
+                <Preview branchId={branchId} product={product} prices={prices} />
+              ))}
+              {product && <ServiceMedia branchId={branchId} product={product} canEdit={canEdit} />}
             </>
           )}
         </div>
 
         {canEdit && (
           <div className={cn("px-6 py-3 border-t flex items-center gap-3", t.border)}>
-            <div className="flex-1 text-xs text-red-500 space-y-0.5">
-              {problems.map((p, i) => <p key={i}>{p}</p>)}
+            <div className="flex-1 text-xs space-y-0.5">
+              {problems.length ? (
+                problems.map((p, i) => <p key={i} className="text-red-500">{p}</p>)
+              ) : (
+                <p className={t.textSecondary}>{dirty ? "Unsaved changes — saving puts them live straight away." : "Saving puts changes live straight away."}</p>
+              )}
             </div>
-            {productId && <Button variant="ghost" onClick={remove}>Remove product</Button>}
-            <Button onClick={save} loading={saving}>{productId ? "Save" : "Create product"}</Button>
+            {productId && <Button variant="ghost" onClick={remove}>Remove</Button>}
+            <Button onClick={save} loading={saving} disabled={!!productId && !dirty}>Save</Button>
           </div>
         )}
       </aside>

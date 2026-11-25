@@ -102,7 +102,6 @@ export function PricingAssistant({ branchId, onClose }: { branchId: string; onCl
   const [reading, setReading] = useState(false);
   const [tab, setTab] = useState<"chat" | "draft">("chat");
   const [confirming, setConfirming] = useState(false);
-  const [publish, setPublish] = useState(true);
   const [applying, setApplying] = useState(false);
   const [result, setResult] = useState<ApplyResult | null>(null);
   const [shown, setShown] = useState(false);
@@ -193,7 +192,7 @@ export function PricingAssistant({ branchId, onClose }: { branchId: string; onCl
     if (!draft) return;
     setApplying(true);
     try {
-      const res = await pricingAssistantApi.apply(branchId, draft, publish);
+      const res = await pricingAssistantApi.apply(branchId, draft, true);
       setResult(res);
       setConfirming(false);
       qc.invalidateQueries({ queryKey: ["shopPricing", branchId] });
@@ -380,10 +379,9 @@ export function PricingAssistant({ branchId, onClose }: { branchId: string; onCl
         <div className={cn("mx-4 sm:mx-5 mt-4 rounded-xl border px-4 py-3 text-sm", result.failed.length ? "border-amber-300 bg-amber-50 dark:bg-amber-900/20" : "border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20")}>
           <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <CheckCircle size={18} className="text-emerald-600" />
-            {result.saved.length} added{result.published ? " and on sale" : " — prices saved as a draft"}
+            {result.saved.length} added and on sale
             {result.categoriesCreated.length > 0 && ` · new categor${result.categoriesCreated.length === 1 ? "y" : "ies"}: ${result.categoriesCreated.join(", ")}`}
           </p>
-          {!result.published && result.saved.length > 0 && <p className="text-xs mt-1 text-gray-600 dark:text-gray-300">Publish your prices on the Pricing page when you're ready for customers to order.</p>}
           {result.failed.map((f) => (
             <p key={f.name + f.problem} className="text-xs mt-1 text-amber-800 dark:text-amber-200">• {f.name}: {f.problem}</p>
           ))}
@@ -491,17 +489,11 @@ export function PricingAssistant({ branchId, onClose }: { branchId: string; onCl
               {broken > 0 && <li className="text-amber-600">• {broken} that need{broken === 1 ? "s" : ""} a fix will be left in the draft</li>}
               <li>• New categories are made for you; you can add photos after</li>
             </ul>
-            <label className={cn("mt-4 flex items-start gap-3 rounded-xl border p-3 cursor-pointer", t.border)}>
-              <input type="checkbox" className="mt-0.5 accent-amber-500" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
-              <span className="text-sm">
-                <span className={cn("font-medium", t.text)}>Put them on sale now</span>
-                <span className={cn("block text-xs", t.textSecondary)}>Customers can order and pay straight away. Untick to save the prices as a draft and publish later.</span>
-              </span>
-            </label>
+            <p className={cn("mt-4 text-xs", t.textSecondary)}>They go on sale straight away — customers can order and pay. You can change any of them later on the Pricing page.</p>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setConfirming(false)} disabled={applying}>Not yet</Button>
               <Button onClick={() => void apply()} loading={applying} disabled={products.length - broken === 0}>
-                {publish ? "Add and put on sale" : "Add as draft"}
+                Add and put on sale
               </Button>
             </div>
           </div>
