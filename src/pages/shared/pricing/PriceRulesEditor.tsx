@@ -263,7 +263,7 @@ export function PriceRulesEditor({
   return (
     <Block
       title="Rules"
-      subtitle="Quantity discounts, extras, minimums, area rates and formulas, on top of your prices. They apply in the order of the steps below."
+      subtitle="Advanced: discounts, area rates and formulas."
       actions={
         editable ? (
           <Button size="sm" variant="secondary" icon={Plus} onClick={() => setRules([...rules, { label: "", scope: "item", kind: "fixed", params: blankParams("fixed", "item") }])}>

@@ -79,7 +79,7 @@ export function Preview({ branchId, product, prices }: { branchId: string; produ
 
   const field = cn("px-2 py-1 rounded-md border text-sm", t.input);
   return (
-    <Block title="Try an order" subtitle="See what a customer would pay with the prices above — before you save.">
+    <Block title="Try an order">
       <div className="flex flex-wrap items-end gap-2">
         {product.attributes
           .filter((a) => a.options.length)

@@ -4,7 +4,7 @@ import { useThemeClasses } from "../../../lib/theme";
 import { cn } from "../../../lib/utils";
 import { useToast } from "../../../contexts/ToastContext";
 import { Badge, Button } from "../../../components/ui";
-import { Plus, Trash2 } from "../../../components/icons";
+import { ChevronDown, Plus, Trash2 } from "../../../components/icons";
 import { apiService } from "../../../services/api";
 import {
   inputTypeOf,
@@ -23,6 +23,7 @@ import {
 } from "../../../services/api/shopPricing";
 import { Block, Notice, Preview } from "./parts";
 import { SimplePrices } from "./SimplePrices";
+import type { PickedListing } from "./NewServicePicker";
 import { FieldConfigEditor, VisibilityEditor } from "./FieldSettings";
 import { FIELD_TYPES } from "./fieldTypes";
 import { PriceRulesEditor } from "./PriceRulesEditor";
@@ -70,11 +71,11 @@ const keyFrom = (name: string, taken: Set<string>) => {
   return key;
 };
 
-const SIZE_MODES: Array<{ mode: SizeMode; title: string; body: string }> = [
-  { mode: "none", title: "No sizes", body: "One size, or size doesn’t change the price." },
-  { mode: "preset", title: "Sizes you list", body: "Customers pick from your sizes." },
-  { mode: "custom", title: "Customer’s size", body: "Customers type width and height." },
-  { mode: "both", title: "Both", body: "Your sizes, or their own." },
+const SIZE_MODES: Array<{ mode: SizeMode; title: string }> = [
+  { mode: "none", title: "None" },
+  { mode: "preset", title: "Your sizes" },
+  { mode: "custom", title: "Any size" },
+  { mode: "both", title: "Both" },
 ];
 
 /**
@@ -85,12 +86,15 @@ const SIZE_MODES: Array<{ mode: SizeMode; title: string; body: string }> = [
 export function OwnProductEditor({
   branchId,
   row,
+  listing,
   canEdit,
   onClose,
 }: {
   branchId: string;
   /** null = a new product */
   row: OwnProductRow | null;
+  /** A new service's category, chosen before the editor opens */
+  listing?: PickedListing;
   canEdit: boolean;
   onClose: () => void;
 }) {
@@ -111,8 +115,8 @@ export function OwnProductEditor({
   });
 
   const [name, setName] = useState(row?.name ?? "");
-  const [categoryId, setCategoryId] = useState("");
-  const [subCategoryId, setSubCategoryId] = useState(row?.subCategoryId ?? "");
+  const [categoryId, setCategoryId] = useState(listing?.categoryId ?? "");
+  const [subCategoryId, setSubCategoryId] = useState(row?.subCategoryId ?? listing?.subCategoryId ?? "");
   const [unit, setUnit] = useState<PricingUnit>(row?.pricingUnit ?? "item");
   const [sizeMode, setSizeMode] = useState<SizeMode>("none");
   const [sizes, setSizes] = useState<SizeDraft[]>([]);
@@ -125,6 +129,11 @@ export function OwnProductEditor({
   const [onSale, setOnSale] = useState(!!row?.onSale);
   const [saving, setSaving] = useState(false);
   const [problems, setProblems] = useState<string[]>([]);
+  /** The category is picked before the editor opens; show its selects only when changing it */
+  const [changingListing, setChangingListing] = useState(false);
+  /** Fields with their extra settings open */
+  const [openFields, setOpenFields] = useState<Record<number, boolean>>({});
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const { data: subCategories = [] } = useQuery({
     queryKey: ["serviceSubCategories", categoryId, branchId],
@@ -171,6 +180,7 @@ export function OwnProductEditor({
     );
     setQuoteMode(p.quoteMode ?? "instant");
     setDescription(p.description ?? "");
+    setMoreOpen(!!p.description || p.quoteMode === "quote");
     setPrices({ entries: data.prices?.entries ?? [], modifiers: data.prices?.modifiers ?? [], rules: data.prices?.rules ?? [] });
     setPricesLoaded((n) => n + 1);
   }, [data]);
@@ -344,40 +354,51 @@ export function OwnProductEditor({
   };
 
   const setChoice = (i: number, c: ChoiceDraft) => setChoices(choices.map((x, j) => (j === i ? c : x)));
+  const categoryName = categories.find((c) => c.id === categoryId)?.name;
+  const typeName = subCategories.find((s) => s.id === subCategoryId)?.name;
+  const segment = (on: boolean) =>
+    cn("flex-1 px-2 py-1.5 rounded-md text-sm font-medium transition-colors", on ? "bg-amber-400 text-gray-900" : cn(t.textSecondary, "hover:bg-black/5 dark:hover:bg-white/5"));
 
   return (
     <>
       <div className={cn("fixed inset-0 bg-black/50 z-50 transition-opacity duration-200", shown ? "opacity-100" : "opacity-0")} onClick={close} />
       <aside
         className={cn(
-          "fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[640px] flex flex-col shadow-2xl transition-transform duration-200",
+          "fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[600px] flex flex-col shadow-2xl transition-transform duration-200",
           t.isDark ? "bg-gray-900" : "bg-white",
           shown ? "translate-x-0" : "translate-x-full",
         )}
         role="dialog"
         aria-label={productId ? `Edit ${name}` : "New service"}
       >
-        <div className={cn("px-6 py-4 border-b flex items-center gap-3", t.border)}>
-          <div className="flex-1 min-w-0">
-            <h3 className={cn("text-base font-semibold truncate", t.text)}>{productId ? name || "Your product" : "New service"}</h3>
-            <p className={cn("text-xs", t.textSecondary)}>What customers can order from you, and its price</p>
-          </div>
-          {productId && <Badge color={onSale ? "green" : "amber"}>{onSale ? "On sale" : "Not on sale yet"}</Badge>}
-          <button type="button" onClick={close} className={cn("text-sm", t.textSecondary)} aria-label="Close">✕</button>
+        <div className={cn("px-5 py-4 border-b flex items-center gap-3", t.border)}>
+          <h3 className={cn("flex-1 min-w-0 text-base font-semibold truncate", t.text)}>{productId ? name || "Your service" : "New service"}</h3>
+          {productId && <Badge color={onSale ? "green" : "amber"}>{onSale ? "On sale" : "Not on sale"}</Badge>}
+          <button type="button" onClick={close} className={cn("p-1 text-sm", t.textSecondary)} aria-label="Close">✕</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7">
           {productId && isLoading ? (
             <p className={cn("text-sm", t.textSecondary)}>Loading…</p>
           ) : (
             <>
-              <Block title="Service">
-                <div className="space-y-3">
-                  <label className="block text-xs">
-                    <span className={t.textSecondary}>Name</span>
-                    <input className={cn(field, "mt-1")} value={name} disabled={!canEdit} maxLength={120} placeholder="e.g. Branded tote bag" onChange={(e) => setName(e.target.value)} />
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* ── The basics ── */}
+              <div className="space-y-3">
+                <label className="block text-xs">
+                  <span className={t.textSecondary}>Name</span>
+                  <input className={cn(field, "mt-1 text-base")} value={name} disabled={!canEdit} maxLength={120} placeholder="e.g. Flexi banner" onChange={(e) => setName(e.target.value)} />
+                </label>
+
+                {categoryName && typeName && !changingListing ? (
+                  <p className={cn("text-sm flex items-center gap-2", t.text)}>
+                    <span className={t.textSecondary}>In</span>
+                    <span className="font-medium truncate">{categoryName} › {typeName}</span>
+                    {canEdit && (
+                      <button type="button" className={cn("text-xs underline", t.textSecondary)} onClick={() => setChangingListing(true)}>Change</button>
+                    )}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
                     <label className="block text-xs">
                       <span className={t.textSecondary}>Category</span>
                       <select className={cn(field, "mt-1")} value={categoryId} disabled={!canEdit} onChange={(e) => { setCategoryId(e.target.value); setSubCategoryId(""); }}>
@@ -386,68 +407,139 @@ export function OwnProductEditor({
                       </select>
                     </label>
                     <label className="block text-xs">
-                      <span className={t.textSecondary}>Listed under</span>
+                      <span className={t.textSecondary}>Type</span>
                       <select className={cn(field, "mt-1")} value={subCategoryId} disabled={!canEdit || !categoryId} onChange={(e) => setSubCategoryId(e.target.value)}>
-                        <option value="">{categoryId ? "Choose…" : "Pick a category first"}</option>
+                        <option value="">Choose…</option>
                         {subCategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </label>
                   </div>
-                  <label className="block text-xs">
-                    <span className={t.textSecondary}>Description customers see (optional)</span>
-                    <textarea className={cn(field, "mt-1")} rows={2} maxLength={2000} value={description} disabled={!canEdit}
-                      placeholder="What it is, turnaround, what to send" onChange={(e) => setDescription(e.target.value)} />
-                  </label>
-                  <div className="text-xs">
-                    <span className={t.textSecondary}>How customers get a price</span>
-                    <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {([
-                        ["instant", "Instant price", "Priced from your price table and rules."],
-                        ["quote", "Quote on request", "Customers send their answers; you reply with a quote."],
-                      ] as const).map(([mode, title, body]) => (
-                        <button key={mode} type="button" disabled={!canEdit} onClick={() => setQuoteMode(mode)} aria-pressed={quoteMode === mode}
-                          className={cn("text-left rounded-lg border px-3 py-2", quoteMode === mode ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20" : t.border)}>
-                          <p className={cn("text-sm font-medium", t.text)}>{title}</p>
-                          <p className={cn("text-[11px] mt-0.5", t.textSecondary)}>{body}</p>
+                )}
+
+                <label className="block text-xs">
+                  <span className={t.textSecondary}>Charged</span>
+                  <select className={cn(field, "mt-1")} value={unit} disabled={!canEdit} onChange={(e) => setUnit(e.target.value as PricingUnit)}>
+                    {(Object.keys(UNIT_LABEL) as PricingUnit[]).map((u) => <option key={u} value={u}>{UNIT_LABEL[u]}</option>)}
+                  </select>
+                </label>
+                {PAGED(unit) && (
+                  <p className={cn("text-xs", t.textSecondary)}>
+                    Customers give their page count. {unit === "side" ? "Price × pages × copies." : "Price × sheets × copies (2 pages a sheet when printed both sides)."}
+                  </p>
+                )}
+              </div>
+
+              {/* ── Options customers choose ── */}
+              <Block title="Options" subtitle="What customers choose, e.g. Paper or Finish. Skip if there's nothing to choose.">
+                <div className="space-y-3">
+                  {choices.map((c, i) => {
+                    const open = !!openFields[i];
+                    return (
+                      <div key={i} className={cn("rounded-lg border p-3 space-y-2.5", t.border)}>
+                        <div className="flex items-center gap-2">
+                          <input className={cn(small, "flex-1 min-w-0")} placeholder="e.g. Finish" value={c.name} disabled={!canEdit}
+                            onChange={(e) => setChoice(i, { ...c, name: e.target.value })} />
+                          <select className={small} value={c.inputType} disabled={!canEdit} aria-label="How customers answer"
+                            onChange={(e) => {
+                              const inputType = e.target.value as InputType;
+                              // Options belong to choices; settings to fields — switching drops what no longer fits
+                              setChoice(i, {
+                                ...c,
+                                inputType,
+                                options: isOptions(inputType) ? (c.options.length ? c.options : [{ name: "" }]) : [],
+                                config: inputType === c.inputType ? c.config : {},
+                              });
+                            }}>
+                            {FIELD_TYPES.map((f) => <option key={f.type} value={f.type}>{f.label}</option>)}
+                          </select>
+                          {canEdit && (
+                            <button type="button" aria-label="Remove" onClick={() => setChoices(choices.filter((_, j) => j !== i))} className={cn("p-1", t.textTertiary)}>
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+
+                        {isOptions(c.inputType) && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {c.options.map((o, k) => (
+                              <span key={k} className="inline-flex items-center gap-1">
+                                <input className={cn(small, "w-32")} placeholder="e.g. Gloss" value={o.name} disabled={!canEdit}
+                                  onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, name: e.target.value } : x)) })} />
+                                {PAGED(unit) && c.inputType === "select" && (
+                                  <select className={cn(small, "text-xs")} disabled={!canEdit} aria-label={`${o.name || "Option"} prints on`}
+                                    value={o.sides ?? ""}
+                                    onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, sides: e.target.value ? (Number(e.target.value) as 1 | 2) : undefined } : x)) })}>
+                                    <option value="">Sides?</option>
+                                    <option value="1">1 side</option>
+                                    <option value="2">2 sides</option>
+                                  </select>
+                                )}
+                                {canEdit && c.options.length > 1 && (
+                                  <button type="button" aria-label={`Remove ${o.name || "option"}`} className={cn("px-1", t.textTertiary)}
+                                    onClick={() => setChoice(i, { ...c, options: c.options.filter((_, j) => j !== k) })}>✕</button>
+                                )}
+                              </span>
+                            ))}
+                            {canEdit && (
+                              <button type="button" className={cn("text-sm font-medium inline-flex items-center gap-1 px-1", t.textSecondary)}
+                                onClick={() => setChoice(i, { ...c, options: [...c.options, { name: "" }] })}>
+                                <Plus size={14} /> Add
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {!isOptions(c.inputType) && (
+                          <FieldConfigEditor type={c.inputType} config={c.config} disabled={!canEdit} onChange={(config) => setChoice(i, { ...c, config })} />
+                        )}
+
+                        <button type="button" className={cn("text-xs underline", t.textSecondary)} onClick={() => setOpenFields({ ...openFields, [i]: !open })}>
+                          {open ? "Fewer settings" : "More settings"}
                         </button>
-                      ))}
-                    </div>
-                  </div>
-                  <label className="block text-xs">
-                    <span className={t.textSecondary}>One price is for</span>
-                    <select className={cn(field, "mt-1")} value={unit} disabled={!canEdit} onChange={(e) => setUnit(e.target.value as PricingUnit)}>
-                      {(Object.keys(UNIT_LABEL) as PricingUnit[]).map((u) => <option key={u} value={u}>{UNIT_LABEL[u].replace("per ", "each ")}</option>)}
-                    </select>
-                  </label>
-                  {PAGED(unit) && (
-                    <div className={cn("rounded-lg border px-3 py-2 text-xs space-y-1", t.border, t.textSecondary)}>
-                      <p className={cn("font-medium", t.text)}>Priced by the customer's document</p>
-                      <p>
-                        Customers enter their document's pages (or add the PDF and we count them) and how many copies they want.
-                        {unit === "side"
-                          ? " Your price is charged for every printed page: pages × copies."
-                          : " Your price is charged for every sheet of paper: pages ÷ 2 (rounded up) on options that print both sides, then × copies."}
-                      </p>
-                      <p>
-                        Example: 120 pages, 3 copies, double-sided → {unit === "side" ? "360 printed pages" : "180 sheets"}. Mark each option under “What customers fill in” as printing on one side or both.
-                      </p>
-                    </div>
+                        {open && (
+                          <div className={cn("space-y-2.5 pt-2 border-t", t.border)}>
+                            {c.inputType !== "multi_select" && c.inputType !== "checkbox" && (
+                              <label className={cn("text-xs flex items-center gap-1.5", t.textSecondary)}>
+                                <input type="checkbox" checked={c.required} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, required: e.target.checked })} />
+                                Customers must answer
+                              </label>
+                            )}
+                            <input className={cn(small, "w-full text-xs")} placeholder={c.inputType === "checkbox" ? "What ticking it means, e.g. Yes, laminate it" : "Help text for customers"}
+                              maxLength={500} value={c.helpText} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, helpText: e.target.value })} />
+                            {isOptions(c.inputType) &&
+                              c.options.map((o, k) => (
+                                <input key={k} className={cn(small, "w-full text-xs")} placeholder={`Note for ${o.name || "this option"}`} maxLength={500} value={o.description ?? ""} disabled={!canEdit}
+                                  onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, description: e.target.value } : x)) })} />
+                              ))}
+                            <VisibilityEditor
+                              value={c.visibleWhen}
+                              disabled={!canEdit}
+                              onChange={(visibleWhen) => setChoice(i, { ...c, visibleWhen })}
+                              earlier={[
+                                ...(takesPresets ? [{ key: SIZE_KEY, name: "Size", type: "select" as InputType, options: sizes.filter((s) => s.key).map((s) => ({ key: s.key, name: s.name })) }] : []),
+                                ...choices.slice(0, i).map((x) => ({ key: x.key, name: x.name, type: x.inputType, options: x.options })),
+                              ]}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {canEdit && (
+                    <Button size="sm" variant="secondary" icon={Plus}
+                      onClick={() => setChoices([...choices, { name: "", inputType: "select", required: true, options: [{ name: "" }], config: {}, helpText: "", visibleWhen: null }])}>
+                      Add an option
+                    </Button>
                   )}
                 </div>
               </Block>
 
-              <Block title="Sizes" subtitle={AREA(unit) ? "Priced by area, so every order needs a size." : undefined}>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {/* ── Sizes ── */}
+              <Block title="Size">
+                <div className={cn("flex gap-1 p-1 rounded-lg border", t.border)}>
                   {SIZE_MODES.filter((m) => !(AREA(unit) && m.mode === "none")).map((m) => (
-                    <button
-                      key={m.mode}
-                      type="button"
-                      disabled={!canEdit}
-                      onClick={() => setSizeMode(m.mode)}
-                      className={cn("text-left rounded-lg border px-3 py-2", sizeMode === m.mode ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20" : t.border)}
-                    >
-                      <p className={cn("text-sm font-medium", t.text)}>{m.title}</p>
-                      <p className={cn("text-[11px] mt-0.5", t.textSecondary)}>{m.body}</p>
+                    <button key={m.mode} type="button" disabled={!canEdit} onClick={() => setSizeMode(m.mode)} aria-pressed={sizeMode === m.mode} className={segment(sizeMode === m.mode)}>
+                      {m.title}
                     </button>
                   ))}
                 </div>
@@ -455,7 +547,7 @@ export function OwnProductEditor({
                   <div className="mt-3 space-y-2">
                     {sizes.map((s, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <input className={cn(small, "flex-1")} placeholder="Name, e.g. A5" value={s.name} disabled={!canEdit}
+                        <input className={cn(small, "flex-1 min-w-0")} placeholder="e.g. A5" value={s.name} disabled={!canEdit}
                           onChange={(e) => setSizes(sizes.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
                         <input className={cn(small, "w-20")} type="number" min="1" placeholder="W mm" value={s.widthMm} disabled={!canEdit}
                           onChange={(e) => setSizes(sizes.map((x, j) => (j === i ? { ...x, widthMm: e.target.value } : x)))} />
@@ -463,7 +555,7 @@ export function OwnProductEditor({
                         <input className={cn(small, "w-20")} type="number" min="1" placeholder="H mm" value={s.heightMm} disabled={!canEdit}
                           onChange={(e) => setSizes(sizes.map((x, j) => (j === i ? { ...x, heightMm: e.target.value } : x)))} />
                         {canEdit && (
-                          <button type="button" aria-label="Remove size" onClick={() => setSizes(sizes.filter((_, j) => j !== i))} className={t.textTertiary}>
+                          <button type="button" aria-label="Remove size" onClick={() => setSizes(sizes.filter((_, j) => j !== i))} className={cn("p-1", t.textTertiary)}>
                             <Trash2 size={16} />
                           </button>
                         )}
@@ -476,98 +568,9 @@ export function OwnProductEditor({
                 )}
               </Block>
 
-              <Block
-                title="What customers fill in"
-                subtitle="Choices like finish or paper (priced in your price table), and fields like text, sizes, files or dates. A field can show only when an earlier answer matches."
-                actions={canEdit ? (
-                  <Button size="sm" variant="secondary" icon={Plus}
-                    onClick={() => setChoices([...choices, { name: "", inputType: "select", required: true, options: [{ name: "" }], config: {}, helpText: "", visibleWhen: null }])}>
-                    Add a field
-                  </Button>
-                ) : undefined}
-              >
-                {choices.length === 0 && <p className={cn("text-sm", t.textSecondary)}>Nothing yet — customers just pick a quantity.</p>}
-                <div className="space-y-3">
-                  {choices.map((c, i) => (
-                    <div key={i} className={cn("rounded-lg border p-3 space-y-2", t.border)}>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <input className={cn(small, "flex-1 min-w-[140px]")} placeholder="Name, e.g. Finish" value={c.name} disabled={!canEdit}
-                          onChange={(e) => setChoice(i, { ...c, name: e.target.value })} />
-                        <select className={small} value={c.inputType} disabled={!canEdit} aria-label="Field type"
-                          onChange={(e) => {
-                            const inputType = e.target.value as InputType;
-                            // Options belong to choices; settings to fields — switching drops what no longer fits
-                            setChoice(i, {
-                              ...c,
-                              inputType,
-                              options: isOptions(inputType) ? (c.options.length ? c.options : [{ name: "" }]) : [],
-                              config: inputType === c.inputType ? c.config : {},
-                            });
-                          }}>
-                          {FIELD_TYPES.map((f) => <option key={f.type} value={f.type}>{f.label}</option>)}
-                        </select>
-                        {c.inputType !== "multi_select" && c.inputType !== "checkbox" && (
-                          <label className={cn("text-xs flex items-center gap-1", t.textSecondary)}>
-                            <input type="checkbox" checked={c.required} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, required: e.target.checked })} />
-                            Must answer
-                          </label>
-                        )}
-                        {canEdit && (
-                          <button type="button" aria-label="Remove choice" onClick={() => setChoices(choices.filter((_, j) => j !== i))} className={t.textTertiary}>
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                      {isOptions(c.inputType) ? (
-                        <div className="flex flex-wrap gap-2">
-                          {c.options.map((o, k) => (
-                            <span key={k} className="inline-flex flex-col gap-1">
-                              <span className="inline-flex items-center gap-1">
-                                <input className={cn(small, "w-36")} placeholder="Option, e.g. Gloss" value={o.name} disabled={!canEdit}
-                                  onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, name: e.target.value } : x)) })} />
-                                {canEdit && c.options.length > 1 && (
-                                  <button type="button" aria-label="Remove option" className={t.textTertiary}
-                                    onClick={() => setChoice(i, { ...c, options: c.options.filter((_, j) => j !== k) })}>✕</button>
-                                )}
-                              </span>
-                              <input className={cn(small, "w-36 text-xs py-1")} placeholder="Short note (optional)" maxLength={500} value={o.description ?? ""} disabled={!canEdit}
-                                onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, description: e.target.value } : x)) })} />
-                              {PAGED(unit) && c.inputType === "select" && (
-                                <select className={cn(small, "w-36 text-xs py-1")} disabled={!canEdit} aria-label={`${o.name || "Option"} prints on`}
-                                  value={o.sides ?? ""}
-                                  onChange={(e) => setChoice(i, { ...c, options: c.options.map((x, j) => (j === k ? { ...x, sides: e.target.value ? (Number(e.target.value) as 1 | 2) : undefined } : x)) })}>
-                                  <option value="">Sides: not set</option>
-                                  <option value="1">Prints one side</option>
-                                  <option value="2">Prints both sides</option>
-                                </select>
-                              )}
-                            </span>
-                          ))}
-                          {canEdit && (
-                            <Button size="sm" variant="ghost" icon={Plus} onClick={() => setChoice(i, { ...c, options: [...c.options, { name: "" }] })}>Option</Button>
-                          )}
-                        </div>
-                      ) : (
-                        <FieldConfigEditor type={c.inputType} config={c.config} disabled={!canEdit} onChange={(config) => setChoice(i, { ...c, config })} />
-                      )}
-                      <input className={cn(small, "w-full text-xs")} placeholder={c.inputType === "checkbox" ? "What ticking it means, e.g. Yes, laminate it" : "Help for customers (optional)"}
-                        maxLength={500} value={c.helpText} disabled={!canEdit} onChange={(e) => setChoice(i, { ...c, helpText: e.target.value })} />
-                      <VisibilityEditor
-                        value={c.visibleWhen}
-                        disabled={!canEdit}
-                        onChange={(visibleWhen) => setChoice(i, { ...c, visibleWhen })}
-                        earlier={[
-                          ...(takesPresets ? [{ key: SIZE_KEY, name: "Size", type: "select" as InputType, options: sizes.filter((s) => s.key).map((s) => ({ key: s.key, name: s.name })) }] : []),
-                          ...choices.slice(0, i).map((x) => ({ key: x.key, name: x.name, type: x.inputType, options: x.options })),
-                        ]}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </Block>
-
+              {/* ── Price ── */}
               {quoteMode === "quote" ? (
-                <Block title="Price" subtitle="Quote on request: customers send their answers through the Printdecore assistant and you reply with a price. No price table needed." >
+                <Block title="Price" subtitle="You quote each job — customers send their details and you reply with a price.">
                   <span />
                 </Block>
               ) : (
@@ -583,23 +586,47 @@ export function OwnProductEditor({
               )}
 
               {product && quoteMode !== "quote" && (fieldsChanged ? (
-                <Notice>Save to try orders with the fields you just changed.</Notice>
+                <Notice>Save to try an order with your changes.</Notice>
               ) : (
                 <Preview branchId={branchId} product={product} prices={prices} />
               ))}
               {product && <ServiceMedia branchId={branchId} product={product} canEdit={canEdit} />}
+
+              {/* ── Rarely needed ── */}
+              <div className={cn("border-t pt-4", t.border)}>
+                <button type="button" className={cn("text-sm font-medium inline-flex items-center gap-1", t.text)} onClick={() => setMoreOpen(!moreOpen)} aria-expanded={moreOpen}>
+                  <ChevronDown size={16} className={cn("transition-transform", !moreOpen && "-rotate-90")} />
+                  More settings
+                </button>
+                {moreOpen && (
+                  <div className="mt-3 space-y-3">
+                    <label className="block text-xs">
+                      <span className={t.textSecondary}>Description for customers</span>
+                      <textarea className={cn(field, "mt-1")} rows={2} maxLength={2000} value={description} disabled={!canEdit}
+                        placeholder="What it is, turnaround, what to send" onChange={(e) => setDescription(e.target.value)} />
+                    </label>
+                    <label className={cn("flex items-start gap-2 text-sm", t.text)}>
+                      <input type="checkbox" className="mt-1" checked={quoteMode === "quote"} disabled={!canEdit} onChange={(e) => setQuoteMode(e.target.checked ? "quote" : "instant")} />
+                      <span>
+                        Quote each job instead of a fixed price
+                        <span className={cn("block text-xs", t.textSecondary)}>Customers send their details; you reply with a price.</span>
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
 
         {canEdit && (
-          <div className={cn("px-6 py-3 border-t flex items-center gap-3", t.border)}>
-            <div className="flex-1 text-xs space-y-0.5">
+          <div className={cn("px-5 py-3 border-t flex items-center gap-3", t.border)}>
+            <div className="flex-1 min-w-0 text-xs space-y-0.5">
               {problems.length ? (
                 problems.map((p, i) => <p key={i} className="text-red-500">{p}</p>)
-              ) : (
-                <p className={t.textSecondary}>{dirty ? "Unsaved changes — saving puts them live straight away." : "Saving puts changes live straight away."}</p>
-              )}
+              ) : dirty && productId && baseline ? (
+                <p className={t.textSecondary}>Unsaved changes</p>
+              ) : null}
             </div>
             {productId && <Button variant="ghost" onClick={remove}>Remove</Button>}
             <Button onClick={save} loading={saving} disabled={!!productId && !dirty}>Save</Button>

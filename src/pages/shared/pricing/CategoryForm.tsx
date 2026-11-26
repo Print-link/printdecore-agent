@@ -9,95 +9,7 @@ import { apiService } from "../../../services/api";
 import { pricingError } from "../../../services/api/shopPricing";
 import type { ServiceCategory } from "../../../types";
 
-/**
- * The shop's own categories: what customers browse to find its products.
- * Each has a photo, a short description and the types inside it (e.g.
- * "Marketing prints" → Flyers, Posters). Printdecore's categories are shown
- * too, read-only — the shop can use them but not change them.
- */
-export function CategoriesPanel({ branchId, canEdit, onClose }: { branchId: string; canEdit: boolean; onClose: () => void }) {
-  const t = useThemeClasses();
-  const [shown, setShown] = useState(false);
-  const [editing, setEditing] = useState<ServiceCategory | null | undefined>(undefined);
-
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["serviceCategories", branchId],
-    queryFn: () => apiService.getServiceCategories(branchId),
-  });
-  const own = categories.filter((c) => c.branchId === branchId);
-  const platform = categories.filter((c) => !c.branchId);
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  const close = () => {
-    setShown(false);
-    setTimeout(onClose, 200);
-  };
-
-  return (
-    <>
-      <div className={cn("fixed inset-0 bg-black/50 z-50 transition-opacity duration-200", shown ? "opacity-100" : "opacity-0")} onClick={close} />
-      <aside
-        role="dialog"
-        aria-label="Categories"
-        className={cn(
-          "fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[560px] flex flex-col shadow-2xl transition-transform duration-200",
-          t.isDark ? "bg-gray-900" : "bg-white",
-          shown ? "translate-x-0" : "translate-x-full",
-        )}
-      >
-        <div className={cn("px-6 py-4 border-b flex items-center gap-3", t.border)}>
-          <div className="flex-1 min-w-0">
-            <h3 className={cn("text-base font-semibold", t.text)}>Categories</h3>
-            <p className={cn("text-xs", t.textSecondary)}>How customers find your products. Add a photo so each one stands out.</p>
-          </div>
-          {canEdit && editing === undefined && <Button size="sm" icon={Plus} onClick={() => setEditing(null)}>New category</Button>}
-          <button type="button" onClick={close} className={cn("p-2 rounded-lg", t.textSecondary)} aria-label="Close"><X size={18} /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {editing !== undefined ? (
-            <CategoryForm branchId={branchId} category={editing} onDone={() => setEditing(undefined)} />
-          ) : isLoading ? (
-            <p className={cn("text-sm", t.textSecondary)}>Loading…</p>
-          ) : (
-            <>
-              <section>
-                <p className={cn("text-xs font-semibold uppercase tracking-wide mb-2", t.textSecondary)}>Your categories</p>
-                {own.length === 0 ? (
-                  <div className={cn("rounded-xl border border-dashed px-4 py-6 text-center", t.border)}>
-                    <p className={cn("text-sm", t.text)}>You haven't made any yet</p>
-                    <p className={cn("text-xs mt-1", t.textSecondary)}>Make one for anything that doesn't fit Printdecore's list — or let the pricing assistant make them for you.</p>
-                    {canEdit && <Button size="sm" className="mt-3" icon={Plus} onClick={() => setEditing(null)}>New category</Button>}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {own.map((c) => (
-                      <CategoryTile key={c.id} category={c} onEdit={canEdit ? () => setEditing(c) : undefined} />
-                    ))}
-                  </div>
-                )}
-              </section>
-              <section>
-                <p className={cn("text-xs font-semibold uppercase tracking-wide mb-2", t.textSecondary)}>Printdecore's categories</p>
-                <p className={cn("text-xs mb-2", t.textSecondary)}>You can list products in these too.</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {platform.map((c) => (
-                    <span key={c.id} className={cn("text-xs rounded-full px-2.5 py-1", t.surfaceInset, t.text)}>{c.name}</span>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
-        </div>
-      </aside>
-    </>
-  );
-}
-
-function CategoryTile({ category: c, onEdit }: { category: ServiceCategory; onEdit?: () => void }) {
+export function CategoryTile({ category: c, onEdit }: { category: ServiceCategory; onEdit?: () => void }) {
   const t = useThemeClasses();
   return (
     <button
@@ -117,8 +29,19 @@ function CategoryTile({ category: c, onEdit }: { category: ServiceCategory; onEd
   );
 }
 
-/** Make or change a category: photo, name, description and the types inside it */
-function CategoryForm({ branchId, category, onDone }: { branchId: string; category: ServiceCategory | null; onDone: () => void }) {
+/** Make or change a category: photo, name, description and the types inside it. `onDone` gets the saved category (none when cancelled or deleted). */
+export function CategoryForm({
+  branchId,
+  category,
+  onDone,
+  bare = false,
+}: {
+  branchId: string;
+  category: ServiceCategory | null;
+  onDone: (saved?: ServiceCategory) => void;
+  /** Inside a dialog that already shows the title and a back button */
+  bare?: boolean;
+}) {
   const t = useThemeClasses();
   const qc = useQueryClient();
   const { success, error: showError } = useToast();
@@ -168,8 +91,8 @@ function CategoryForm({ branchId, category, onDone }: { branchId: string; catego
         await apiService.createServiceSubCategory({ categoryId: saved.id, name: type, pricingType: "MIXED", branchId });
       }
       refresh();
-      success(category ? `${name.trim()} updated` : `${name.trim()} is ready — customers will see it once a product is on sale in it`, category ? "Category saved" : "Category added", 4500);
-      onDone();
+      success(category ? `${name.trim()} updated` : `${name.trim()} is ready`, category ? "Category saved" : "Category added", 4000);
+      onDone(saved);
     } catch (e) {
       showError(pricingError(e).message, "Couldn't save the category", 5000);
     } finally {
@@ -204,10 +127,10 @@ function CategoryForm({ branchId, category, onDone }: { branchId: string; catego
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2">
+      {!bare && <div className="flex items-center gap-2">
         <h4 className={cn("text-sm font-semibold flex-1", t.text)}>{category ? `Edit ${category.name}` : "New category"}</h4>
-        <button type="button" className={cn("text-xs", t.textSecondary)} onClick={onDone}>Cancel</button>
-      </div>
+        <button type="button" className={cn("text-xs", t.textSecondary)} onClick={() => onDone()}>Cancel</button>
+      </div>}
 
       <label className={cn("block rounded-xl border-2 border-dashed overflow-hidden cursor-pointer", t.border)}>
         <div className={cn("aspect-[16/9] flex flex-col items-center justify-center relative", t.surfaceInset)}>
@@ -282,7 +205,7 @@ function CategoryForm({ branchId, category, onDone }: { branchId: string; catego
           </button>
         )}
         <div className="ml-auto flex gap-2">
-          <Button variant="secondary" onClick={onDone} disabled={busy}>Cancel</Button>
+          <Button variant="secondary" onClick={() => onDone()} disabled={busy}>Cancel</Button>
           <Button onClick={() => void submit()} loading={busy}>{category ? "Save" : "Add category"}</Button>
         </div>
       </div>

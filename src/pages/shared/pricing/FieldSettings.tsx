@@ -1,9 +1,79 @@
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "../../../components/icons";
 import { useThemeClasses } from "../../../lib/theme";
 import { cn } from "../../../lib/utils";
 import type { Condition, ConditionOp, FieldConfig, InputType, LengthUnit } from "../../../services/api/shopPricing";
 import type { FieldRef } from "./fieldTypes";
 
 const LENGTH_UNITS: LengthUnit[] = ["mm", "cm", "m", "in", "ft"];
+
+/** Print file types a shop can ask for (extensions, no dot) */
+const FILE_TYPES: Array<{ ext: string; label: string }> = [
+  { ext: "pdf", label: "PDF" },
+  { ext: "jpg", label: "JPG / JPEG" },
+  { ext: "png", label: "PNG" },
+  { ext: "ai", label: "Illustrator (AI)" },
+  { ext: "psd", label: "Photoshop (PSD)" },
+  { ext: "cdr", label: "CorelDRAW (CDR)" },
+  { ext: "eps", label: "EPS" },
+  { ext: "svg", label: "SVG" },
+  { ext: "tiff", label: "TIFF" },
+  { ext: "docx", label: "Word (DOCX)" },
+  { ext: "pptx", label: "PowerPoint (PPTX)" },
+];
+
+/** A dropdown of file types to tick; none ticked = any print file */
+function FileTypesSelect({ value, onChange, disabled }: { value: string[]; onChange: (v: string[]) => void; disabled?: boolean }) {
+  const t = useThemeClasses();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => box.current && !box.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
+  // Keep types saved earlier that aren't in the list
+  const options = [...FILE_TYPES, ...value.filter((v) => !FILE_TYPES.some((f) => f.ext === v)).map((ext) => ({ ext, label: ext.toUpperCase() }))];
+  const label = value.length ? options.filter((o) => value.includes(o.ext)).map((o) => o.ext.toUpperCase()).join(", ") : "Any print file";
+  const toggle = (ext: string) => onChange(value.includes(ext) ? value.filter((v) => v !== ext) : [...value, ext]);
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn("w-full px-2 py-1.5 rounded-md border text-sm flex items-center justify-between gap-2 text-left", t.input)}
+      >
+        <span className={cn("truncate", !value.length && t.textTertiary)}>{label}</span>
+        <ChevronDown size={14} className="shrink-0" />
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          aria-multiselectable
+          className={cn("absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border shadow-lg py-1", t.border, t.isDark ? "bg-gray-800" : "bg-white")}
+        >
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className={cn("w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20", t.text)}
+          >
+            <input type="radio" readOnly checked={!value.length} tabIndex={-1} /> Any print file
+          </button>
+          {options.map((o) => (
+            <label key={o.ext} className={cn("px-3 py-1.5 text-sm flex items-center gap-2 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20", t.text)}>
+              <input type="checkbox" checked={value.includes(o.ext)} onChange={() => toggle(o.ext)} />
+              {o.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 
 const num = (v: string) => (v.trim() === "" ? undefined : Number(v));
@@ -117,23 +187,10 @@ export function FieldConfigEditor({
       return (
         <div className="flex flex-wrap gap-3">
           {numberInput("Files allowed", "maxFiles", "5")}
-          <label className={cn("text-xs flex flex-col gap-1 flex-1 min-w-[160px]", t.textSecondary)}>
-            File types (blank = any print file)
-            <input
-              className={small}
-              disabled={disabled}
-              placeholder="pdf, png, ai"
-              value={(config.accept ?? []).join(", ")}
-              onChange={(e) =>
-                set({
-                  accept: e.target.value
-                    .split(/[,\s]+/)
-                    .map((x) => x.replace(/^\./, "").toLowerCase())
-                    .filter(Boolean),
-                })
-              }
-            />
-          </label>
+          <div className={cn("text-xs flex flex-col gap-1 flex-1 min-w-[160px]", t.textSecondary)}>
+            File types
+            <FileTypesSelect value={config.accept ?? []} disabled={disabled} onChange={(accept) => set({ accept })} />
+          </div>
         </div>
       );
     case "date":

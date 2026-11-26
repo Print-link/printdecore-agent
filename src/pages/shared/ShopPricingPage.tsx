@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/authStore";
 import { useBranchStore } from "../../stores/branchStore";
@@ -6,11 +6,11 @@ import { useThemeClasses } from "../../lib/theme";
 import { cn } from "../../lib/utils";
 import { usePermissions } from "../../hooks/usePermissions";
 import { Badge, Button, Card, EmptyState, PageHeader } from "../../components/ui";
-import { Layers, Plus, Search, Sparkles, Tag, Upload } from "../../components/icons";
+import { Plus, Search, Sparkles, Tag, Upload } from "../../components/icons";
 import { pricingError, shopPricingApi, UNIT_LABEL, type OwnProductRow } from "../../services/api/shopPricing";
 import { OwnProductEditor } from "./pricing/OwnProductEditor";
 import { PricingAssistant } from "./pricing/PricingAssistant";
-import { CategoriesPanel } from "./pricing/CategoriesPanel";
+import { NewServicePicker, type PickedListing } from "./pricing/NewServicePicker";
 
 /**
  * The shop's services and their prices. Each service is the shop's own: add
@@ -32,7 +32,14 @@ export default function ShopPricingPage() {
   /** undefined = closed, null = a new service */
   const [editing, setEditing] = useState<OwnProductRow | null | undefined>(undefined);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  /** New service: its category is picked first, then the editor opens with it */
+  const [picking, setPicking] = useState(false);
+  const [listing, setListing] = useState<PickedListing | undefined>(undefined);
+  const picked = useCallback((l: PickedListing) => {
+    setPicking(false);
+    setListing(l);
+    setEditing(null);
+  }, []);
   const [search, setSearch] = useState("");
 
   const groups = useMemo(() => {
@@ -58,8 +65,7 @@ export default function ShopPricingPage() {
         actions={
           canEdit ? (
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" icon={Layers} onClick={() => setCategoriesOpen(true)}>Categories</Button>
-              <Button variant="secondary" icon={Plus} onClick={() => setEditing(null)}>New service</Button>
+              <Button variant="secondary" icon={Plus} onClick={() => setPicking(true)}>New service</Button>
               <Button icon={Sparkles} onClick={() => setAssistantOpen(true)}>Set up with AI</Button>
             </div>
           ) : undefined
@@ -138,9 +144,20 @@ export default function ShopPricingPage() {
         ))
       )}
 
-      {editing !== undefined && <OwnProductEditor branchId={branchId} row={editing} canEdit={canEdit} onClose={() => setEditing(undefined)} />}
+      {picking && <NewServicePicker branchId={branchId} onPicked={picked} onClose={() => setPicking(false)} />}
+      {editing !== undefined && (
+        <OwnProductEditor
+          branchId={branchId}
+          row={editing}
+          listing={editing === null ? listing : undefined}
+          canEdit={canEdit}
+          onClose={() => {
+            setEditing(undefined);
+            setListing(undefined);
+          }}
+        />
+      )}
       {assistantOpen && <PricingAssistant branchId={branchId} onClose={() => setAssistantOpen(false)} />}
-      {categoriesOpen && <CategoriesPanel branchId={branchId} canEdit={canEdit} onClose={() => setCategoriesOpen(false)} />}
     </div>
   );
 }

@@ -107,7 +107,7 @@ export function ServiceMedia({ branchId, product, canEdit }: { branchId: string;
   const inputFields = product.attributes.filter((a) => !(inputTypeOf(a) === "select" || inputTypeOf(a) === "multi_select"));
 
   return (
-    <Block title="Pictures" subtitle="JPEG, PNG or WebP, up to 5 MB, at least 300 px a side. Customers see them straight away.">
+    <Block title="Pictures" subtitle="JPEG, PNG or WebP, up to 5 MB.">
       <input ref={input} type="file" accept={ACCEPT} className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
       {isLoading ? (
         <p className={cn("text-sm", t.textSecondary)}>Loading…</p>

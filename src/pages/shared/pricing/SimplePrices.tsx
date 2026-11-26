@@ -131,11 +131,11 @@ export function SimplePrices({
     );
 
   return (
-    <Block title="Price" subtitle={`What one unit costs (${unit}). Customers see the total for their order.`}>
+    <Block title="Price">
       <div className="space-y-4">
         <div className={cn("rounded-lg border p-3", t.border)}>
           <label className="text-xs block max-w-[220px]">
-            <span className={t.textSecondary}>{combos.length ? `Price ${unit} (anything not listed below)` : `Price ${unit}`}</span>
+            <span className={t.textSecondary}>{combos.length ? `Price ${unit} (everything else)` : `Price ${unit}`}</span>
             <input
               type="number"
               min="0"
@@ -150,7 +150,7 @@ export function SimplePrices({
           {baseIndex >= 0 && moreFields(entries[baseIndex], baseIndex)}
           {baseIndex >= 0 && combos.length > 0 && canEdit && (
             <button type="button" className={cn("text-xs underline mt-2", t.textSecondary)} onClick={() => removeEntry(baseIndex)}>
-              No general price — only the options listed below
+              Remove this price
             </button>
           )}
         </div>
@@ -165,10 +165,7 @@ export function SimplePrices({
               )
             ) : (
               <div className="space-y-2">
-                <p className={cn("text-xs font-medium", t.text)}>Prices for particular options</p>
-                <p className={cn("text-xs -mt-1", t.textSecondary)}>
-                  For example A3 glossy at 1.20. “Any” matches every option. The most specific row that fits the order is used.
-                </p>
+                <p className={cn("text-xs font-medium", t.text)}>Prices for some options</p>
                 {combos.map(({ e, i }) => (
                   <div key={i} className={cn("rounded-lg border p-2.5", t.border)}>
                     <div className="flex flex-wrap items-end gap-2">
@@ -222,13 +219,12 @@ export function SimplePrices({
             More pricing options
           </button>
           {!showMore ? (
-            <p className={cn("text-xs mt-1", t.textSecondary)}>Bulk prices, setup fees, minimums, extras for options, and rules.</p>
+            <p className={cn("text-xs mt-1", t.textSecondary)}>Bulk prices, setup fee, minimum, extras.</p>
           ) : (
             <div className="space-y-5 mt-3">
               {optionLabels.length > 0 && (
                 <div className="space-y-2">
                   <p className={cn("text-xs font-medium", t.text)}>Extras for options</p>
-                  <p className={cn("text-xs -mt-1", t.textSecondary)}>Added on top of the price when the customer picks the option — e.g. lamination 2.00 each copy.</p>
                   {modifiers.map((m, i) => (
                     <div key={i} className="flex flex-wrap items-center gap-2">
                       <select className={cn(cell, "w-auto flex-1 min-w-[160px]")} disabled={!canEdit} value={m.optionKey}
