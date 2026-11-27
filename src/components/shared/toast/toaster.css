@@ -1,0 +1,142 @@
+/*
+ * Printdecore toast (same look as the customer app). Flat: no shadow; a dark
+ * card in light mode, a lifted grey card with a hairline in dark mode.
+ */
+.pd-toaster {
+	--pd-toast-bg: #111111;
+	--pd-toast-line: #111111;
+	--pd-toast-ink: #ffffff;
+	--pd-toast-ink-2: rgba(255, 255, 255, 0.62);
+	--pd-toast-track: rgba(255, 255, 255, 0.1);
+	position: fixed;
+	z-index: 2147482000;
+	top: calc(env(safe-area-inset-top) + 12px);
+	left: 50%;
+	translate: -50% 0;
+	width: min(400px, calc(100vw - 24px));
+	transition: height 0.35s cubic-bezier(0.2, 1, 0.3, 1);
+	font-family: inherit;
+}
+[data-theme="dark"] .pd-toaster,
+.dark .pd-toaster {
+	--pd-toast-bg: #262626;
+	--pd-toast-line: #383838;
+}
+
+/* Each card sits in a slot that the deck moves; the card itself animates */
+.pd-toast-slot {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	transform-origin: top center;
+	transition: transform 0.38s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.25s;
+}
+.pd-toast-slot[data-behind] .pd-toast > * { opacity: 0; transition: opacity 0.12s; }
+
+.pd-toast {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 10px 12px;
+	border-radius: 16px;
+	background: var(--pd-toast-bg);
+	border: 1px solid var(--pd-toast-line);
+	color: var(--pd-toast-ink);
+	overflow: hidden;
+	font-size: 14px;
+	line-height: 20px;
+	font-weight: 500;
+	-webkit-font-smoothing: antialiased;
+	touch-action: none;
+	user-select: none;
+}
+.pd-toast > * { transition: opacity 0.2s; }
+.pd-toast-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pd-toast-title { margin: 0; font-weight: 600; }
+.pd-toast-title + .pd-toast-message { color: var(--pd-toast-ink-2); font-weight: 400; }
+
+/* Icon tile: tinted square, the mark draws itself after the card lands */
+.pd-toast-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 10px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	animation: pd-toast-pop 0.5s 0.08s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.pd-toast-icon svg { width: 18px; height: 18px; }
+.pd-toast-icon svg path {
+	stroke-dasharray: 24;
+	stroke-dashoffset: 24;
+	animation: pd-toast-draw 0.42s 0.26s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.pd-toast-icon svg path + path { animation-delay: 0.38s; }
+.pd-toast-icon--success { background: #16a34a; color: #fff; }
+.pd-toast-icon--error { background: #dc2626; color: #fff; }
+.pd-toast-icon--warning { background: #fbbf24; color: #111; }
+.pd-toast-icon--info { background: rgba(251, 191, 36, 0.16); color: #fbbf24; }
+.pd-toast-icon--default,
+.pd-toast-icon--loading { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.pd-toast-emoji { font-size: 17px; line-height: 1; }
+.pd-toast-spinner {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	border: 2px solid rgba(255, 255, 255, 0.2);
+	border-top-color: #fbbf24;
+	animation: pd-toast-spin 0.7s linear infinite;
+}
+
+.pd-toast-close {
+	flex-shrink: 0;
+	width: 28px;
+	height: 28px;
+	margin-right: -2px;
+	padding: 0;
+	border: 0;
+	border-radius: 9px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--pd-toast-ink-2);
+	background: transparent;
+	cursor: pointer;
+	transition: background-color 0.15s, color 0.15s;
+}
+.pd-toast-close svg { width: 15px; height: 15px; }
+.pd-toast-close:hover { background: rgba(255, 255, 255, 0.08); color: var(--pd-toast-ink); }
+.pd-toast-close:active { transform: scale(0.92); }
+
+/* Timer: a hairline along the foot, in the toast's colour */
+.pd-toast-timer { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 2px; border-radius: 2px; background: var(--pd-toast-track); overflow: hidden; }
+.pd-toast-timer-bar { position: absolute; inset: 0; border-radius: 2px; background: #fbbf24; transform-origin: left; animation: pd-toast-timer linear forwards; }
+.pd-toast-timer-bar--success { background: #22c55e; }
+.pd-toast-timer-bar--error { background: #ef4444; }
+
+/* Motion. translate/scale (not transform) so they add to the slot's transform */
+.pd-toast-in { animation: pd-toast-in 0.55s cubic-bezier(0.2, 1.3, 0.35, 1) both; }
+.pd-toast-out { animation: pd-toast-out 0.24s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+
+@keyframes pd-toast-in {
+	from { opacity: 0; translate: 0 -24px; scale: 0.92; }
+	45% { opacity: 1; }
+	to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes pd-toast-out { to { opacity: 0; translate: 0 -14px; scale: 0.94; } }
+@keyframes pd-toast-pop {
+	from { scale: 0.4; opacity: 0; rotate: -12deg; }
+	to { scale: 1; opacity: 1; rotate: 0deg; }
+}
+@keyframes pd-toast-draw { to { stroke-dashoffset: 0; } }
+@keyframes pd-toast-spin { to { rotate: 360deg; } }
+@keyframes pd-toast-timer { from { scale: 1 1; } to { scale: 0 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+	.pd-toast-in, .pd-toast-out { animation-duration: 0.01s; }
+	.pd-toast-slot, .pd-toaster { transition: none; }
+	.pd-toast-icon, .pd-toast-icon svg path { animation: none; stroke-dashoffset: 0; }
+}
